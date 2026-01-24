@@ -427,17 +427,26 @@
                 }
 
                 if (input.name) {
-                    // Map internal name to human label if possible
-                    const elm = (formSchema || []).find(e => e.props && e.props.name === input.name);
-                    const header = (elm && elm.props.label) ? elm.props.label : input.name;
+                    try {
+                        // Safe mapping with fallback
+                        const schema = formSchema || [];
+                        const elm = schema.find(e => e.props && e.props.name === input.name);
 
-                    formData[header] = input.value;
+                        // Priority 1: Label, Priority 2: input.name
+                        const header = (elm && elm.props && elm.props.label) ? elm.props.label : input.name;
 
-                    if (input.dataset.translated) {
-                        const regHeader = (elm && elm.props.labelRegional)
-                            ? elm.props.labelRegional
-                            : `${header} (${targetLang})`;
-                        formData[regHeader] = input.dataset.translated;
+                        formData[header] = input.value;
+
+                        if (input.dataset.translated) {
+                            const regHeader = (elm && elm.props && elm.props.labelRegional)
+                                ? elm.props.labelRegional
+                                : `${header} (${targetLang})`;
+                            formData[regHeader] = input.dataset.translated;
+                        }
+                    } catch (mapErr) {
+                        console.error("Mapping error for input:", input.name, mapErr);
+                        // Extreme fallback: always include the raw value
+                        formData[input.name] = input.value;
                     }
                 }
             });
