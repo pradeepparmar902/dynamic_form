@@ -404,6 +404,78 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .close-modal {
+            cursor: pointer;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .template-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .template-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .template-item:hover {
+            background: var(--surface-alt);
+        }
+
+        .template-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .template-name {
+            font-weight: 600;
+        }
+
+        .template-date {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
     </style>
 </head>
 
@@ -430,6 +502,23 @@
                 Form</span>
         </div>
         <div class="header-actions">
+            <button class="btn btn-outline" onclick="showLoadModal()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Load Form
+            </button>
+            <button class="btn btn-outline" onclick="showEmbedModal()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                Get Embed Code
+            </button>
             <button class="btn btn-outline" onclick="openPreview()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -443,12 +532,45 @@
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                     <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <polyline points="7 3 7 8 15 8"></polyline>
+                    <line x1="7" y1="3" x2="7" y2="8"></line>
+                    <polyline points="15 3 15 8 7 8"></polyline>
                 </svg>
                 Save Form
             </button>
         </div>
     </header>
+
+    <!-- LOAD MODAL -->
+    <div id="loadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Load Existing Form</h3>
+                <span class="close-modal" onclick="closeLoadModal()">&times;</span>
+            </div>
+            <div id="modalLoading" class="hidden">Loading templates...</div>
+            <ul id="templateList" class="template-list">
+                <!-- Templates will be listed here -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- EMBED MODAL -->
+    <div id="embedModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Embed This Form</h3>
+                <span class="close-modal" onclick="closeEmbedModal()">&times;</span>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem;">
+                Copy the code below and paste it into any website where you want the form to appear.
+            </p>
+            <textarea id="embedCodeArea" rows="6" readonly
+                style="width: 100%; padding: 0.75rem; font-family: monospace; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 4px; background: #f8f9fa; margin-bottom: 1rem;"></textarea>
+            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="copyEmbedCode()">
+                Copy to Clipboard
+            </button>
+        </div>
+    </div>
 
     <div class="workspace">
         <!-- SIDEBAR -->
@@ -1144,6 +1266,7 @@
 
             const schema = elements;
             const config = {
+                formName: formConfig.id,
                 targetSheetUrl: formConfig.sheetUrl,
                 targetSheetName: formConfig.sheetName,
                 language: formConfig.language
@@ -1362,6 +1485,178 @@
                     }
                 }
             }
+        }
+
+        // --- LOAD MODAL LOGIC ---
+        function showLoadModal() {
+            const modal = document.getElementById('loadModal');
+            modal.style.display = 'flex';
+            fetchTemplates();
+        }
+
+        function closeLoadModal() {
+            document.getElementById('loadModal').style.display = 'none';
+        }
+
+        function fetchTemplates() {
+            const listEl = document.getElementById('templateList');
+            const loadingEl = document.getElementById('modalLoading');
+
+            listEl.innerHTML = '';
+            loadingEl.classList.remove('hidden');
+
+            if (typeof google !== 'undefined' && google.script) {
+                google.script.run
+                    .withSuccessHandler((templates) => {
+                        loadingEl.classList.add('hidden');
+                        renderTemplates(templates);
+                    })
+                    .withFailureHandler((err) => {
+                        loadingEl.classList.add('hidden');
+                        listEl.innerHTML = '<li>Error loading templates.</li>';
+                    })
+                    .listTemplates();
+            } else {
+                // Local fallback
+                setTimeout(() => {
+                    loadingEl.classList.add('hidden');
+                    const mockTemplates = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key.startsWith('form_')) {
+                            mockTemplates.push({
+                                id: key.replace('form_', ''),
+                                name: key.replace('form_', ''),
+                                lastUpdated: new Date()
+                            });
+                        }
+                    }
+                    renderTemplates(mockTemplates);
+                }, 500);
+            }
+        }
+
+        function renderTemplates(templates) {
+            const listEl = document.getElementById('templateList');
+            if (templates.length === 0) {
+                listEl.innerHTML = '<li style="padding: 1rem; color: #999;">No saved forms found.</li>';
+                return;
+            }
+
+            templates.forEach(t => {
+                const li = document.createElement('li');
+                li.className = 'template-item';
+                li.onclick = () => loadForm(t.id);
+                li.innerHTML = `
+                    <div class="template-info">
+                        <span class="template-name">${t.name}</span>
+                        <span class="template-date">${new Date(t.lastUpdated).toLocaleString()}</span>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        function loadForm(id) {
+            closeLoadModal();
+            const loader = document.getElementById('loader');
+            loader.classList.remove('hidden');
+
+            if (typeof google !== 'undefined' && google.script) {
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        loader.classList.add('hidden');
+                        if (res.status === 'success') {
+                            applyLoadedForm(id, res.schema, res.config);
+                        } else {
+                            alert('Error: ' + res.message);
+                        }
+                    })
+                    .withFailureHandler((err) => {
+                        loader.classList.add('hidden');
+                        alert('System Error: ' + err);
+                    })
+                    .getForm(id);
+            } else {
+                // Local fallback
+                const data = localStorage.getItem('form_' + id);
+                setTimeout(() => {
+                    loader.classList.add('hidden');
+                    if (data) {
+                        const parsed = JSON.parse(data);
+                        applyLoadedForm(id, parsed.schema, parsed.config);
+                    } else {
+                        alert('Form not found in local storage.');
+                    }
+                }, 500);
+            }
+        }
+
+        function applyLoadedForm(id, schema, config) {
+            formConfig = {
+                id: id,
+                sheetUrl: config.targetSheetUrl || '',
+                sheetName: config.targetSheetName || 'Form Responses',
+                language: config.language || 'mr'
+            };
+
+            // Update UI
+            document.getElementById('propFormId').value = formConfig.id;
+            document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
+            document.getElementById('propSheetName').value = formConfig.sheetName;
+            document.getElementById('propLanguage').value = formConfig.language;
+            document.getElementById('headerFormId').innerText = formConfig.id;
+
+            // Clear Canvas
+            elements = [];
+            canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
+
+            // Add Elements
+            schema.forEach(elmData => {
+                elements.push(elmData);
+                renderElementDOM(elmData);
+            });
+
+            selectedIds = [];
+            renderSelectionState();
+            updatePropsPanel();
+            updateFormLanguage();
+        }
+
+        // --- EMBED MODAL LOGIC ---
+        function showEmbedModal() {
+            const modal = document.getElementById('embedModal');
+            const area = document.getElementById('embedCodeArea');
+
+            // Construct Embed Code
+            // We need the base URL. In GAS it's ScriptApp.getService().getUrl().
+            // In the builder, we'll try to get it or ask user to provide base if fails.
+
+            if (typeof google !== 'undefined' && google.script) {
+                google.script.run.withSuccessHandler(baseUrl => {
+                    const embedUrl = `${baseUrl}?view=form&id=${formConfig.id}`;
+                    const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
+                    area.value = code;
+                    modal.style.display = 'flex';
+                }).getScriptUrl();
+            } else {
+                // Local fallback
+                const embedUrl = `viewer.html?view=form&id=${formConfig.id}`;
+                const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
+                area.value = code;
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeEmbedModal() {
+            document.getElementById('embedModal').style.display = 'none';
+        }
+
+        function copyEmbedCode() {
+            const area = document.getElementById('embedCodeArea');
+            area.select();
+            document.execCommand('copy');
+            alert('Embed code copied to clipboard!');
         }
 
         // --- RULER LOGIC ---
