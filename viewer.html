@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            background: #f3f4f6;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #form-container {
+            width: 794px;
+            min-height: 1123px;
+            background: white;
+            position: relative;
+            transform-origin: top center;
+            margin-bottom: 2rem;
+        }
+
+        /* Hide shadow and extra padding if in iframe */
+        @media (min-width: 800px) {
+            body.is-embedded {
+                padding: 0;
+                background: transparent;
+            }
+
+            body.is-embedded #form-container {
+                box-shadow: none;
+            }
+        }
+
+        .canvas-element {
+            position: absolute;
+        }
+
+        .field-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #374151;
+        }
+
+        .field-input {
+            width: 200px;
+            /* Default, overridden by schema if needed */
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .field-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Transliteration Hint */
+        .trans-hint {
+            font-size: 10px;
+            color: #2563eb;
+            margin-top: 2px;
+        }
+
+        .lang-mr {
+            font-weight: 400;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        /* Loader */
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Actions */
+        .action-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 50;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            background: #1d4ed8;
+        }
+
+        @media screen and (max-width: 820px) {
+            #form-container {
+                transform: scale(0.9);
+                margin-top: -100px;
+                /* Counteract empty space from scale */
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            #form-container {
+                transform: scale(0.45);
+                margin-top: -300px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p style="margin-top: 10px; color: #555;">Loading Form...</p>
+        <div id="debug-info"
+            style="margin-top:20px; font-size:12px; color:#888; font-family:monospace; white-space: pre-wrap;">
+            Initializing...</div>
+    </div>
+
+    <!-- The Form Page -->
+    <div id="form-container">
+        <!-- Elements Rendered Here -->
+    </div>
+
+    <div class="action-bar">
+        <button class="btn" onclick="submitData()">Submit Form</button>
+    </div>
+
+    <script>
+        // GLOBAL ERROR HANDLER
+        window.onerror = function (msg, url, line, col, error) {
+            const errDiv = document.createElement('div');
+            errDiv.style.cssText = "position:fixed; top:0; left:0; width:100%; padding:20px; background:white; color:red; border-bottom:2px solid red; z-index:99999; font-family:monospace;";
+            errDiv.innerText = "JS ERROR: " + msg + "\nLine: " + line;
+            document.body.appendChild(errDiv);
+            return false;
+        };
+
+        // CLIENT LOGIC
+        let formSchema = [];
+        let formConfig = {};
+
+        // 1. Get Params
+        const urlParams = new URLSearchParams(window.location.search);
+        let formId = "<?= typeof formId !== 'undefined' ? formId : '' ?>";
+        if (formId.includes('?')) formId = '';
+        if (!formId) formId = urlParams.get('id');
+
+        // GAS API URL detection (can be passed via URL or stored)
+        let gasApiUrl = urlParams.get('api') || localStorage.getItem('gasApiUrl') || '';
+
+        // MOCK FOR LOCAL DEV
+        if (!formId && window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
+            formId = prompt("Local Dev Mode: Enter Form ID to load (Save one in Admin first)", "101");
+        }
+
+        // 2. API Helper
+        async function callApi(action, payload) {
+            if (typeof google !== 'undefined' && google.script) {
+                return new Promise((resolve, reject) => {
+                    const run = google.script.run;
+                    if (action === 'getForm') run.withSuccessHandler(resolve).withFailureHandler(reject).getForm(payload.formId);
+                    else if (action === 'submitForm') run.withSuccessHandler(resolve).withFailureHandler(reject).submitForm(payload.formId, payload.formData);
+                    else if (action === 'translateText') run.withSuccessHandler(resolve).withFailureHandler(reject).translateText(payload.text, payload.targetLang);
+                });
+            }
+
+            if (!gasApiUrl) {
+                return { status: 'error', message: 'GAS API URL not found. Use ?api=[URL] if external.' };
+            }
+
+            try {
+                if (action === 'getForm') {
+                    const res = await fetch(`${gasApiUrl}?action=getForm&id=${payload.formId}`);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.json();
+                } else {
+                    // POST actions (submitForm, translateText)
+                    const res = await fetch(gasApiUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action, ...payload })
+                    });
+                    return { status: 'success', message: 'Payload sent successfully.' };
+                }
+            } catch (err) {
+                return { status: 'error', message: err.toString() };
+            }
+        }
+
+        // 3. Fetch Schema
+        window.onload = async function () {
+            const debugEl = document.getElementById('debug-info');
+            if (debugEl) debugEl.innerText = `Attempting to load Form ID: "${formId}"...`;
+
+            const res = await callApi('getForm', { formId });
+
+            if (res.status === 'success') {
+                renderForm(res);
+            } else {
+                // Local fallback
+                const saved = localStorage.getItem('form_' + formId);
+                if (saved) {
+                    renderForm({ status: 'success', ...JSON.parse(saved) });
+                } else {
+                    alert("Failed to load form: " + res.message);
+                }
+            }
+        };
+
+        function renderForm(response) {
+            const loader = document.getElementById('loader');
+
+            if (response.status !== 'success') {
+                loader.innerHTML = `<p style="color:red">Error: ${response.message}</p>`;
+                return;
+            }
+
+            formSchema = response.schema;
+            formConfig = response.config; // Config includes 'language' e.g., 'mr', 'hi'
+            const container = document.getElementById('form-container');
+            container.innerHTML = ''; // Clear
+
+            const langCode = formConfig.language || 'mr';
+
+            formSchema.forEach(elm => {
+                const div = document.createElement('div');
+                div.className = 'canvas-element';
+                div.style.left = elm.x + 'px';
+                div.style.top = elm.y + 'px';
+
+                // Helper to get regional label
+                const regLabelHtml = elm.props.labelRegional
+                    ? ` <span class="lang-${langCode}" style="font-weight:400; color:#555">/ ${elm.props.labelRegional}</span>`
+                    : '';
+
+                // Render Input
+                if (elm.type === 'text' || elm.type === 'number' || elm.type === 'date' || elm.type === 'file') {
+                    div.innerHTML = `
+                        <label class="field-label">${elm.props.label}${regLabelHtml}${elm.props.required ? ' *' : ''}</label>
+                        <input type="${elm.type}" 
+                               class="field-input" 
+                               name="${elm.props.name}" 
+                               ${elm.props.required ? 'required' : ''}
+                               data-translatable="${elm.props.translatable || false}">
+                        ${elm.props.translatable ? '<div class="trans-hint" id="hint-' + elm.id + '"></div>' : ''}
+                    `;
+
+                    // Add Translation Listener
+                    if (elm.props.translatable) {
+                        const input = div.querySelector('input');
+                        input.addEventListener('blur', (e) => handleTranslation(e, elm.id));
+                    }
+
+                } else if (elm.type === 'heading') {
+                    div.style.textAlign = elm.props.align || 'left';
+                    const tag = elm.props.headingLevel || 'h2';
+                    div.innerHTML = `<${tag} style="margin:0; width: 300px; border-bottom: 2px solid #333">${elm.props.label}${regLabelHtml}</${tag}>`;
+                } else if (elm.type === 'rect') {
+                    div.style.width = elm.props.width + 'px';
+                    div.style.height = elm.props.height + 'px';
+                    // Apply Visual Props
+                    div.style.border = `${elm.props.strokeWidth || 2}px ${elm.props.borderStyle || 'solid'} #000`;
+                    div.style.borderRadius = (elm.props.borderRadius || 0) + 'px';
+                    div.style.pointerEvents = 'none'; // Prevent blocking inputs
+                } else if (elm.type === 'line') {
+                    div.style.width = '200px';
+                    // Line Implementation: Height = Wrapper, Border = Visual
+                    div.style.height = (elm.props.strokeWidth || 2) + 'px';
+                    div.style.borderTop = `${elm.props.strokeWidth || 2}px ${elm.props.borderStyle || 'solid'} #000`;
+                    div.style.pointerEvents = 'none'; // Prevent blocking inputs
+                } else if (elm.type === 'label') {
+                    div.style.textAlign = elm.props.align || 'left';
+                    const weight = elm.props.isBold ? 'bold' : 'normal';
+                    const size = elm.props.fontSize || 14;
+                    div.innerHTML = `<span style="font-weight:${weight}; font-size:${size}px">${elm.props.label}${regLabelHtml}</span>`;
+                }
+
+                container.appendChild(div);
+            });
+
+            loader.style.display = 'none';
+        }
+
+        // 3. Translation Handler
+        function handleTranslation(e, elmId) {
+            const text = e.target.value;
+            if (!text) return;
+
+            const hint = document.getElementById('hint-' + elmId);
+            hint.innerText = 'Translating...';
+
+            const targetLang = formConfig.language || 'mr';
+
+            if (typeof google !== 'undefined' && google.script) {
+                google.script.run
+                    .withSuccessHandler(translated => {
+                        e.target.dataset.translated = translated;
+                        hint.innerText = translated; // Show to user
+                    })
+                    .translateText(text, targetLang);
+            } else {
+                // Local Mock for Translation
+                // Simple offline dictionary for demonstration
+                const mockDict = {
+                    "pradeep parmar": "प्रदीप परमार",
+                    "hello": "नमस्कार",
+                    "school": "शाळा"
+                };
+
+                const lowerText = text.toLowerCase().trim();
+                if (mockDict[lowerText]) {
+                    const translated = mockDict[lowerText];
+                    e.target.dataset.translated = translated;
+                    hint.innerText = translated + " (Local Demo)";
+                    hint.style.color = '#2563eb'; // Blue for success
+                } else {
+                    const simulated = `[Simulated ${targetLang}]: ` + text;
+                    e.target.dataset.translated = simulated;
+                    hint.innerText = simulated + " (Deploy to see real translation)";
+                    hint.style.color = '#888';
+                }
+            }
+        }
+
+        // 4. Submit
+        async function submitData() {
+            const inputs = document.querySelectorAll('input, select, textarea');
+            const formData = {};
+            let valid = true;
+
+            const targetLang = (formConfig.language || 'mr').toUpperCase();
+
+            inputs.forEach(input => {
+                if (input.required && !input.value) {
+                    input.style.border = '1px solid red';
+                    valid = false;
+                } else {
+                    input.style.border = '';
+                }
+
+                if (input.name) {
+                    formData[input.name] = input.value;
+                    if (input.dataset.translated) {
+                        formData[`${input.name} (${targetLang})`] = input.dataset.translated;
+                    }
+                }
+            });
+
+            if (!valid) {
+                alert("Please fill all required fields");
+                return;
+            }
+
+            formData['Form_ID'] = formId;
+
+            const btn = document.querySelector('.action-bar .btn');
+            const orgText = btn.innerText;
+            btn.innerText = 'Submitting...';
+            btn.disabled = true;
+
+            const res = await callApi('submitForm', { formId, formData });
+
+            btn.innerText = orgText;
+            btn.disabled = false;
+            if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
+                alert('Submitted Successfully!');
+            } else {
+                alert('Error: ' + res.message);
+            }
+        }
+
+    </script>
+</body>
+
+</html>
