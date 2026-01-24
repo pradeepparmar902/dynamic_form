@@ -696,6 +696,12 @@
                         <option value="bn">Bengali (Bengali)</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>GAS API URL (Required for External Hosting)</label>
+                    <input type="text" id="propApiUrl" placeholder="https://script.google.com/macros/s/.../exec">
+                    <small style="font-size: 0.7rem; color: var(--text-light);">Required if hosted on GitHub Pages or
+                        locally.</small>
+                </div>
             </div>
 
             <div id="elementProps" class="props-content hidden">
@@ -815,7 +821,8 @@
             id: 'Form_' + Date.now(),
             sheetUrl: '',
             sheetName: 'Form Responses',
-            language: 'mr'
+            language: 'mr',
+            gasApiUrl: localStorage.getItem('gasApiUrl') || ''
         };
 
         // DOM REFERENCES
@@ -828,6 +835,11 @@
         document.getElementById('propFormId').addEventListener('input', (e) => formConfig.id = e.target.value);
         document.getElementById('propSheetUrl').addEventListener('input', (e) => formConfig.sheetUrl = e.target.value);
         document.getElementById('propSheetName').addEventListener('input', (e) => formConfig.sheetName = e.target.value);
+        document.getElementById('propApiUrl').value = formConfig.gasApiUrl;
+        document.getElementById('propApiUrl').addEventListener('input', (e) => {
+            formConfig.gasApiUrl = e.target.value;
+            localStorage.setItem('gasApiUrl', e.target.value);
+        });
 
         function updateFormLanguage() {
             formConfig.language = document.getElementById('propLanguage').value;
@@ -1257,8 +1269,54 @@
         }
 
 
-        // --- SAVE TO GAS ---
-        function saveForm() {
+        // --- API HELPER ---
+        async function callApi(action, payload) {
+            // Priority 1: google.script.run (if hosted on GAS)
+            if (typeof google !== 'undefined' && google.script) {
+                return new Promise((resolve, reject) => {
+                    const run = google.script.run;
+                    if (action === 'saveForm') run.withSuccessHandler(resolve).withFailureHandler(reject).saveForm(payload.formId, payload.schema, payload.config);
+                    else if (action === 'getForm') run.withSuccessHandler(resolve).withFailureHandler(reject).getForm(payload.formId);
+                    else if (action === 'listTemplates') run.withSuccessHandler(resolve).withFailureHandler(reject).listTemplates();
+                    else if (action === 'getScriptUrl') run.withSuccessHandler(resolve).withFailureHandler(reject).getScriptUrl();
+                });
+            }
+
+            // Priority 2: fetch (if hosted externally, e.g. GitHub Pages)
+            const apiUrl = formConfig.gasApiUrl;
+            if (!apiUrl) {
+                return { status: 'error', message: 'GAS API URL not configured in settings.' };
+            }
+
+            try {
+                // Post actions
+                const postActions = ['saveForm', 'submitForm', 'translateText'];
+                if (postActions.includes(action)) {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        mode: 'no-cors', // GAS doPost requires no-cors usually or simple headers
+                        body: JSON.stringify({ action, ...payload })
+                    });
+                    // With 'no-cors', we can't read the response body. 
+                    // This is a limitation of GAS doPost for external hosting.
+                    // However, we can use JSONP or Redirect techniques, but for now:
+                    return { status: 'success', message: 'Request sent to API.' };
+                } else {
+                    // Get actions
+                    let url = `${apiUrl}?action=${action}`;
+                    if (payload.formId) url += `&id=${payload.formId}`;
+
+                    const response = await fetch(url);
+                    return await response.json();
+                }
+            } catch (err) {
+                console.error("API Call Error:", err);
+                return { status: 'error', message: 'API Call Failed: ' + err.toString() };
+            }
+        }
+
+        // Modified saveForm to use helper
+        async function saveForm() {
             const btn = document.querySelector('.btn-primary');
             const originalText = btn.innerHTML;
             btn.innerHTML = 'Saving...';
@@ -1272,46 +1330,14 @@
                 language: formConfig.language
             };
 
-            // Call GAS
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler((res) => {
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
-                        if (res.status === 'success') {
-                            alert('Form Saved!');
-                        } else {
-                            alert('Error: ' + res.message);
-                        }
-                    })
-                    .withFailureHandler((err) => {
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
-                        alert('System Error: ' + err);
-                    })
-                    .saveForm(formConfig.id, schema, config);
+            const res = await callApi('saveForm', { formId: formConfig.id, schema, config });
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
+                alert('Form Saved! (Check Drive/Sheet to confirm if external)');
             } else {
-                // Local Dev fallback
-                console.log('SAVING SCHEMAS:', { id: formConfig.id, schema, config });
-
-                // Save to LocalStorage so Viewer can pick it up
-                try {
-                    const savePayload = JSON.stringify({
-                        schema: schema,
-                        config: config,
-                        lastUpdated: new Date()
-                    });
-                    localStorage.setItem('form_' + formConfig.id, savePayload);
-                    console.log('Saved to LocalStorage key:', 'form_' + formConfig.id);
-                } catch (e) {
-                    console.error('LocalStorage Save Error:', e);
-                }
-
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    alert('Saved to Local Storage! (Open Preview to see changes)');
-                }, 500);
+                alert('Error: ' + res.message);
             }
         }
 
@@ -1498,41 +1524,23 @@
             document.getElementById('loadModal').style.display = 'none';
         }
 
-        function fetchTemplates() {
+        async function fetchTemplates() {
             const listEl = document.getElementById('templateList');
             const loadingEl = document.getElementById('modalLoading');
 
             listEl.innerHTML = '';
             loadingEl.classList.remove('hidden');
 
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler((templates) => {
-                        loadingEl.classList.add('hidden');
-                        renderTemplates(templates);
-                    })
-                    .withFailureHandler((err) => {
-                        loadingEl.classList.add('hidden');
-                        listEl.innerHTML = '<li>Error loading templates.</li>';
-                    })
-                    .listTemplates();
+            const templates = await callApi('listTemplates', {});
+
+            loadingEl.classList.add('hidden');
+            if (Array.isArray(templates)) {
+                renderTemplates(templates);
+            } else if (templates.status === 'error') {
+                listEl.innerHTML = `<li>Error: ${templates.message}</li>`;
             } else {
-                // Local fallback
-                setTimeout(() => {
-                    loadingEl.classList.add('hidden');
-                    const mockTemplates = [];
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const key = localStorage.key(i);
-                        if (key.startsWith('form_')) {
-                            mockTemplates.push({
-                                id: key.replace('form_', ''),
-                                name: key.replace('form_', ''),
-                                lastUpdated: new Date()
-                            });
-                        }
-                    }
-                    renderTemplates(mockTemplates);
-                }, 500);
+                // Handle mock or empty
+                renderTemplates([]);
             }
         }
 
@@ -1557,38 +1565,25 @@
             });
         }
 
-        function loadForm(id) {
+        async function loadForm(id) {
             closeLoadModal();
             const loader = document.getElementById('loader');
             loader.classList.remove('hidden');
 
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler((res) => {
-                        loader.classList.add('hidden');
-                        if (res.status === 'success') {
-                            applyLoadedForm(id, res.schema, res.config);
-                        } else {
-                            alert('Error: ' + res.message);
-                        }
-                    })
-                    .withFailureHandler((err) => {
-                        loader.classList.add('hidden');
-                        alert('System Error: ' + err);
-                    })
-                    .getForm(id);
+            const res = await callApi('getForm', { formId: id });
+
+            loader.classList.add('hidden');
+            if (res.status === 'success') {
+                applyLoadedForm(id, res.schema, res.config);
             } else {
-                // Local fallback
+                // Local fallback check if API fails or not configured
                 const data = localStorage.getItem('form_' + id);
-                setTimeout(() => {
-                    loader.classList.add('hidden');
-                    if (data) {
-                        const parsed = JSON.parse(data);
-                        applyLoadedForm(id, parsed.schema, parsed.config);
-                    } else {
-                        alert('Form not found in local storage.');
-                    }
-                }, 500);
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    applyLoadedForm(id, parsed.schema, parsed.config);
+                } else {
+                    alert('Error: ' + res.message);
+                }
             }
         }
 
@@ -1624,27 +1619,21 @@
         }
 
         // --- EMBED MODAL LOGIC ---
-        function showEmbedModal() {
+        async function showEmbedModal() {
             const modal = document.getElementById('embedModal');
             const area = document.getElementById('embedCodeArea');
 
-            // Construct Embed Code
-            // We need the base URL. In GAS it's ScriptApp.getService().getUrl().
-            // In the builder, we'll try to get it or ask user to provide base if fails.
+            const baseUrlRes = await callApi('getScriptUrl', {});
+            const baseUrl = typeof baseUrlRes === 'string' ? baseUrlRes : formConfig.gasApiUrl;
 
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run.withSuccessHandler(baseUrl => {
-                    const embedUrl = `${baseUrl}?view=form&id=${formConfig.id}`;
-                    const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
-                    area.value = code;
-                    modal.style.display = 'flex';
-                }).getScriptUrl();
-            } else {
-                // Local fallback
-                const embedUrl = `viewer.html?view=form&id=${formConfig.id}`;
+            if (baseUrl) {
+                // Include the API URL in the embed code so the viewer knows where to connect
+                const embedUrl = `${baseUrl}?view=form&id=${formConfig.id}&api=${encodeURIComponent(baseUrl)}`;
                 const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
                 area.value = code;
                 modal.style.display = 'flex';
+            } else {
+                alert("Please configure 'GAS API URL' in Settings first to generate embed code.");
             }
         }
 
