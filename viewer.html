@@ -213,8 +213,12 @@
                     const res = await fetch(`${gasApiUrl}?action=getForm&id=${payload.formId}`);
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return await res.json();
+                } else if (action === 'translateText') {
+                    const res = await fetch(`${gasApiUrl}?action=translateText&text=${encodeURIComponent(payload.text)}&targetLang=${payload.targetLang}&sourceLang=${payload.sourceLang}`);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.json();
                 } else {
-                    // POST actions (submitForm, translateText)
+                    // POST actions (submitForm)
                     const res = await fetch(gasApiUrl, {
                         method: 'POST',
                         mode: 'no-cors',
@@ -293,11 +297,12 @@
             }
 
             formSchema = response.schema;
-            formConfig = response.config; // Config includes 'language' e.g., 'mr', 'hi'
+            formConfig = response.config;
             const container = document.getElementById('form-container');
-            container.innerHTML = ''; // Clear
+            container.innerHTML = '';
 
-            const langCode = formConfig.language || 'mr';
+            const langCodeSecondary = formConfig.languageSecondary || formConfig.language || 'mr';
+            const langCodePrimary = formConfig.languagePrimary || 'en';
 
             formSchema.forEach(elm => {
                 const div = document.createElement('div');
@@ -307,7 +312,7 @@
 
                 // Helper to get regional label
                 const regLabelHtml = elm.props.labelRegional
-                    ? ` <span class="lang-${langCode}" style="font-weight:400; color:#555">/ ${elm.props.labelRegional}</span>`
+                    ? ` <span class="lang-${langCodeSecondary}" style="font-weight:400; color:#555">/ ${elm.props.labelRegional}</span>`
                     : '';
 
                 // Render Input
@@ -359,43 +364,30 @@
         }
 
         // 3. Translation Handler
-        function handleTranslation(e, elmId) {
+        async function handleTranslation(e, elmId) {
             const text = e.target.value;
             if (!text) return;
 
             const hint = document.getElementById('hint-' + elmId);
             hint.innerText = 'Translating...';
+            hint.style.color = '#888';
 
-            const targetLang = formConfig.language || 'mr';
+            const sourceLang = formConfig.languagePrimary || 'en';
+            const targetLang = formConfig.languageSecondary || formConfig.language || 'mr';
 
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler(translated => {
-                        e.target.dataset.translated = translated;
-                        hint.innerText = translated; // Show to user
-                    })
-                    .translateText(text, targetLang);
-            } else {
-                // Local Mock for Translation
-                // Simple offline dictionary for demonstration
-                const mockDict = {
-                    "pradeep parmar": "प्रदीप परमार",
-                    "hello": "नमस्कार",
-                    "school": "शाळा"
-                };
-
-                const lowerText = text.toLowerCase().trim();
-                if (mockDict[lowerText]) {
-                    const translated = mockDict[lowerText];
-                    e.target.dataset.translated = translated;
-                    hint.innerText = translated + " (Local Demo)";
+            try {
+                const res = await callApi('translateText', { text, sourceLang, targetLang });
+                if (res.status === 'success' && res.translated) {
+                    e.target.dataset.translated = res.translated;
+                    hint.innerText = res.translated;
                     hint.style.color = '#2563eb'; // Blue for success
                 } else {
-                    const simulated = `[Simulated ${targetLang}]: ` + text;
-                    e.target.dataset.translated = simulated;
-                    hint.innerText = simulated + " (Deploy to see real translation)";
-                    hint.style.color = '#888';
+                    throw new Error(res.message || 'Translation failed');
                 }
+            } catch (err) {
+                console.error("Translation Error:", err);
+                hint.innerText = "Translation error. Check API settings.";
+                hint.style.color = '#dc3545'; // Red for error
             }
         }
 

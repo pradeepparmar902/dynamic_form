@@ -690,9 +690,23 @@
                     <input type="text" id="propSheetName" placeholder="e.g. Data">
                 </div>
                 <div class="form-group">
-                    <label>Secondary Language</label>
-                    <select id="propLanguage" onchange="updateFormLanguage()">
+                    <label>Primary Language (User Inputs)</label>
+                    <select id="propLanguagePrimary" onchange="updateFormLanguage()">
+                        <option value="en">English (English)</option>
                         <option value="mr">Marathi (Marathi)</option>
+                        <option value="hi">Hindi (Hindi)</option>
+                        <option value="gu">Gujarati (Gujarati)</option>
+                        <option value="kn">Kannada (Kannada)</option>
+                        <option value="ta">Tamil (Tamil)</option>
+                        <option value="te">Telugu (Telugu)</option>
+                        <option value="bn">Bengali (Bengali)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Secondary Language (Translates To)</label>
+                    <select id="propLanguageSecondary" onchange="updateFormLanguage()">
+                        <option value="mr">Marathi (Marathi)</option>
+                        <option value="en">English (English)</option>
                         <option value="hi">Hindi (Hindi)</option>
                         <option value="gu">Gujarati (Gujarati)</option>
                         <option value="kn">Kannada (Kannada)</option>
@@ -723,11 +737,11 @@
             <div id="elementProps" class="props-content hidden">
                 <div class="category-title">Element Properties</div>
                 <div class="form-group">
-                    <label>Field Label (English)</label>
+                    <label id="lblPropPrimary">Field Label (Primary)</label>
                     <input type="text" id="propLabel" oninput="updateSelectedElement()">
                 </div>
                 <div class="form-group">
-                    <label id="lblPropRegional">Field Label (Regional)</label>
+                    <label id="lblPropSecondary">Field Label (Secondary)</label>
                     <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
                 </div>
                 <div class="form-group">
@@ -742,7 +756,7 @@
                 </div>
 
                 <div class="form-group toggle-group">
-                    <label id="lblPropTranslatable">Enable Translation (Eng -> Marathi)</label>
+                    <label id="lblPropTranslatable">Enable Translation (English -> Marathi)</label>
                     <input type="checkbox" id="propTranslatable" onchange="updateSelectedElement()">
                 </div>
 
@@ -839,7 +853,9 @@
             allowedDomains: '',
             sheetUrl: '',
             sheetName: 'Form Responses',
-            language: 'mr',
+            language: 'mr', // Legacy field for compat
+            languagePrimary: 'en',
+            languageSecondary: 'mr',
             gasApiUrl: localStorage.getItem('gasApiUrl') || ''
         };
 
@@ -855,6 +871,8 @@
         document.getElementById('propAllowedDomains').addEventListener('input', (e) => formConfig.allowedDomains = e.target.value);
         document.getElementById('propSheetUrl').addEventListener('input', (e) => formConfig.sheetUrl = e.target.value);
         document.getElementById('propSheetName').addEventListener('input', (e) => formConfig.sheetName = e.target.value);
+        document.getElementById('propLanguagePrimary').value = formConfig.languagePrimary;
+        document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary;
         document.getElementById('propApiUrl').value = formConfig.gasApiUrl;
         document.getElementById('propApiUrl').addEventListener('input', (e) => {
             formConfig.gasApiUrl = e.target.value;
@@ -862,11 +880,22 @@
         });
 
         function updateFormLanguage() {
-            formConfig.language = document.getElementById('propLanguage').value;
-            // Update label text dynamically
-            const langName = document.getElementById('propLanguage').selectedOptions[0].text.split(' ')[0];
-            document.getElementById('lblPropRegional').innerText = `Field Label (${langName})`;
-            document.getElementById('lblPropTranslatable').innerText = `Enable Translation (Eng -> ${langName})`;
+            formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
+            formConfig.languageSecondary = document.getElementById('propLanguageSecondary').value;
+            formConfig.language = formConfig.languageSecondary; // Sync for compat
+
+            const l1Name = document.getElementById('propLanguagePrimary').selectedOptions[0].text.split(' ')[0];
+            const l2Name = document.getElementById('propLanguageSecondary').selectedOptions[0].text.split(' ')[0];
+
+            document.getElementById('lblPropPrimary').innerText = `Field Label (${l1Name})`;
+            document.getElementById('lblPropSecondary').innerText = `Field Label (${l2Name})`;
+            document.getElementById('lblPropTranslatable').innerText = `Enable Translation (${l1Name} -> ${l2Name})`;
+
+            // Trigger refresh of canvas elements to show new labels if needed
+            elements.forEach(elm => {
+                const dom = document.getElementById(elm.id);
+                if (dom) renderElementVisual(elm, dom);
+            });
         }
 
 
@@ -1091,6 +1120,10 @@
 
             // Re-render visual content roughly
             const dom = document.getElementById(selectedId);
+            if (dom) renderElementVisual(elm, dom);
+        }
+
+        function renderElementVisual(elm, dom) {
             const separator = (elm.props.label && elm.props.labelRegional) ? ' / ' : '';
             const regLabel = elm.props.labelRegional ? separator + elm.props.labelRegional : '';
 
@@ -1630,7 +1663,8 @@
             document.getElementById('propAllowedDomains').value = formConfig.allowedDomains;
             document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
             document.getElementById('propSheetName').value = formConfig.sheetName;
-            document.getElementById('propLanguage').value = formConfig.language;
+            document.getElementById('propLanguagePrimary').value = formConfig.languagePrimary || 'en';
+            document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary || formConfig.language || 'mr';
             document.getElementById('headerFormId').innerText = formConfig.id;
 
             elements = [];
