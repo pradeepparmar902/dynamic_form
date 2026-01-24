@@ -1594,141 +1594,142 @@
             const listEl = document.getElementById('templateList');
             if (templates.length === 0) {
                 listEl.innerHTML = '<li style="padding: 1rem; color: #999;">No saved forms found.</li>';
+            } else {
                 listEl.innerHTML = templates.map(t => `
-                <li onclick="loadForm('${t.id}')">
-                    <div style="font-weight: bold;">${t.name}</div>
-                    ${t.description ? `<div style="font-size: 0.8rem; color: #666; margin: 2px 0;">${t.description}</div>` : ''}
-                    <div style="font-size: 0.7rem; color: #999;">Updated: ${new Date(t.lastUpdated).toLocaleString()}</div>
-                </li>
-            `).join('');
+                    <li onclick="loadForm('${t.id}')">
+                        <div style="font-weight: bold;">${t.name}</div>
+                        ${t.description ? `<div style="font-size: 0.8rem; color: #666; margin: 2px 0;">${t.description}</div>` : ''}
+                        <div style="font-size: 0.7rem; color: #999;">Updated: ${new Date(t.lastUpdated).toLocaleString()}</div>
+                    </li>
+                `).join('');
             }
-
-            async function loadForm(id) {
-                closeLoadModal();
-                const loader = document.getElementById('loader');
-                loader.classList.remove('hidden');
-
-                const res = await callApi('getForm', { formId: id });
-
-                loader.classList.add('hidden');
-                if (res.status === 'success') {
-                    applyLoadedForm(id, res.schema, res.config, res.metadata);
-                } else {
-                    // Local fallback check if API fails or not configured
-                    const data = localStorage.getItem('form_' + id);
-                    if (data) {
-                        const parsed = JSON.parse(data);
-                        applyLoadedForm(id, parsed.schema, parsed.config);
-                    } else {
-                        alert('Error: ' + res.message);
-                    }
-                }
-            }
-
-            function applyLoadedForm(id, schema, config, metadata) {
-                metadata = metadata || {};
-                formConfig = {
-                    ...formConfig,
-                    id: id,
-                    description: metadata.description || '',
-                    allowedDomains: metadata.allowedDomains || '',
-                    sheetUrl: config.targetSheetUrl,
-                    sheetName: config.targetSheetName,
-                    language: config.language
-                };
-
-                // Update UI
-                document.getElementById('propFormId').value = formConfig.id;
-                document.getElementById('propDescription').value = formConfig.description;
-                document.getElementById('propAllowedDomains').value = formConfig.allowedDomains;
-                document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
-                document.getElementById('propSheetName').value = formConfig.sheetName;
-                document.getElementById('propLanguage').value = formConfig.language;
-                document.getElementById('headerFormId').innerText = formConfig.id;
-
-                // Clear Canvas
-                elements = [];
-                canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
-
-                // Add Elements
-                schema.forEach(elmData => {
-                    elements.push(elmData);
-                    renderElementDOM(elmData);
-                });
-
-                selectedIds = [];
-                renderSelectionState();
-                updatePropsPanel();
-                updateFormLanguage();
-            }
-
-            // --- EMBED MODAL LOGIC ---
-            async function showEmbedModal() {
-                const modal = document.getElementById('embedModal');
-                const area = document.getElementById('embedCodeArea');
-
-                // Your Google Script Backend URL
-                const currentApiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
-
-                // Your current hosting domain (e.g., Hostinger or GitHub Pages)
-                const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
-                const viewerPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'viewer.html';
-
-                if (currentApiUrl) {
-                    // The embed code now points to YOUR website on Hostinger, not Google's.
-                    // We pass the api URL as a parameter so viewer.html knows who to talk to.
-                    const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiUrl)}`;
-                    const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
-                    area.value = code;
-                    modal.style.display = 'flex';
-                } else {
-                    alert("Please configure 'GAS API URL' in Settings first to generate embed code.");
-                }
-            }
-
-            function closeEmbedModal() {
-                document.getElementById('embedModal').style.display = 'none';
-            }
-
-            function copyEmbedCode() {
-                const area = document.getElementById('embedCodeArea');
-                area.select();
-                document.execCommand('copy');
-                alert('Embed code copied to clipboard!');
-            }
-
-            // --- RULER LOGIC ---
-            function initRulers() {
-                const rulerTop = document.getElementById('rulerTop');
-                const rulerLeft = document.getElementById('rulerLeft');
-                if (!rulerTop || !rulerLeft) return;
-
-                // Horizontal 794px
-                for (let i = 0; i <= 800; i += 10) {
-                    const tick = document.createElement('div');
-                    tick.className = 'tick tick-h ' + (i % 100 === 0 ? 'major' : 'minor');
-                    tick.style.left = i + 'px';
-                    if (i % 100 === 0) {
-                        tick.innerHTML = `<span>${i}</span>`;
-                    }
-                    rulerTop.appendChild(tick);
-                }
-
-                // Vertical 1123px
-                for (let i = 0; i <= 1123; i += 10) {
-                    const tick = document.createElement('div');
-                    tick.className = 'tick tick-v ' + (i % 100 === 0 ? 'major' : 'minor');
-                    tick.style.top = i + 'px';
-                    if (i % 100 === 0) {
-                        tick.innerHTML = `<span>${i}</span>`;
-                    }
-                    rulerLeft.appendChild(tick);
-                }
-            }
-
-            // Call it
-            initRulers();
         }
+
+        async function loadForm(id) {
+            closeLoadModal();
+            const loader = document.getElementById('loader');
+            loader.classList.remove('hidden');
+
+            const res = await callApi('getForm', { formId: id });
+
+            loader.classList.add('hidden');
+            if (res.status === 'success') {
+                applyLoadedForm(id, res.schema, res.config, res.metadata);
+            } else {
+                // Local fallback check if API fails or not configured
+                const data = localStorage.getItem('form_' + id);
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    applyLoadedForm(id, parsed.schema, parsed.config, parsed.metadata);
+                } else {
+                    alert('Error: ' + res.message);
+                }
+            }
+        }
+
+        function applyLoadedForm(id, schema, config, metadata) {
+            metadata = metadata || {};
+            formConfig = {
+                ...formConfig,
+                id: id,
+                description: metadata.description || '',
+                allowedDomains: metadata.allowedDomains || '',
+                sheetUrl: config.targetSheetUrl,
+                sheetName: config.targetSheetName,
+                language: config.language
+            };
+
+            // Update UI
+            document.getElementById('propFormId').value = formConfig.id;
+            document.getElementById('propDescription').value = formConfig.description;
+            document.getElementById('propAllowedDomains').value = formConfig.allowedDomains;
+            document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
+            document.getElementById('propSheetName').value = formConfig.sheetName;
+            document.getElementById('propLanguage').value = formConfig.language;
+            document.getElementById('headerFormId').innerText = formConfig.id;
+
+            // Clear Canvas
+            elements = [];
+            canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
+
+            // Add Elements
+            schema.forEach(elmData => {
+                elements.push(elmData);
+                renderElementDOM(elmData);
+            });
+
+            selectedIds = [];
+            renderSelectionState();
+            updatePropsPanel();
+            updateFormLanguage();
+        }
+
+        // --- EMBED MODAL LOGIC ---
+        async function showEmbedModal() {
+            const modal = document.getElementById('embedModal');
+            const area = document.getElementById('embedCodeArea');
+
+            // Your Google Script Backend URL
+            const currentApiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
+
+            // Your current hosting domain (e.g., Hostinger or GitHub Pages)
+            const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
+            const viewerPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'viewer.html';
+
+            if (currentApiUrl) {
+                // The embed code now points to YOUR website on Hostinger, not Google's.
+                // We pass the api URL as a parameter so viewer.html knows who to talk to.
+                const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiUrl)}`;
+                const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
+                area.value = code;
+                modal.style.display = 'flex';
+            } else {
+                alert("Please configure 'GAS API URL' in Settings first to generate embed code.");
+            }
+        }
+
+        function closeEmbedModal() {
+            document.getElementById('embedModal').style.display = 'none';
+        }
+
+        function copyEmbedCode() {
+            const area = document.getElementById('embedCodeArea');
+            area.select();
+            document.execCommand('copy');
+            alert('Embed code copied to clipboard!');
+        }
+
+        // --- RULER LOGIC ---
+        function initRulers() {
+            const rulerTop = document.getElementById('rulerTop');
+            const rulerLeft = document.getElementById('rulerLeft');
+            if (!rulerTop || !rulerLeft) return;
+
+            // Horizontal 800px
+            for (let i = 0; i <= 800; i += 10) {
+                const tick = document.createElement('div');
+                tick.className = 'tick tick-h ' + (i % 100 === 0 ? 'major' : 'minor');
+                tick.style.left = i + 'px';
+                if (i % 100 === 0) {
+                    tick.innerHTML = `<span>${i}</span>`;
+                }
+                rulerTop.appendChild(tick);
+            }
+
+            // Vertical 1123px
+            for (let i = 0; i <= 1123; i += 10) {
+                const tick = document.createElement('div');
+                tick.className = 'tick tick-v ' + (i % 100 === 0 ? 'major' : 'minor');
+                tick.style.top = i + 'px';
+                if (i % 100 === 0) {
+                    tick.innerHTML = `<span>${i}</span>`;
+                }
+                rulerLeft.appendChild(tick);
+            }
+        }
+
+        // Call it
+        initRulers();
 
     </script>
 </body>
