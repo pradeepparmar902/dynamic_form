@@ -1406,8 +1406,7 @@
         }
 
         // --- KEYBOARD SHORTCUTS ---
-        let clipboard = null; // Can hold array now
-
+        let clipboard = null;
         window.addEventListener('keydown', handleShortcuts);
 
         function handleShortcuts(e) {
@@ -1421,25 +1420,21 @@
                 if (selectedIds.length > 1) {
                     const newGroupId = 'grp_' + Date.now();
                     selectedIds.forEach(id => {
-                        const el = elements.find(e => e.id === id);
+                        const el = elements.find(item => item.id === id);
                         if (el) el.props.groupId = newGroupId;
                     });
-                    // Visual feedback?
-                    // console.log('Grouped items:', selectedIds);
                 }
                 return;
             }
 
             // UNGROUP (Ctrl + Shift + G)
-            if ((e.ctrlKey || e.metaKey) && e.key === 'G') { // shift implies capital G usually
+            if ((e.ctrlKey || e.metaKey) && e.key === 'G') {
                 e.preventDefault();
                 if (selectedIds.length > 0) {
-                    let count = 0;
                     selectedIds.forEach(id => {
-                        const el = elements.find(e => e.id === id);
+                        const el = elements.find(item => item.id === id);
                         if (el && el.props.groupId) {
                             el.props.groupId = null;
-                            count++;
                         }
                     });
                 }
@@ -1450,80 +1445,74 @@
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 e.preventDefault();
                 deleteSelected();
+                return;
             }
 
             // COPY (Ctrl + C)
             if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
                 if (selectedIds.length > 0) {
-                    clipboard = selectedIds.map(id => elements.find(e => e.id === id)).filter(Boolean);
-                    clipboard = JSON.parse(JSON.stringify(clipboard)); // Deep Copy
+                    clipboard = selectedIds.map(id => elements.find(item => item.id === id)).filter(Boolean);
+                    clipboard = JSON.parse(JSON.stringify(clipboard));
                 }
+                return;
             }
 
             // PASTE (Ctrl + V)
             if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
                 if (clipboard && Array.isArray(clipboard)) {
-                    // Logic similar to Duplicate but from clipboard
                     const newIds = [];
                     const groupMap = {};
-
                     clipboard.forEach(original => {
                         const newElm = JSON.parse(JSON.stringify(original));
                         newElm.id = 'elm_' + Date.now() + '_' + Math.floor(Math.random() * 100);
                         newElm.x += 20;
                         newElm.y += 20;
-
                         if (newElm.props.name) {
                             newElm.props.name = newElm.props.name.split('_copy')[0] + '_copy_' + Math.floor(Math.random() * 100);
                         }
-
-                        // Group Remapping
                         if (newElm.props.groupId) {
                             if (!groupMap[newElm.props.groupId]) {
                                 groupMap[newElm.props.groupId] = 'grp_' + Date.now() + '_' + Math.random();
                             }
                             newElm.props.groupId = groupMap[newElm.props.groupId];
                         }
-
                         elements.push(newElm);
                         renderElementDOM(newElm);
                         newIds.push(newElm.id);
                     });
-
                     selectedIds = newIds;
                     renderSelectionState();
                     updatePropsPanel();
                 }
+                return;
             }
 
             // DUPLICATE (Ctrl + D)
             if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
                 e.preventDefault();
                 duplicateSelected();
+                return;
             }
 
             // BOLD (Ctrl + B)
             if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
                 e.preventDefault();
                 selectedIds.forEach(id => {
-                    const elm = elements.find(el => el.id === id);
-                    if (elm) {
+                    const elm = elements.find(item => item.id === id);
+                    if (elm && elm.type === 'label') {
                         elm.props.isBold = !elm.props.isBold;
-                        updateSelectedElement(); // Will fail for multi-select technically as written?
-                        // Update DOM manually for multi-select bold toggle to be safe
                         const dom = document.getElementById(id);
-                        if (dom && elm.type === 'label') {
-                            const weight = elm.props.isBold ? 'bold' : 'normal';
-                            dom.querySelector('span').style.fontWeight = weight;
+                        if (dom) {
+                            dom.querySelector('span').style.fontWeight = elm.props.isBold ? 'bold' : 'normal';
                         }
                     }
                 });
-                // Sync UI if single
                 if (selectedIds.length === 1) {
                     const chk = document.getElementById('propBold');
-                    const elm = elements.find(el => el.id === selectedIds[0]);
-                    if (chk) chk.checked = elm.props.isBold;
+                    const elm = elements.find(item => item.id === selectedIds[0]);
+                    if (chk && elm) chk.checked = !!elm.props.isBold;
                 }
+                return;
             }
 
             // ARROW KEYS (Nudge)
@@ -1531,29 +1520,25 @@
                 if (selectedIds.length > 0) {
                     e.preventDefault();
                     const shift = e.shiftKey ? 10 : 1;
-
                     selectedIds.forEach(id => {
-                        const elm = elements.find(el => el.id === id);
+                        const elm = elements.find(item => item.id === id);
                         if (!elm) return;
-
                         if (e.key === 'ArrowUp') elm.y -= shift;
                         if (e.key === 'ArrowDown') elm.y += shift;
                         if (e.key === 'ArrowLeft') elm.x -= shift;
                         if (e.key === 'ArrowRight') elm.x += shift;
-
                         const dom = document.getElementById(id);
                         if (dom) {
                             dom.style.left = elm.x + 'px';
                             dom.style.top = elm.y + 'px';
                         }
                     });
-
                     if (selectedIds.length === 1) {
                         const px = document.getElementById('propX');
                         const py = document.getElementById('propY');
-                        const elm = elements.find(el => el.id === selectedIds[0]);
-                        if (px) px.value = elm.x;
-                        if (py) py.value = elm.y;
+                        const elm = elements.find(item => item.id === selectedIds[0]);
+                        if (px && elm) px.value = elm.x;
+                        if (py && elm) py.value = elm.y;
                     }
                 }
             }
@@ -1561,8 +1546,7 @@
 
         // --- LOAD MODAL LOGIC ---
         function showLoadModal() {
-            const modal = document.getElementById('loadModal');
-            modal.style.display = 'flex';
+            document.getElementById('loadModal').style.display = 'flex';
             fetchTemplates();
         }
 
@@ -1573,57 +1557,60 @@
         async function fetchTemplates() {
             const listEl = document.getElementById('templateList');
             const loadingEl = document.getElementById('modalLoading');
-
             listEl.innerHTML = '';
             loadingEl.classList.remove('hidden');
-
-            const templates = await callApi('listTemplates', {});
-
-            loadingEl.classList.add('hidden');
-            if (Array.isArray(templates)) {
-                renderTemplates(templates);
-            } else if (templates.status === 'error') {
-                listEl.innerHTML = `<li>Error: ${templates.message}</li>`;
-            } else {
-                // Handle mock or empty
-                renderTemplates([]);
+            try {
+                const templates = await callApi('listTemplates', {});
+                loadingEl.classList.add('hidden');
+                if (Array.isArray(templates)) {
+                    renderTemplates(templates);
+                } else if (templates.status === 'error') {
+                    listEl.innerHTML = `<li>Error: ${templates.message}</li>`;
+                } else {
+                    renderTemplates([]);
+                }
+            } catch (err) {
+                loadingEl.classList.add('hidden');
+                listEl.innerHTML = `<li>Connection error.</li>`;
             }
         }
 
         function renderTemplates(templates) {
             const listEl = document.getElementById('templateList');
-            if (templates.length === 0) {
+            if (!templates || templates.length === 0) {
                 listEl.innerHTML = '<li style="padding: 1rem; color: #999;">No saved forms found.</li>';
-            } else {
-                listEl.innerHTML = templates.map(t => `
-                    <li onclick="loadForm('${t.id}')">
-                        <div style="font-weight: bold;">${t.name}</div>
-                        ${t.description ? `<div style="font-size: 0.8rem; color: #666; margin: 2px 0;">${t.description}</div>` : ''}
-                        <div style="font-size: 0.7rem; color: #999;">Updated: ${new Date(t.lastUpdated).toLocaleString()}</div>
-                    </li>
-                `).join('');
+                return;
             }
+            listEl.innerHTML = templates.map(t => `
+                <li onclick="loadForm('${t.id}')">
+                    <div style="font-weight: bold;">${t.name}</div>
+                    ${t.description ? `<div style="font-size: 0.8rem; color: #666; margin: 2px 0;">${t.description}</div>` : ''}
+                    <div style="font-size: 0.7rem; color: #999;">Updated: ${new Date(t.lastUpdated).toLocaleString()}</div>
+                </li>
+            `).join('');
         }
 
         async function loadForm(id) {
             closeLoadModal();
             const loader = document.getElementById('loader');
-            loader.classList.remove('hidden');
-
-            const res = await callApi('getForm', { formId: id });
-
-            loader.classList.add('hidden');
-            if (res.status === 'success') {
-                applyLoadedForm(id, res.schema, res.config, res.metadata);
-            } else {
-                // Local fallback check if API fails or not configured
-                const data = localStorage.getItem('form_' + id);
-                if (data) {
-                    const parsed = JSON.parse(data);
-                    applyLoadedForm(id, parsed.schema, parsed.config, parsed.metadata);
+            if (loader) loader.classList.remove('hidden');
+            try {
+                const res = await callApi('getForm', { formId: id });
+                if (res.status === 'success') {
+                    applyLoadedForm(id, res.schema, res.config, res.metadata);
                 } else {
-                    alert('Error: ' + res.message);
+                    const data = localStorage.getItem('form_' + id);
+                    if (data) {
+                        const parsed = JSON.parse(data);
+                        applyLoadedForm(id, parsed.schema, parsed.config, parsed.metadata);
+                    } else {
+                        alert('Error: ' + res.message);
+                    }
                 }
+            } catch (err) {
+                alert('Could not load form.');
+            } finally {
+                if (loader) loader.classList.add('hidden');
             }
         }
 
@@ -1638,8 +1625,6 @@
                 sheetName: config.targetSheetName,
                 language: config.language
             };
-
-            // Update UI
             document.getElementById('propFormId').value = formConfig.id;
             document.getElementById('propDescription').value = formConfig.description;
             document.getElementById('propAllowedDomains').value = formConfig.allowedDomains;
@@ -1648,16 +1633,12 @@
             document.getElementById('propLanguage').value = formConfig.language;
             document.getElementById('headerFormId').innerText = formConfig.id;
 
-            // Clear Canvas
             elements = [];
             canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
-
-            // Add Elements
-            schema.forEach(elmData => {
+            (schema || []).forEach(elmData => {
                 elements.push(elmData);
                 renderElementDOM(elmData);
             });
-
             selectedIds = [];
             renderSelectionState();
             updatePropsPanel();
@@ -1668,35 +1649,34 @@
         async function showEmbedModal() {
             const modal = document.getElementById('embedModal');
             const area = document.getElementById('embedCodeArea');
+            if (!modal || !area) return;
 
-            // Your Google Script Backend URL
             const currentApiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
-
-            // Your current hosting domain (e.g., Hostinger or GitHub Pages)
             const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
             const viewerPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'viewer.html';
 
             if (currentApiUrl) {
-                // The embed code now points to YOUR website on Hostinger, not Google's.
-                // We pass the api URL as a parameter so viewer.html knows who to talk to.
                 const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiUrl)}`;
                 const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
                 area.value = code;
                 modal.style.display = 'flex';
             } else {
-                alert("Please configure 'GAS API URL' in Settings first to generate embed code.");
+                alert("Please configure 'GAS API URL' in Settings first.");
             }
         }
 
         function closeEmbedModal() {
-            document.getElementById('embedModal').style.display = 'none';
+            const modal = document.getElementById('embedModal');
+            if (modal) modal.style.display = 'none';
         }
 
         function copyEmbedCode() {
             const area = document.getElementById('embedCodeArea');
-            area.select();
-            document.execCommand('copy');
-            alert('Embed code copied to clipboard!');
+            if (area) {
+                area.select();
+                document.execCommand('copy');
+                alert('Embed code copied!');
+            }
         }
 
         // --- RULER LOGIC ---
@@ -1705,32 +1685,26 @@
             const rulerLeft = document.getElementById('rulerLeft');
             if (!rulerTop || !rulerLeft) return;
 
-            // Horizontal 800px
+            rulerTop.innerHTML = '';
+            rulerLeft.innerHTML = '';
+
             for (let i = 0; i <= 800; i += 10) {
                 const tick = document.createElement('div');
                 tick.className = 'tick tick-h ' + (i % 100 === 0 ? 'major' : 'minor');
                 tick.style.left = i + 'px';
-                if (i % 100 === 0) {
-                    tick.innerHTML = `<span>${i}</span>`;
-                }
+                if (i % 100 === 0) tick.innerHTML = `<span>${i}</span>`;
                 rulerTop.appendChild(tick);
             }
-
-            // Vertical 1123px
             for (let i = 0; i <= 1123; i += 10) {
                 const tick = document.createElement('div');
                 tick.className = 'tick tick-v ' + (i % 100 === 0 ? 'major' : 'minor');
                 tick.style.top = i + 'px';
-                if (i % 100 === 0) {
-                    tick.innerHTML = `<span>${i}</span>`;
-                }
+                if (i % 100 === 0) tick.innerHTML = `<span>${i}</span>`;
                 rulerLeft.appendChild(tick);
             }
         }
 
-        // Call it
         initRulers();
-
     </script>
 </body>
 
