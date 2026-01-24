@@ -209,17 +209,24 @@
             }
 
             try {
+                // Ensure URL is clean
+                let url = gasApiUrl.trim().replace(/\/$/, "");
+                const sep = url.includes('?') ? '&' : '?';
+
                 if (action === 'getForm') {
-                    const res = await fetch(`${gasApiUrl}?action=getForm&id=${payload.formId}`);
+                    const res = await fetch(`${url}${sep}action=getForm&id=${payload.formId}`);
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return await res.json();
                 } else if (action === 'translateText') {
-                    const res = await fetch(`${gasApiUrl}?action=translateText&text=${encodeURIComponent(payload.text)}&targetLang=${payload.targetLang}&sourceLang=${payload.sourceLang}`);
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    return await res.json();
+                    const fetchUrl = `${url}${sep}action=translateText&text=${encodeURIComponent(payload.text)}&targetLang=${payload.targetLang}&sourceLang=${payload.sourceLang}`;
+                    const res = await fetch(fetchUrl);
+                    if (!res.ok) throw new Error(`Network Error: ${res.status}`);
+                    const json = await res.json();
+                    if (json.status === 'error') throw new Error(json.message);
+                    return json;
                 } else {
                     // POST actions (submitForm)
-                    const res = await fetch(gasApiUrl, {
+                    const res = await fetch(url, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain' },
@@ -228,7 +235,8 @@
                     return { status: 'success', message: 'Payload sent successfully.' };
                 }
             } catch (err) {
-                return { status: 'error', message: err.toString() };
+                console.error("API Call failed:", err);
+                return { status: 'error', message: err.message || err.toString() };
             }
         }
 
@@ -382,11 +390,17 @@
                     hint.innerText = res.translated;
                     hint.style.color = '#2563eb'; // Blue for success
                 } else {
-                    throw new Error(res.message || 'Translation failed');
+                    // If we got an error object or missing status
+                    throw new Error(res.message || 'Translation failed. Ensure GAS script is re-deployed as "New Version".');
                 }
             } catch (err) {
                 console.error("Translation Error:", err);
-                hint.innerText = "Translation error. Check API settings.";
+                // Extract useful message parts
+                let msg = err.message || "Unknown error";
+                if (msg.includes("Unexpected token") || msg.includes("is not valid JSON")) {
+                    msg = "Invalid Server Response. Did you re-deploy GAS?";
+                }
+                hint.innerText = "Error: " + msg;
                 hint.style.color = '#dc3545'; // Red for error
             }
         }
