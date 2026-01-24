@@ -716,6 +716,16 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <button class="btn btn-outline"
+                        style="width: 100%; border-color: var(--primary); color: var(--primary);"
+                        onclick="swapAllLabels()">
+                        Swap L1 ⇄ L2 Labels (Move Text)
+                    </button>
+                    <small style="font-size: 0.7rem; color: #666; margin-top: 4px; display: block;">
+                        * This will move all secondary labels to primary and vice-versa.
+                    </small>
+                </div>
+                <div class="form-group">
                     <label>Allowed Domains (Security)</label>
                     <input type="text" id="propAllowedDomains" placeholder="google.com, example.org">
                     <small style="font-size: 0.7rem; color: var(--text-light);">Comma-separated. Leave empty to allow
@@ -1736,6 +1746,29 @@
                 if (i % 100 === 0) tick.innerHTML = `<span>${i}</span>`;
                 rulerLeft.appendChild(tick);
             }
+        }
+
+        // --- UTILS ---
+        function swapAllLabels() {
+            if (!confirm("Are you sure you want to swap ALL labels? This will move existing 'Secondary' text into 'Primary' slots for all elements.")) return;
+
+            elements.forEach(elm => {
+                const temp = elm.props.label || '';
+                elm.props.label = elm.props.labelRegional || '';
+                elm.props.labelRegional = temp;
+
+                const dom = document.getElementById(elm.id);
+                if (dom) renderElementVisual(elm, dom);
+            });
+
+            // Swap dropdown values too
+            const L1 = document.getElementById('propLanguagePrimary').value;
+            const L2 = document.getElementById('propLanguageSecondary').value;
+            document.getElementById('propLanguagePrimary').value = L2;
+            document.getElementById('propLanguageSecondary').value = L1;
+
+            updateFormLanguage();
+            alert("Labels swapped successfully!");
         }
 
         initRulers();
