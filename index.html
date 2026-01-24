@@ -1289,10 +1289,13 @@
             }
 
             // Priority 2: fetch (if hosted externally, e.g. GitHub Pages)
-            const apiUrl = formConfig.gasApiUrl;
+            // Always pull latest from DOM just in case sync failed
+            const apiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
             if (!apiUrl) {
                 return { status: 'error', message: 'GAS API URL not configured in settings.' };
             }
+            // Sync back to config
+            formConfig.gasApiUrl = apiUrl;
 
             try {
                 // Determine if we can use 'cors' (usually fails with GAS) or MUST use 'no-cors'
@@ -1647,8 +1650,13 @@
             const modal = document.getElementById('embedModal');
             const area = document.getElementById('embedCodeArea');
 
+            // Ensure we have the latest URL
+            const currentApiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
+
             const baseUrlRes = await callApi('getScriptUrl', {});
-            const baseUrl = typeof baseUrlRes === 'string' ? baseUrlRes : formConfig.gasApiUrl;
+            // If baseUrlRes is a string, it's the direct script URL from GAS
+            // If it's an object or error, fall back to what's in the box
+            const baseUrl = typeof baseUrlRes === 'string' ? baseUrlRes : currentApiUrl;
 
             if (baseUrl) {
                 // Include the API URL in the embed code so the viewer knows where to connect
