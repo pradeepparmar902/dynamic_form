@@ -488,22 +488,17 @@
 
     <!-- HEADER -->
     <header>
-        <div class="brand">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-            </svg>
-            Dynamic Builder
-        </div>
-        <div class="form-settings-quick" style="text-align: center; flex: 1;">
-            <div id="headerFormName"
-                style="font-size: 1.1rem; font-weight: 600; color: var(--primary); line-height: 1;">New Form</div>
-            <div id="headerFormId" style="font-size: 0.7rem; color: var(--text-light); margin-top: 2px;">Form_ID</div>
-        </div>
-        <div class="header-actions">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="brand">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                </svg>
+                Dynamic Builder
+            </div>
             <button class="btn btn-outline" onclick="createNewForm()"
-                style="border-color: var(--primary); color: var(--primary);">
+                style="border-color: var(--primary); color: var(--primary); background: #eff6ff;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -511,6 +506,16 @@
                 </svg>
                 New Form
             </button>
+        </div>
+
+        <div class="form-title-area" style="text-align: center; flex: 1; max-width: 400px; margin: 0 1rem;">
+            <input type="text" id="headerFormNameInput" placeholder="Enter Form Name..."
+                style="width: 100%; border: none; border-bottom: 2px solid transparent; text-align: center; font-size: 1.1rem; font-weight: 600; color: var(--primary); padding: 4px; transition: border-color 0.2s; background: transparent;"
+                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='transparent'">
+            <div id="headerFormId" style="font-size: 0.65rem; color: var(--text-light); margin-top: 2px; opacity: 0.7;">
+                Form_ID</div>
+        </div>
+        <div class="header-actions">
             <button class="btn btn-outline" onclick="showLoadModal()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -893,10 +898,18 @@
         document.getElementById('propFormId').value = formConfig.id;
         document.getElementById('headerFormId').innerText = formConfig.id;
         document.getElementById('propFormName').value = formConfig.formName;
-        document.getElementById('propFormName').addEventListener('input', (e) => {
-            formConfig.formName = e.target.value;
-            document.getElementById('headerFormName').innerText = e.target.value || 'Untitled Form';
-        });
+        document.getElementById('headerFormNameInput').value = formConfig.formName;
+
+        // Sync both name inputs works on either update
+        function syncFormName(val, source) {
+            formConfig.formName = val;
+            if (source !== 'header') document.getElementById('headerFormNameInput').value = val;
+            if (source !== 'props') document.getElementById('propFormName').value = val;
+        }
+
+        document.getElementById('propFormName').addEventListener('input', (e) => syncFormName(e.target.value, 'props'));
+        document.getElementById('headerFormNameInput').addEventListener('input', (e) => syncFormName(e.target.value, 'header'));
+
         document.getElementById('propDescription').addEventListener('input', (e) => formConfig.description = e.target.value);
         document.getElementById('propAllowedDomains').addEventListener('input', (e) => formConfig.allowedDomains = e.target.value);
         document.getElementById('propSheetUrl').addEventListener('input', (e) => formConfig.sheetUrl = e.target.value);
@@ -1691,7 +1704,7 @@
 
             document.getElementById('propFormId').value = formConfig.id;
             document.getElementById('propFormName').value = formConfig.formName;
-            document.getElementById('headerFormName').innerText = formConfig.formName;
+            document.getElementById('headerFormNameInput').value = formConfig.formName;
             document.getElementById('propDescription').value = formConfig.description;
             document.getElementById('propAllowedDomains').value = formConfig.allowedDomains;
             document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
@@ -1820,7 +1833,7 @@
             // Reset UI
             document.getElementById('propFormId').value = formConfig.id;
             document.getElementById('propFormName').value = formConfig.formName;
-            document.getElementById('headerFormName').innerText = formConfig.formName;
+            document.getElementById('headerFormNameInput').value = formConfig.formName;
             document.getElementById('propDescription').value = '';
             document.getElementById('propAllowedDomains').value = '';
             document.getElementById('propSheetUrl').value = '';
