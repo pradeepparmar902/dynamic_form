@@ -502,6 +502,15 @@
                 Form</span>
         </div>
         <div class="header-actions">
+            <button class="btn btn-outline" onclick="createNewForm()"
+                style="border-color: var(--primary); color: var(--primary);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                New Form
+            </button>
             <button class="btn btn-outline" onclick="showLoadModal()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1769,6 +1778,43 @@
 
             updateFormLanguage();
             alert("Labels swapped successfully!");
+        }
+
+        function createNewForm() {
+            if (elements.length > 0) {
+                if (!confirm("Start a new form? Any unsaved changes on the current canvas will be lost.")) return;
+            }
+
+            // Reset Config
+            formConfig = {
+                id: 'Form_' + Date.now(),
+                description: '',
+                allowedDomains: '',
+                sheetUrl: '',
+                sheetName: 'Form Responses',
+                language: 'mr',
+                languagePrimary: 'en',
+                languageSecondary: 'mr',
+                gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl
+            };
+
+            // Reset Elements
+            elements = [];
+            canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
+
+            // Reset UI
+            document.getElementById('propFormId').value = formConfig.id;
+            document.getElementById('propDescription').value = '';
+            document.getElementById('propAllowedDomains').value = '';
+            document.getElementById('propSheetUrl').value = '';
+            document.getElementById('propSheetName').value = 'Form Responses';
+            document.getElementById('headerFormId').innerText = 'New Form';
+
+            renderSelectionState();
+            showGlobalProps();
+            updateFormLanguage();
+
+            alert("New Form Created! You can start adding elements.");
         }
 
         initRulers();
