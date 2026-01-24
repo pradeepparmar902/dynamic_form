@@ -427,9 +427,17 @@
                 }
 
                 if (input.name) {
-                    formData[input.name] = input.value;
+                    // Map internal name to human label if possible
+                    const elm = (formSchema || []).find(e => e.props && e.props.name === input.name);
+                    const header = (elm && elm.props.label) ? elm.props.label : input.name;
+
+                    formData[header] = input.value;
+
                     if (input.dataset.translated) {
-                        formData[`${input.name} (${targetLang})`] = input.dataset.translated;
+                        const regHeader = (elm && elm.props.labelRegional)
+                            ? elm.props.labelRegional
+                            : `${header} (${targetLang})`;
+                        formData[regHeader] = input.dataset.translated;
                     }
                 }
             });
