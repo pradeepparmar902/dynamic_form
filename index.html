@@ -496,10 +496,10 @@
             </svg>
             Dynamic Builder
         </div>
-        <div class="form-settings-quick">
-            <!-- Quick access to Form ID for context -->
-            <span id="headerFormId" style="font-size: 0.9rem; font-weight: 500; color: var(--text-light);">New
-                Form</span>
+        <div class="form-settings-quick" style="text-align: center; flex: 1;">
+            <div id="headerFormName"
+                style="font-size: 1.1rem; font-weight: 600; color: var(--primary); line-height: 1;">New Form</div>
+            <div id="headerFormId" style="font-size: 0.7rem; color: var(--text-light); margin-top: 2px;">Form_ID</div>
         </div>
         <div class="header-actions">
             <button class="btn btn-outline" onclick="createNewForm()"
@@ -681,8 +681,13 @@
             <div id="globalProps" class="props-content">
                 <div class="category-title">Form Settings</div>
                 <div class="form-group">
-                    <label>Form ID / Form Name</label>
-                    <input type="text" id="propFormId" placeholder="e.g. 101 or ConstructionForm">
+                    <label>Form Name (Display)</label>
+                    <input type="text" id="propFormName" placeholder="e.g. Donation Form">
+                </div>
+                <div class="form-group">
+                    <label>Form ID (System Key)</label>
+                    <input type="text" id="propFormId" readonly
+                        style="background: var(--surface-alt); color: var(--text-light); border-style: dashed;">
                 </div>
                 <div class="form-group">
                     <label>Form Description</label>
@@ -868,6 +873,7 @@
         let selectedIds = []; // Array of strings
         let formConfig = {
             id: 'Form_' + Date.now(),
+            formName: 'New Form',
             description: '',
             allowedDomains: '',
             sheetUrl: '',
@@ -885,7 +891,12 @@
 
         // INIT
         document.getElementById('propFormId').value = formConfig.id;
-        document.getElementById('propFormId').addEventListener('input', (e) => formConfig.id = e.target.value);
+        document.getElementById('headerFormId').innerText = formConfig.id;
+        document.getElementById('propFormName').value = formConfig.formName;
+        document.getElementById('propFormName').addEventListener('input', (e) => {
+            formConfig.formName = e.target.value;
+            document.getElementById('headerFormName').innerText = e.target.value || 'Untitled Form';
+        });
         document.getElementById('propDescription').addEventListener('input', (e) => formConfig.description = e.target.value);
         document.getElementById('propAllowedDomains').addEventListener('input', (e) => formConfig.allowedDomains = e.target.value);
         document.getElementById('propSheetUrl').addEventListener('input', (e) => formConfig.sheetUrl = e.target.value);
@@ -1419,7 +1430,7 @@
 
             const schema = elements;
             const config = {
-                formName: formConfig.id,
+                formName: formConfig.formName || formConfig.id,
                 targetSheetUrl: formConfig.sheetUrl,
                 targetSheetName: formConfig.sheetName,
                 language: formConfig.language
@@ -1668,22 +1679,25 @@
 
         function applyLoadedForm(id, schema, config, metadata) {
             metadata = metadata || {};
-            formConfig = {
-                ...formConfig,
-                id: id,
-                description: metadata.description || '',
-                allowedDomains: metadata.allowedDomains || '',
-                sheetUrl: config.targetSheetUrl,
-                sheetName: config.targetSheetName,
-                language: config.language
-            };
+            formConfig.id = id;
+            formConfig.formName = config.formName || id;
+            formConfig.description = metadata.description || "";
+            formConfig.allowedDomains = metadata.allowedDomains || "";
+            formConfig.sheetUrl = config.targetSheetUrl || "";
+            formConfig.sheetName = config.targetSheetName || "Form Responses";
+            formConfig.language = config.language || "mr";
+            formConfig.languagePrimary = config.languagePrimary || "en";
+            formConfig.languageSecondary = config.languageSecondary || config.language || 'mr';
+
             document.getElementById('propFormId').value = formConfig.id;
+            document.getElementById('propFormName').value = formConfig.formName;
+            document.getElementById('headerFormName').innerText = formConfig.formName;
             document.getElementById('propDescription').value = formConfig.description;
             document.getElementById('propAllowedDomains').value = formConfig.allowedDomains;
             document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
             document.getElementById('propSheetName').value = formConfig.sheetName;
-            document.getElementById('propLanguagePrimary').value = formConfig.languagePrimary || 'en';
-            document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary || formConfig.language || 'mr';
+            document.getElementById('propLanguagePrimary').value = formConfig.languagePrimary;
+            document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary;
             document.getElementById('headerFormId').innerText = formConfig.id;
 
             elements = [];
@@ -1788,6 +1802,7 @@
             // Reset Config
             formConfig = {
                 id: 'Form_' + Date.now(),
+                formName: 'New Form',
                 description: '',
                 allowedDomains: '',
                 sheetUrl: '',
@@ -1804,11 +1819,13 @@
 
             // Reset UI
             document.getElementById('propFormId').value = formConfig.id;
+            document.getElementById('propFormName').value = formConfig.formName;
+            document.getElementById('headerFormName').innerText = formConfig.formName;
             document.getElementById('propDescription').value = '';
             document.getElementById('propAllowedDomains').value = '';
             document.getElementById('propSheetUrl').value = '';
             document.getElementById('propSheetName').value = 'Form Responses';
-            document.getElementById('headerFormId').innerText = 'New Form';
+            document.getElementById('headerFormId').innerText = formConfig.id;
 
             renderSelectionState();
             showGlobalProps();
