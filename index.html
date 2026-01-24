@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Form Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --surface: #ffffff;
+            --surface-alt: #f3f4f6;
+            --border: #e5e7eb;
+            --text-main: #1f2937;
+            --text-light: #6b7280;
+            --danger: #ef4444;
+            --sidebar-width: 260px;
+            --props-width: 300px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #f9fafb;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-main);
+        }
+
+        /* HEADER */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+            z-index: 10;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            border-color: var(--border);
+            background: white;
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--surface-alt);
+        }
+
+        /* MAIN LAYOUT */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR (TOOLS) */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tool-category {
+            padding: 1rem;
+        }
+
+        .category-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .tool-item {
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .tool-item:hover {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .tool-item svg {
+            width: 20px;
+            height: 20px;
+            color: var(--text-light);
+        }
+
+        /* CANVAS */
+        .canvas-area {
+            flex: 1;
+            background: #e5e5f7;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            padding: 2rem;
+            overflow: auto;
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .canvas {
+            width: 794px;
+            /* A4 width approx */
+            height: 1123px;
+            /* A4 height approx */
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .canvas.show-grid {
+            background-size: 20px 20px;
+            background-image:
+                linear-gradient(to right, #f0f0f0 1px, transparent 1px),
+                linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
+        }
+
+        /* RULERS */
+        .ruler-h {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            height: 25px;
+            width: 100%;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+        }
+
+        .ruler-v {
+            position: absolute;
+            left: -25px;
+            top: 0;
+            width: 25px;
+            height: 100%;
+            background: #fff;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tick {
+            position: absolute;
+            background: #999;
+            font-size: 8px;
+            color: #555;
+            pointer-events: none;
+        }
+
+        .tick-h {
+            bottom: 0;
+            border-left: 1px solid #ccc;
+        }
+
+        .tick-h.major {
+            height: 100%;
+            border-left: 1px solid #777;
+            font-weight: bold;
+        }
+
+        .tick-h.minor {
+            height: 5px;
+        }
+
+        .tick-h span {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+        }
+
+        .tick-v {
+            right: 0;
+            border-top: 1px solid #ccc;
+        }
+
+        .tick-v.major {
+            width: 100%;
+            border-top: 1px solid #777;
+            font-weight: bold;
+        }
+
+        .tick-v.minor {
+            width: 5px;
+        }
+
+        .tick-v span {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            transform: rotate(-90deg);
+            transform-origin: 0 100%;
+            white-space: nowrap;
+        }
+
+        .canvas-element {
+            position: absolute;
+            border: 1px dashed transparent;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .canvas-element:hover {
+            border-color: var(--primary);
+        }
+
+        .canvas-element.selected {
+            border: 2px solid var(--primary);
+            z-index: 10;
+            cursor: move;
+        }
+
+        /* COMPONENT STYLES PREVIEW */
+        .preview-field {
+            pointer-events: none;
+        }
+
+        .preview-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #374151;
+        }
+
+        .preview-input {
+            width: 200px;
+            padding: 6px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: #fff;
+        }
+
+        .preview-shape {
+            background: #e2e8f0;
+        }
+
+        /* PROPERTIES PANEL */
+        .properties-panel {
+            width: var(--props-width);
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .props-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+        }
+
+        .props-content {
+            padding: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.35rem;
+            color: var(--text-main);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .toggle-switch input {
+            width: auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Loader */
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        #loader.hidden {
+            display: none !important;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loader" class="hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- HEADER -->
+    <header>
+        <div class="brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+            Dynamic Builder
+        </div>
+        <div class="form-settings-quick">
+            <!-- Quick access to Form ID for context -->
+            <span id="headerFormId" style="font-size: 0.9rem; font-weight: 500; color: var(--text-light);">New
+                Form</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="openPreview()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                Preview
+            </button>
+            <button class="btn btn-primary" onclick="saveForm()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Save Form
+            </button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">TOOLBOX</div>
+
+            <div class="tool-category">
+                <div class="category-title">Input Fields</div>
+                <div class="tool-grid">
+                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="text">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect>
+                            <line x1="12" y1="22" x2="12" y2="2"></line>
+                        </svg>
+                        <span>Text</span>
+                    </div>
+                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="date">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>Date</span>
+                    </div>
+                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="number">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                        </svg>
+                        <span>Number</span>
+                    </div>
+                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="file">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>File</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-category">
+                <div class="category-title">Cosmetics</div>
+                <div class="tool-grid">
+                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="heading">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 12h8"></path>
+                            <path d="M4 6h16"></path>
+                            <path d="M4 18h8"></path>
+                        </svg>
+                        <span>Heading</span>
+                    </div>
+                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                        <span>Label</span>
+                    </div>
+                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="rect">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        </svg>
+                        <span>Box</span>
+                    </div>
+                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="line">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <span>Line</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CANVAS -->
+        <main class="canvas-area" id="canvasArea" ondrop="handleDrop(event)" ondragover="allowDrop(event)">
+            <div id="formCanvas" class="canvas show-grid">
+                <div class="ruler-h" id="rulerTop"></div>
+                <div class="ruler-v" id="rulerLeft"></div>
+                <!-- Elements will be dropped here -->
+            </div>
+        </main>
+
+        <!-- PROPERTIES PANEL -->
+        <aside class="properties-panel">
+            <div class="props-header">Configuration</div>
+
+            <div id="globalProps" class="props-content">
+                <div class="category-title">Form Settings</div>
+                <div class="form-group">
+                    <label>Form ID / Form Name</label>
+                    <input type="text" id="propFormId" placeholder="e.g. 101 or ConstructionForm">
+                </div>
+                <div class="form-group">
+                    <label>Target Sheet URL</label>
+                    <textarea id="propSheetUrl" rows="3"
+                        placeholder="https://docs.google.com/spreadsheets/d/..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Target Sheet Name</label>
+                    <input type="text" id="propSheetName" placeholder="e.g. Data">
+                </div>
+                <div class="form-group">
+                    <label>Secondary Language</label>
+                    <select id="propLanguage" onchange="updateFormLanguage()">
+                        <option value="mr">Marathi (Marathi)</option>
+                        <option value="hi">Hindi (Hindi)</option>
+                        <option value="gu">Gujarati (Gujarati)</option>
+                        <option value="kn">Kannada (Kannada)</option>
+                        <option value="ta">Tamil (Tamil)</option>
+                        <option value="te">Telugu (Telugu)</option>
+                        <option value="bn">Bengali (Bengali)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="elementProps" class="props-content hidden">
+                <div class="category-title">Element Properties</div>
+                <div class="form-group">
+                    <label>Field Label (English)</label>
+                    <input type="text" id="propLabel" oninput="updateSelectedElement()">
+                </div>
+                <div class="form-group">
+                    <label id="lblPropRegional">Field Label (Regional)</label>
+                    <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
+                </div>
+                <div class="form-group">
+                    <label>Field Name (DB Key)</label>
+                    <input type="text" id="propName" oninput="updateSelectedElement()">
+                </div>
+
+                <!-- Dynamic Options based on type -->
+                <div class="form-group toggle-group">
+                    <label>Required</label>
+                    <input type="checkbox" id="propRequired" onchange="updateSelectedElement()">
+                </div>
+
+                <div class="form-group toggle-group">
+                    <label id="lblPropTranslatable">Enable Translation (Eng -> Marathi)</label>
+                    <input type="checkbox" id="propTranslatable" onchange="updateSelectedElement()">
+                </div>
+
+                <!-- STYLE PROPERTIES -->
+                <div class="form-group" id="grpHeadingLevel">
+                    <label>Heading Level</label>
+                    <select id="propHeadingLevel" onchange="updateSelectedElement()">
+                        <option value="h1">H1 (Huge)</option>
+                        <option value="h2">H2 (Large)</option>
+                        <option value="h3">H3 (Medium)</option>
+                        <option value="h4">H4 (Small)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grpAlign">
+                    <label>Alignment</label>
+                    <select id="propAlign" onchange="updateSelectedElement()">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grpFontSize">
+                    <label>Font Size (px)</label>
+                    <input type="number" id="propFontSize" oninput="updateSelectedElement()">
+                </div>
+
+                <div class="form-group toggle-group" id="grpBold">
+                    <label>Bold Text</label>
+                    <input type="checkbox" id="propBold" onchange="updateSelectedElement()">
+                </div>
+
+                <!-- VISUAL STYLE PROPERTIES -->
+                <div class="form-group" id="grpStrokeWidth">
+                    <label>Thickness (px)</label>
+                    <input type="number" id="propStrokeWidth" min="1" max="20" oninput="updateSelectedElement()">
+                </div>
+
+                <div class="form-group" id="grpBorderStyle">
+                    <label>Style</label>
+                    <select id="propBorderStyle" onchange="updateSelectedElement()">
+                        <option value="solid">Solid</option>
+                        <option value="dashed">Dashed</option>
+                        <option value="dotted">Dotted</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grpBorderRadius">
+                    <label>Corner Radius (px)</label>
+                    <input type="number" id="propBorderRadius" min="0" max="100" oninput="updateSelectedElement()">
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
+                <div class="form-group">
+                    <label>Position X (px)</label>
+                    <input type="number" id="propX" oninput="updatePosFromInputs()">
+                </div>
+                <div class="form-group">
+                    <label>Position Y (px)</label>
+                    <input type="number" id="propY" oninput="updatePosFromInputs()">
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-outline" style="width: 100%; justify-content: center; margin-bottom: 0.5rem;"
+                        onclick="duplicateSelected()">
+                        Duplicate Element
+                    </button>
+                    <button class="btn btn-outline"
+                        style="color: var(--danger); border-color: var(--danger); width: 100%; justify-content: center;"
+                        onclick="deleteSelected()">
+                        Delete Element
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <button class="btn btn-outline" style="width: 100%; justify-content: center;"
+                        onclick="showGlobalProps()">
+                        &larr; Back to Form Settings
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- MAIN BUILDER LOGIC -->
+    <script>
+        // STATE
+        let elements = []; // Array of { id, type, x, y, props }
+        let selectedIds = []; // Array of strings
+        let formConfig = {
+            id: 'Form_' + Date.now(),
+            sheetUrl: '',
+            sheetName: 'Form Responses',
+            language: 'mr'
+        };
+
+        // DOM REFERENCES
+        const canvas = document.getElementById('formCanvas');
+        const elmPropsPanel = document.getElementById('elementProps');
+        const globalPropsPanel = document.getElementById('globalProps');
+
+        // INIT
+        document.getElementById('propFormId').value = formConfig.id;
+        document.getElementById('propFormId').addEventListener('input', (e) => formConfig.id = e.target.value);
+        document.getElementById('propSheetUrl').addEventListener('input', (e) => formConfig.sheetUrl = e.target.value);
+        document.getElementById('propSheetName').addEventListener('input', (e) => formConfig.sheetName = e.target.value);
+
+        function updateFormLanguage() {
+            formConfig.language = document.getElementById('propLanguage').value;
+            // Update label text dynamically
+            const langName = document.getElementById('propLanguage').selectedOptions[0].text.split(' ')[0];
+            document.getElementById('lblPropRegional').innerText = `Field Label (${langName})`;
+            document.getElementById('lblPropTranslatable').innerText = `Enable Translation (Eng -> ${langName})`;
+        }
+
+
+        // --- DRAG AND DROP (SIDEBAR TO CANVAS) ---
+        function handleDragStart(e) {
+            e.dataTransfer.setData("type", e.target.dataset.type);
+        }
+
+        function allowDrop(e) {
+            e.preventDefault();
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const type = e.dataTransfer.getData("type");
+            if (!type) return; // Might be internal move
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            addElement(type, x, y);
+        }
+
+        // --- INTERNAL DRAG (POSITIONING) ---
+        // We'll implement a simple mousedown/move/up for the absolute positioned elements
+        // Attached in render logic
+
+        // --- CORE LOGIC ---
+        function addElement(type, x, y) {
+            const id = 'elm_' + Date.now();
+            const newElm = {
+                id: id,
+                type: type,
+                x: x,
+                y: y,
+                props: {
+                    label: type === 'rect' || type === 'line' ? '' : 'New ' + type,
+                    name: type + '_' + Math.floor(Math.random() * 1000),
+                    required: false,
+                    translatable: type === 'text',
+                    width: 200,
+                    height: type === 'rect' ? 100 : 40,
+                    // Cosmetics
+                    headingLevel: 'h2',
+                    align: 'left',
+                    fontSize: 14,
+                    isBold: false,
+                    // Shape Styles
+                    strokeWidth: type === 'line' || type === 'rect' ? 2 : 0,
+                    borderStyle: 'solid',
+                    borderRadius: 0,
+                    // Grouping
+                    groupId: null
+                }
+            };
+            elements.push(newElm);
+            renderElementDOM(newElm);
+            selectElement(id);
+        }
+
+        function renderElementDOM(elmData) {
+            const div = document.createElement('div');
+            div.id = elmData.id;
+            div.className = 'canvas-element';
+            div.style.left = elmData.x + 'px';
+            div.style.top = elmData.y + 'px';
+
+            // Content based on type
+            let content = '';
+            if (['text', 'date', 'number', 'file'].includes(elmData.type)) {
+                content = `
+                    <label class="preview-label">${elmData.props.label}${elmData.props.required ? '*' : ''}</label>
+                    <div class="preview-input" style="height: 30px; background: #eee;"></div>
+                `;
+            } else if (elmData.type === 'heading') {
+                div.style.width = '300px';
+                // Dynamic Heading Tag
+                const tag = elmData.props.headingLevel || 'h2';
+                content = `<${tag} style="margin:0; border-bottom: 2px solid #333;">${elmData.props.label || 'Section Heading'}</${tag}>`;
+            } else if (elmData.type === 'rect') {
+                div.style.width = elmData.props.width + 'px';
+                div.style.height = elmData.props.height + 'px';
+                // Apply Styles
+                div.style.border = `${elmData.props.strokeWidth || 2}px ${elmData.props.borderStyle || 'solid'} #000`;
+                div.style.borderRadius = (elmData.props.borderRadius || 0) + 'px';
+                div.style.background = 'transparent';
+            } else if (elmData.type === 'line') {
+                div.style.width = '200px';
+                // Line Implementation: Height = Clickable Area, Visual = Border Top
+                div.style.height = (elmData.props.strokeWidth || 2) + 10 + 'px'; // Add padding for easier click
+                div.style.borderTop = `${elmData.props.strokeWidth || 2}px ${elmData.props.borderStyle || 'solid'} #000`;
+                div.style.background = 'transparent';
+            } else if (elmData.type === 'label') {
+                content = `<span style="font-weight:${elmData.props.isBold ? 'bold' : 'normal'}; font-size:${elmData.props.fontSize || 14}px">${elmData.props.label || 'Label Text'}</span>`;
+            }
+
+            div.innerHTML = content;
+            div.style.textAlign = elmData.props.align || 'left';
+
+            // Mouse Interaction handled globally
+            // div.onmousedown = (e) => startDragElement(e, elmData.id);
+
+            canvas.appendChild(div);
+        }
+
+        // Modified Selection Logic
+        function selectElement(id, multiSelect = false) {
+            const targetElm = elements.find(e => e.id === id);
+            if (!targetElm) return;
+
+            // 1. Group Logic: If target is part of a group, select the WHOLE group
+            let idsToSelect = [id];
+            if (targetElm.props.groupId) {
+                idsToSelect = elements.filter(e => e.props.groupId === targetElm.props.groupId).map(e => e.id);
+            }
+
+            // 2. Multi-Select Logic (Shift)
+            if (multiSelect) {
+                idsToSelect.forEach(newId => {
+                    if (!selectedIds.includes(newId)) selectedIds.push(newId);
+                });
+            } else {
+                selectedIds = idsToSelect; // Replace selection
+            }
+
+            renderSelectionState();
+            updatePropsPanel();
+        }
+
+        function renderSelectionState() {
+            document.querySelectorAll('.canvas-element').forEach(el => el.classList.remove('selected'));
+            selectedIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('selected');
+            });
+        }
+
+        function updatePropsPanel() {
+            if (selectedIds.length === 0) {
+                showGlobalProps();
+                return;
+            }
+
+            if (selectedIds.length > 1) {
+                // Multi-selection: Show Summary
+                elmPropsPanel.classList.remove('hidden');
+                globalPropsPanel.classList.add('hidden');
+            } else {
+                // Single Selection (or First of Multi)
+                globalPropsPanel.classList.add('hidden');
+                elmPropsPanel.classList.remove('hidden');
+
+                const id = selectedIds[0];
+                const elm = elements.find(e => e.id === id);
+
+                document.getElementById('propLabel').value = elm.props.label || '';
+                document.getElementById('propLabelRegional').value = elm.props.labelRegional || '';
+                document.getElementById('propName').value = elm.props.name || '';
+                document.getElementById('propRequired').checked = elm.props.required;
+                document.getElementById('propTranslatable').checked = elm.props.translatable;
+                document.getElementById('propX').value = elm.x;
+                document.getElementById('propY').value = elm.y;
+
+                // Handle Visibility of Style Props
+                const t = elm.type;
+                const setDisplay = (id, show) => document.getElementById(id).style.display = show ? 'block' : 'none';
+                const setDisplayFlex = (id, show) => document.getElementById(id).style.display = show ? 'flex' : 'none';
+
+                setDisplay('grpHeadingLevel', t === 'heading');
+                setDisplay('grpAlign', t === 'heading' || t === 'label');
+                setDisplay('grpFontSize', t === 'label');
+                setDisplayFlex('grpBold', t === 'label');
+
+                // Shape Styles Visibility
+                const isShape = t === 'rect' || t === 'line';
+                setDisplay('grpStrokeWidth', isShape);
+                setDisplay('grpBorderStyle', isShape);
+                setDisplay('grpBorderRadius', t === 'rect');
+
+                // Set Values
+                document.getElementById('propHeadingLevel').value = elm.props.headingLevel || 'h2';
+                document.getElementById('propAlign').value = elm.props.align || 'left';
+                document.getElementById('propFontSize').value = elm.props.fontSize || 14;
+                document.getElementById('propBold').checked = elm.props.isBold || false;
+
+                document.getElementById('propStrokeWidth').value = elm.props.strokeWidth || 2;
+                document.getElementById('propBorderStyle').value = elm.props.borderStyle || 'solid';
+                document.getElementById('propBorderRadius').value = elm.props.borderRadius || 0;
+            }
+        }
+
+        function showGlobalProps() {
+            selectedIds = [];
+            renderSelectionState();
+            elmPropsPanel.classList.add('hidden');
+            globalPropsPanel.classList.remove('hidden');
+        }
+
+        // SINGLE ELEMENT UPDATE (Only when 1 selected)
+        function updateSelectedElement() {
+            if (selectedIds.length !== 1) return;
+            const selectedId = selectedIds[0];
+            const elm = elements.find(e => e.id === selectedId);
+
+            elm.props.label = document.getElementById('propLabel').value;
+            elm.props.labelRegional = document.getElementById('propLabelRegional').value;
+            elm.props.name = document.getElementById('propName').value;
+            elm.props.required = document.getElementById('propRequired').checked;
+            elm.props.translatable = document.getElementById('propTranslatable').checked;
+
+            // Style Props
+            elm.props.headingLevel = document.getElementById('propHeadingLevel').value;
+            elm.props.align = document.getElementById('propAlign').value;
+            elm.props.fontSize = document.getElementById('propFontSize').value;
+            elm.props.isBold = document.getElementById('propBold').checked;
+
+            // Shape Props
+            elm.props.strokeWidth = parseInt(document.getElementById('propStrokeWidth').value) || 2;
+            elm.props.borderStyle = document.getElementById('propBorderStyle').value;
+            elm.props.borderRadius = parseInt(document.getElementById('propBorderRadius').value) || 0;
+
+            // Re-render visual content roughly
+            const dom = document.getElementById(selectedId);
+            const separator = (elm.props.label && elm.props.labelRegional) ? ' / ' : '';
+            const regLabel = elm.props.labelRegional ? separator + elm.props.labelRegional : '';
+
+            // Update Base Styles
+            dom.style.textAlign = elm.props.align || 'left';
+
+            if (['text', 'date', 'number', 'file'].includes(elm.type)) {
+                dom.querySelector('.preview-label').innerHTML = elm.props.label + regLabel + (elm.props.required ? '*' : '');
+            } else if (elm.type === 'heading') {
+                const hTag = document.createElement(elm.props.headingLevel || 'h2');
+                hTag.style.margin = '0';
+                hTag.style.borderBottom = '2px solid #333';
+                hTag.innerText = elm.props.label + regLabel;
+                dom.innerHTML = '';
+                dom.appendChild(hTag);
+            } else if (elm.type === 'label') {
+                const fSize = elm.props.fontSize || 14;
+                dom.innerHTML = `<span style="font-weight:${elm.props.isBold ? 'bold' : 'normal'}; font-size: ${fSize}px">${elm.props.label}${regLabel}</span>`;
+            } else if (elm.type === 'rect') {
+                dom.style.border = `${elm.props.strokeWidth}px ${elm.props.borderStyle} #000`;
+                dom.style.borderRadius = `${elm.props.borderRadius}px`;
+            } else if (elm.type === 'line') {
+                dom.style.borderTop = `${elm.props.strokeWidth}px ${elm.props.borderStyle} #000`;
+                dom.style.height = (elm.props.strokeWidth + 10) + 'px'; // Update click area
+            }
+        }
+
+
+        function duplicateSelected() {
+            if (selectedIds.length === 0) return;
+
+            const groupMap = {};
+            const newIds = [];
+
+            selectedIds.forEach(oldId => {
+                const original = elements.find(e => e.id === oldId);
+                if (!original) return;
+
+                const newElm = JSON.parse(JSON.stringify(original));
+                newElm.id = 'elm_' + Date.now() + '_' + Math.floor(Math.random() * 100);
+                newElm.x += 20;
+                newElm.y += 20;
+
+                if (newElm.props.name) {
+                    newElm.props.name = newElm.props.name.split('_copy')[0] + '_copy_' + Math.floor(Math.random() * 100);
+                }
+
+                // Group Remapping
+                if (newElm.props.groupId) {
+                    if (!groupMap[newElm.props.groupId]) {
+                        groupMap[newElm.props.groupId] = 'grp_' + Date.now() + '_' + Math.random();
+                    }
+                    newElm.props.groupId = groupMap[newElm.props.groupId];
+                }
+
+                elements.push(newElm);
+                renderElementDOM(newElm);
+                newIds.push(newElm.id);
+            });
+
+            selectedIds = newIds;
+            renderSelectionState();
+            updatePropsPanel();
+        }
+
+        function deleteSelected() {
+            if (selectedIds.length === 0) return;
+            selectedIds.forEach(id => {
+                const dom = document.getElementById(id);
+                if (dom) dom.remove();
+                elements = elements.filter(e => e.id !== id);
+            });
+            showGlobalProps();
+        }
+
+        // --- ELEMENT DRAGGING LOGIC ---
+        let activeDrag = null;
+
+        // Global Mouse Controllers
+        window.addEventListener('mousedown', (e) => {
+            // HANDLE CANVAS ELEMENT CLICK (SELECT & PREPARE DRAG)
+            const target = e.target.closest('.canvas-element');
+            if (target) {
+                e.preventDefault(); // Prevent text selection
+                const id = target.id;
+
+                // Select Logic (Shift key?)
+                selectElement(id, e.shiftKey);
+
+                // Prepare Drag for ALL Selected Items
+                // Calculate offsets for ALL items relative to mouse
+                const canvasRect = canvas.getBoundingClientRect();
+
+                const dragMap = {};
+                selectedIds.forEach(selId => {
+                    const el = elements.find(el => el.id === selId);
+                    const elDOM = document.getElementById(selId);
+                    if (el && elDOM) {
+                        const rect = elDOM.getBoundingClientRect();
+                        dragMap[selId] = {
+                            offsetX: e.clientX - rect.left,
+                            offsetY: e.clientY - rect.top
+                        };
+                        elDOM.style.cursor = 'grabbing';
+                    }
+                });
+
+                activeDrag = {
+                    canvasX: canvasRect.left,
+                    canvasY: canvasRect.top,
+                    dragMap: dragMap // ID -> {offsetX, offsetY}
+                };
+                return;
+            }
+
+            // HANDLE CLICK OUTSIDE (DESELECT)
+            // If we clicked on Sidebar, Properties, or Header, do nothing
+            if (e.target.closest('.sidebar') ||
+                e.target.closest('.properties-panel') ||
+                e.target.closest('header')) {
+                return;
+            }
+
+            // Otherwise (e.g. empty canvas area), deselect
+            showGlobalProps();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (activeDrag) {
+                // Move ALL selected items
+                selectedIds.forEach(id => {
+                    const offset = activeDrag.dragMap[id];
+                    if (!offset) return;
+
+                    const rawX = e.clientX - activeDrag.canvasX - offset.offsetX;
+                    const rawY = e.clientY - activeDrag.canvasY - offset.offsetY;
+
+                    // Snap to grid
+                    const snappedX = Math.round(rawX / 10) * 10;
+                    const snappedY = Math.round(rawY / 10) * 10;
+
+                    // Update DOM
+                    const dom = document.getElementById(id);
+                    if (dom) {
+                        dom.style.left = snappedX + 'px';
+                        dom.style.top = snappedY + 'px';
+                    }
+
+                    // Update Model
+                    const elm = elements.find(el => el.id === id);
+                    if (elm) {
+                        elm.x = snappedX;
+                        elm.y = snappedY;
+                    }
+                });
+
+                // Update Props Panel Live (only if single selection, else confusing)
+                if (selectedIds.length === 1) {
+                    const px = document.getElementById('propX');
+                    const py = document.getElementById('propY');
+                    const elm = elements.find(el => el.id === selectedIds[0]);
+                    if (px && elm) px.value = elm.x;
+                    if (py && elm) py.value = elm.y;
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (activeDrag) {
+                selectedIds.forEach(selId => {
+                    const elDOM = document.getElementById(selId);
+                    if (elDOM) elDOM.style.cursor = ''; // Revert
+                });
+                activeDrag = null;
+            }
+        });
+
+        // Manual Position Update from Inputs
+        function updatePosFromInputs() {
+            if (selectedIds.length !== 1) return;
+            const id = selectedIds[0];
+            const x = parseInt(document.getElementById('propX').value) || 0;
+            const y = parseInt(document.getElementById('propY').value) || 0;
+
+            const elm = elements.find(e => e.id === id);
+            if (elm) {
+                elm.x = x;
+                elm.y = y;
+
+                const dom = document.getElementById(id);
+                if (dom) {
+                    dom.style.left = x + 'px';
+                    dom.style.top = y + 'px';
+                }
+            }
+        }
+
+
+        // --- SAVE TO GAS ---
+        function saveForm() {
+            const btn = document.querySelector('.btn-primary');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Saving...';
+            btn.disabled = true;
+
+            const schema = elements;
+            const config = {
+                targetSheetUrl: formConfig.sheetUrl,
+                targetSheetName: formConfig.sheetName,
+                language: formConfig.language
+            };
+
+            // Call GAS
+            if (typeof google !== 'undefined' && google.script) {
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        if (res.status === 'success') {
+                            alert('Form Saved!');
+                        } else {
+                            alert('Error: ' + res.message);
+                        }
+                    })
+                    .withFailureHandler((err) => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        alert('System Error: ' + err);
+                    })
+                    .saveForm(formConfig.id, schema, config);
+            } else {
+                // Local Dev fallback
+                console.log('SAVING SCHEMAS:', { id: formConfig.id, schema, config });
+
+                // Save to LocalStorage so Viewer can pick it up
+                try {
+                    const savePayload = JSON.stringify({
+                        schema: schema,
+                        config: config,
+                        lastUpdated: new Date()
+                    });
+                    localStorage.setItem('form_' + formConfig.id, savePayload);
+                    console.log('Saved to LocalStorage key:', 'form_' + formConfig.id);
+                } catch (e) {
+                    console.error('LocalStorage Save Error:', e);
+                }
+
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert('Saved to Local Storage! (Open Preview to see changes)');
+                }, 500);
+            }
+        }
+
+        function openPreview() {
+            const url = `?view=form&id=${formConfig.id}`;
+            // In GAS, we need the script URL. 
+            if (typeof google !== 'undefined' && google.script) {
+                google.script.run.withSuccessHandler(url => {
+                    window.open(url + '?view=form&id=' + formConfig.id, '_blank');
+                }).getScriptUrl(); // Wait, getScriptUrl is rarely exposed in client.
+
+                // Fallback: Just clear params in current url or alert user
+                // A better way is constructing the URL if we know it, but we don't.
+                // We will rely on user knowing the query param pattern or provide it in the alert.
+                // However, GAS `google.script.url.getLocation` might work? No.
+                alert("To preview, replace the URL ending with: ?view=form&id=" + formConfig.id);
+            } else {
+                window.open(`viewer.html?view=form&id=${formConfig.id}`, '_blank');
+            }
+        }
+
+        // --- KEYBOARD SHORTCUTS ---
+        let clipboard = null; // Can hold array now
+
+        window.addEventListener('keydown', handleShortcuts);
+
+        function handleShortcuts(e) {
+            const tag = e.target.tagName.toLowerCase();
+            const isInput = tag === 'input' || tag === 'textarea' || tag === 'select';
+            if (isInput) return;
+
+            // GROUPING (Ctrl + G)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey) {
+                e.preventDefault();
+                if (selectedIds.length > 1) {
+                    const newGroupId = 'grp_' + Date.now();
+                    selectedIds.forEach(id => {
+                        const el = elements.find(e => e.id === id);
+                        if (el) el.props.groupId = newGroupId;
+                    });
+                    // Visual feedback?
+                    // console.log('Grouped items:', selectedIds);
+                }
+                return;
+            }
+
+            // UNGROUP (Ctrl + Shift + G)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'G') { // shift implies capital G usually
+                e.preventDefault();
+                if (selectedIds.length > 0) {
+                    let count = 0;
+                    selectedIds.forEach(id => {
+                        const el = elements.find(e => e.id === id);
+                        if (el && el.props.groupId) {
+                            el.props.groupId = null;
+                            count++;
+                        }
+                    });
+                }
+                return;
+            }
+
+            // DELETE
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.preventDefault();
+                deleteSelected();
+            }
+
+            // COPY (Ctrl + C)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                if (selectedIds.length > 0) {
+                    clipboard = selectedIds.map(id => elements.find(e => e.id === id)).filter(Boolean);
+                    clipboard = JSON.parse(JSON.stringify(clipboard)); // Deep Copy
+                }
+            }
+
+            // PASTE (Ctrl + V)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                if (clipboard && Array.isArray(clipboard)) {
+                    // Logic similar to Duplicate but from clipboard
+                    const newIds = [];
+                    const groupMap = {};
+
+                    clipboard.forEach(original => {
+                        const newElm = JSON.parse(JSON.stringify(original));
+                        newElm.id = 'elm_' + Date.now() + '_' + Math.floor(Math.random() * 100);
+                        newElm.x += 20;
+                        newElm.y += 20;
+
+                        if (newElm.props.name) {
+                            newElm.props.name = newElm.props.name.split('_copy')[0] + '_copy_' + Math.floor(Math.random() * 100);
+                        }
+
+                        // Group Remapping
+                        if (newElm.props.groupId) {
+                            if (!groupMap[newElm.props.groupId]) {
+                                groupMap[newElm.props.groupId] = 'grp_' + Date.now() + '_' + Math.random();
+                            }
+                            newElm.props.groupId = groupMap[newElm.props.groupId];
+                        }
+
+                        elements.push(newElm);
+                        renderElementDOM(newElm);
+                        newIds.push(newElm.id);
+                    });
+
+                    selectedIds = newIds;
+                    renderSelectionState();
+                    updatePropsPanel();
+                }
+            }
+
+            // DUPLICATE (Ctrl + D)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                duplicateSelected();
+            }
+
+            // BOLD (Ctrl + B)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                selectedIds.forEach(id => {
+                    const elm = elements.find(el => el.id === id);
+                    if (elm) {
+                        elm.props.isBold = !elm.props.isBold;
+                        updateSelectedElement(); // Will fail for multi-select technically as written?
+                        // Update DOM manually for multi-select bold toggle to be safe
+                        const dom = document.getElementById(id);
+                        if (dom && elm.type === 'label') {
+                            const weight = elm.props.isBold ? 'bold' : 'normal';
+                            dom.querySelector('span').style.fontWeight = weight;
+                        }
+                    }
+                });
+                // Sync UI if single
+                if (selectedIds.length === 1) {
+                    const chk = document.getElementById('propBold');
+                    const elm = elements.find(el => el.id === selectedIds[0]);
+                    if (chk) chk.checked = elm.props.isBold;
+                }
+            }
+
+            // ARROW KEYS (Nudge)
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                if (selectedIds.length > 0) {
+                    e.preventDefault();
+                    const shift = e.shiftKey ? 10 : 1;
+
+                    selectedIds.forEach(id => {
+                        const elm = elements.find(el => el.id === id);
+                        if (!elm) return;
+
+                        if (e.key === 'ArrowUp') elm.y -= shift;
+                        if (e.key === 'ArrowDown') elm.y += shift;
+                        if (e.key === 'ArrowLeft') elm.x -= shift;
+                        if (e.key === 'ArrowRight') elm.x += shift;
+
+                        const dom = document.getElementById(id);
+                        if (dom) {
+                            dom.style.left = elm.x + 'px';
+                            dom.style.top = elm.y + 'px';
+                        }
+                    });
+
+                    if (selectedIds.length === 1) {
+                        const px = document.getElementById('propX');
+                        const py = document.getElementById('propY');
+                        const elm = elements.find(el => el.id === selectedIds[0]);
+                        if (px) px.value = elm.x;
+                        if (py) py.value = elm.y;
+                    }
+                }
+            }
+        }
+
+        // --- RULER LOGIC ---
+        function initRulers() {
+            const rulerTop = document.getElementById('rulerTop');
+            const rulerLeft = document.getElementById('rulerLeft');
+            if (!rulerTop || !rulerLeft) return;
+
+            // Horizontal 794px
+            for (let i = 0; i <= 800; i += 10) {
+                const tick = document.createElement('div');
+                tick.className = 'tick tick-h ' + (i % 100 === 0 ? 'major' : 'minor');
+                tick.style.left = i + 'px';
+                if (i % 100 === 0) {
+                    tick.innerHTML = `<span>${i}</span>`;
+                }
+                rulerTop.appendChild(tick);
+            }
+
+            // Vertical 1123px
+            for (let i = 0; i <= 1123; i += 10) {
+                const tick = document.createElement('div');
+                tick.className = 'tick tick-v ' + (i % 100 === 0 ? 'major' : 'minor');
+                tick.style.top = i + 'px';
+                if (i % 100 === 0) {
+                    tick.innerHTML = `<span>${i}</span>`;
+                }
+                rulerLeft.appendChild(tick);
+            }
+        }
+
+        // Call it
+        initRulers();
+
+    </script>
+</body>
+
+</html>
