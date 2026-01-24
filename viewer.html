@@ -209,17 +209,17 @@
             }
 
             try {
-                // Ensure URL is clean
+                // Ensure URL is clean and specifically remove any accidental whitespace
                 let url = gasApiUrl.trim().replace(/\/$/, "");
                 const sep = url.includes('?') ? '&' : '?';
 
                 if (action === 'getForm') {
-                    const res = await fetch(`${url}${sep}action=getForm&id=${payload.formId}`);
+                    const res = await fetch(`${url}${sep}action=getForm&id=${payload.formId}`, { redirect: 'follow' });
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return await res.json();
                 } else if (action === 'translateText') {
                     const fetchUrl = `${url}${sep}action=translateText&text=${encodeURIComponent(payload.text)}&targetLang=${payload.targetLang}&sourceLang=${payload.sourceLang}`;
-                    const res = await fetch(fetchUrl);
+                    const res = await fetch(fetchUrl, { redirect: 'follow' });
                     if (!res.ok) throw new Error(`Network Error: ${res.status}`);
                     const json = await res.json();
                     if (json.status === 'error') throw new Error(json.message);
@@ -230,13 +230,18 @@
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({ action, ...payload })
+                        body: JSON.stringify({ action, ...payload }),
+                        redirect: 'follow'
                     });
                     return { status: 'success', message: 'Payload sent successfully.' };
                 }
             } catch (err) {
                 console.error("API Call failed:", err);
-                return { status: 'error', message: err.message || err.toString() };
+                let msg = err.message || err.toString();
+                if (msg.includes("Failed to fetch")) {
+                    msg = "Network Error: Could not connect to Google Script. (Are you logged into multiple Google accounts?)";
+                }
+                return { status: 'error', message: msg };
             }
         }
 
