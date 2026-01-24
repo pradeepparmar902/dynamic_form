@@ -676,8 +676,13 @@
                     <input type="text" id="propFormId" placeholder="e.g. 101 or ConstructionForm">
                 </div>
                 <div class="form-group">
+                    <label>Form Description</label>
+                    <textarea id="propDescription" rows="2"
+                        placeholder="Describe the purpose of this form..."></textarea>
+                </div>
+                <div class="form-group">
                     <label>Target Sheet URL</label>
-                    <textarea id="propSheetUrl" rows="3"
+                    <textarea id="propSheetUrl" rows="2"
                         placeholder="https://docs.google.com/spreadsheets/d/..."></textarea>
                 </div>
                 <div class="form-group">
@@ -695,6 +700,12 @@
                         <option value="te">Telugu (Telugu)</option>
                         <option value="bn">Bengali (Bengali)</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Allowed Domains (Security)</label>
+                    <input type="text" id="propAllowedDomains" placeholder="google.com, example.org">
+                    <small style="font-size: 0.7rem; color: var(--text-light);">Comma-separated. Leave empty to allow
+                        all.</small>
                 </div>
                 <div class="form-group">
                     <label>GAS API URL (Required for External Hosting)</label>
@@ -824,6 +835,8 @@
         let selectedIds = []; // Array of strings
         let formConfig = {
             id: 'Form_' + Date.now(),
+            description: '',
+            allowedDomains: '',
             sheetUrl: '',
             sheetName: 'Form Responses',
             language: 'mr',
@@ -838,6 +851,8 @@
         // INIT
         document.getElementById('propFormId').value = formConfig.id;
         document.getElementById('propFormId').addEventListener('input', (e) => formConfig.id = e.target.value);
+        document.getElementById('propDescription').addEventListener('input', (e) => formConfig.description = e.target.value);
+        document.getElementById('propAllowedDomains').addEventListener('input', (e) => formConfig.allowedDomains = e.target.value);
         document.getElementById('propSheetUrl').addEventListener('input', (e) => formConfig.sheetUrl = e.target.value);
         document.getElementById('propSheetName').addEventListener('input', (e) => formConfig.sheetName = e.target.value);
         document.getElementById('propApiUrl').value = formConfig.gasApiUrl;
@@ -1357,8 +1372,12 @@
                 targetSheetName: formConfig.sheetName,
                 language: formConfig.language
             };
+            const metadata = {
+                description: formConfig.description,
+                allowedDomains: formConfig.allowedDomains
+            };
 
-            const res = await callApi('saveForm', { formId: formConfig.id, schema, config });
+            const res = await callApi('saveForm', { formId: formConfig.id, schema, config, metadata });
 
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -1575,142 +1594,141 @@
             const listEl = document.getElementById('templateList');
             if (templates.length === 0) {
                 listEl.innerHTML = '<li style="padding: 1rem; color: #999;">No saved forms found.</li>';
-                return;
+                listEl.innerHTML = templates.map(t => `
+                <li onclick="loadForm('${t.id}')">
+                    <div style="font-weight: bold;">${t.name}</div>
+                    ${t.description ? `<div style="font-size: 0.8rem; color: #666; margin: 2px 0;">${t.description}</div>` : ''}
+                    <div style="font-size: 0.7rem; color: #999;">Updated: ${new Date(t.lastUpdated).toLocaleString()}</div>
+                </li>
+            `).join('');
             }
 
-            templates.forEach(t => {
-                const li = document.createElement('li');
-                li.className = 'template-item';
-                li.onclick = () => loadForm(t.id);
-                li.innerHTML = `
-                    <div class="template-info">
-                        <span class="template-name">${t.name}</span>
-                        <span class="template-date">${new Date(t.lastUpdated).toLocaleString()}</span>
-                    </div>
-                `;
-                listEl.appendChild(li);
-            });
-        }
+            async function loadForm(id) {
+                closeLoadModal();
+                const loader = document.getElementById('loader');
+                loader.classList.remove('hidden');
 
-        async function loadForm(id) {
-            closeLoadModal();
-            const loader = document.getElementById('loader');
-            loader.classList.remove('hidden');
+                const res = await callApi('getForm', { formId: id });
 
-            const res = await callApi('getForm', { formId: id });
-
-            loader.classList.add('hidden');
-            if (res.status === 'success') {
-                applyLoadedForm(id, res.schema, res.config);
-            } else {
-                // Local fallback check if API fails or not configured
-                const data = localStorage.getItem('form_' + id);
-                if (data) {
-                    const parsed = JSON.parse(data);
-                    applyLoadedForm(id, parsed.schema, parsed.config);
+                loader.classList.add('hidden');
+                if (res.status === 'success') {
+                    applyLoadedForm(id, res.schema, res.config, res.metadata);
                 } else {
-                    alert('Error: ' + res.message);
+                    // Local fallback check if API fails or not configured
+                    const data = localStorage.getItem('form_' + id);
+                    if (data) {
+                        const parsed = JSON.parse(data);
+                        applyLoadedForm(id, parsed.schema, parsed.config);
+                    } else {
+                        alert('Error: ' + res.message);
+                    }
                 }
             }
-        }
 
-        function applyLoadedForm(id, schema, config) {
-            formConfig = {
-                id: id,
-                sheetUrl: config.targetSheetUrl || '',
-                sheetName: config.targetSheetName || 'Form Responses',
-                language: config.language || 'mr'
-            };
+            function applyLoadedForm(id, schema, config, metadata) {
+                metadata = metadata || {};
+                formConfig = {
+                    ...formConfig,
+                    id: id,
+                    description: metadata.description || '',
+                    allowedDomains: metadata.allowedDomains || '',
+                    sheetUrl: config.targetSheetUrl,
+                    sheetName: config.targetSheetName,
+                    language: config.language
+                };
 
-            // Update UI
-            document.getElementById('propFormId').value = formConfig.id;
-            document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
-            document.getElementById('propSheetName').value = formConfig.sheetName;
-            document.getElementById('propLanguage').value = formConfig.language;
-            document.getElementById('headerFormId').innerText = formConfig.id;
+                // Update UI
+                document.getElementById('propFormId').value = formConfig.id;
+                document.getElementById('propDescription').value = formConfig.description;
+                document.getElementById('propAllowedDomains').value = formConfig.allowedDomains;
+                document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
+                document.getElementById('propSheetName').value = formConfig.sheetName;
+                document.getElementById('propLanguage').value = formConfig.language;
+                document.getElementById('headerFormId').innerText = formConfig.id;
 
-            // Clear Canvas
-            elements = [];
-            canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
+                // Clear Canvas
+                elements = [];
+                canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
 
-            // Add Elements
-            schema.forEach(elmData => {
-                elements.push(elmData);
-                renderElementDOM(elmData);
-            });
+                // Add Elements
+                schema.forEach(elmData => {
+                    elements.push(elmData);
+                    renderElementDOM(elmData);
+                });
 
-            selectedIds = [];
-            renderSelectionState();
-            updatePropsPanel();
-            updateFormLanguage();
-        }
-
-        // --- EMBED MODAL LOGIC ---
-        async function showEmbedModal() {
-            const modal = document.getElementById('embedModal');
-            const area = document.getElementById('embedCodeArea');
-
-            // Ensure we have the latest URL
-            const currentApiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
-
-            const baseUrlRes = await callApi('getScriptUrl', {});
-            // If baseUrlRes is a string, it's the direct script URL from GAS
-            // If it's an object or error, fall back to what's in the box
-            const baseUrl = typeof baseUrlRes === 'string' ? baseUrlRes : currentApiUrl;
-
-            if (baseUrl) {
-                // Include the API URL in the embed code so the viewer knows where to connect
-                const embedUrl = `${baseUrl}?view=form&id=${formConfig.id}&api=${encodeURIComponent(baseUrl)}`;
-                const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
-                area.value = code;
-                modal.style.display = 'flex';
-            } else {
-                alert("Please configure 'GAS API URL' in Settings first to generate embed code.");
+                selectedIds = [];
+                renderSelectionState();
+                updatePropsPanel();
+                updateFormLanguage();
             }
-        }
 
-        function closeEmbedModal() {
-            document.getElementById('embedModal').style.display = 'none';
-        }
+            // --- EMBED MODAL LOGIC ---
+            async function showEmbedModal() {
+                const modal = document.getElementById('embedModal');
+                const area = document.getElementById('embedCodeArea');
 
-        function copyEmbedCode() {
-            const area = document.getElementById('embedCodeArea');
-            area.select();
-            document.execCommand('copy');
-            alert('Embed code copied to clipboard!');
-        }
+                // Your Google Script Backend URL
+                const currentApiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
 
-        // --- RULER LOGIC ---
-        function initRulers() {
-            const rulerTop = document.getElementById('rulerTop');
-            const rulerLeft = document.getElementById('rulerLeft');
-            if (!rulerTop || !rulerLeft) return;
+                // Your current hosting domain (e.g., Hostinger or GitHub Pages)
+                const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
+                const viewerPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'viewer.html';
 
-            // Horizontal 794px
-            for (let i = 0; i <= 800; i += 10) {
-                const tick = document.createElement('div');
-                tick.className = 'tick tick-h ' + (i % 100 === 0 ? 'major' : 'minor');
-                tick.style.left = i + 'px';
-                if (i % 100 === 0) {
-                    tick.innerHTML = `<span>${i}</span>`;
+                if (currentApiUrl) {
+                    // The embed code now points to YOUR website on Hostinger, not Google's.
+                    // We pass the api URL as a parameter so viewer.html knows who to talk to.
+                    const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiUrl)}`;
+                    const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
+                    area.value = code;
+                    modal.style.display = 'flex';
+                } else {
+                    alert("Please configure 'GAS API URL' in Settings first to generate embed code.");
                 }
-                rulerTop.appendChild(tick);
             }
 
-            // Vertical 1123px
-            for (let i = 0; i <= 1123; i += 10) {
-                const tick = document.createElement('div');
-                tick.className = 'tick tick-v ' + (i % 100 === 0 ? 'major' : 'minor');
-                tick.style.top = i + 'px';
-                if (i % 100 === 0) {
-                    tick.innerHTML = `<span>${i}</span>`;
+            function closeEmbedModal() {
+                document.getElementById('embedModal').style.display = 'none';
+            }
+
+            function copyEmbedCode() {
+                const area = document.getElementById('embedCodeArea');
+                area.select();
+                document.execCommand('copy');
+                alert('Embed code copied to clipboard!');
+            }
+
+            // --- RULER LOGIC ---
+            function initRulers() {
+                const rulerTop = document.getElementById('rulerTop');
+                const rulerLeft = document.getElementById('rulerLeft');
+                if (!rulerTop || !rulerLeft) return;
+
+                // Horizontal 794px
+                for (let i = 0; i <= 800; i += 10) {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick tick-h ' + (i % 100 === 0 ? 'major' : 'minor');
+                    tick.style.left = i + 'px';
+                    if (i % 100 === 0) {
+                        tick.innerHTML = `<span>${i}</span>`;
+                    }
+                    rulerTop.appendChild(tick);
                 }
-                rulerLeft.appendChild(tick);
-            }
-        }
 
-        // Call it
-        initRulers();
+                // Vertical 1123px
+                for (let i = 0; i <= 1123; i += 10) {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick tick-v ' + (i % 100 === 0 ? 'major' : 'minor');
+                    tick.style.top = i + 'px';
+                    if (i % 100 === 0) {
+                        tick.innerHTML = `<span>${i}</span>`;
+                    }
+                    rulerLeft.appendChild(tick);
+                }
+            }
+
+            // Call it
+            initRulers();
+        }
 
     </script>
 </body>

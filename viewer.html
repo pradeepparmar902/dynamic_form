@@ -228,7 +228,30 @@
             }
         }
 
-        // 3. Fetch Schema
+        // 3. Security (Referrer Check)
+        function checkReferrer(allowedDomains) {
+            // If field is empty, security is DISABLED (for testing)
+            if (!allowedDomains || allowedDomains.trim() === '') return true;
+
+            const domainList = allowedDomains.split(',').map(d => d.trim().toLowerCase()).filter(d => d !== '');
+            if (domainList.length === 0) return true;
+
+            const referrer = document.referrer;
+            if (!referrer) {
+                // If direct access (like builder preview), we allow during testing
+                return true;
+            }
+
+            try {
+                const refHost = new URL(referrer).hostname.toLowerCase();
+                // Check if referrer domain is in our allowed list
+                return domainList.some(d => refHost.includes(d));
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // 4. Fetch Schema
         window.onload = async function () {
             const debugEl = document.getElementById('debug-info');
             if (debugEl) debugEl.innerText = `Attempting to load Form ID: "${formId}"...`;
@@ -236,6 +259,19 @@
             const res = await callApi('getForm', { formId });
 
             if (res.status === 'success') {
+                const metadata = res.metadata || {};
+
+                // --- SECURITY CHECK ---
+                if (!checkReferrer(metadata.allowedDomains)) {
+                    document.body.innerHTML = `
+                        <div style="padding: 50px; text-align: center; font-family: sans-serif; background: #fff; height: 100vh;">
+                            <h2 style="color: #dc3545;">Domain Not Authorized</h2>
+                            <p>This form is restricted and cannot be used on this website.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
                 renderForm(res);
             } else {
                 // Local fallback
