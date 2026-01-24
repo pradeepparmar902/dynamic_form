@@ -698,7 +698,12 @@
                 </div>
                 <div class="form-group">
                     <label>GAS API URL (Required for External Hosting)</label>
-                    <input type="text" id="propApiUrl" placeholder="https://script.google.com/macros/s/.../exec">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="propApiUrl" placeholder="https://script.google.com/macros/s/.../exec"
+                            style="flex: 1;">
+                        <button class="btn btn-outline" onclick="testApiConnection()"
+                            style="padding: 0.5rem;">Test</button>
+                    </div>
                     <small style="font-size: 0.7rem; color: var(--text-light);">Required if hosted on GitHub Pages or
                         locally.</small>
                 </div>
@@ -1279,6 +1284,7 @@
                     else if (action === 'getForm') run.withSuccessHandler(resolve).withFailureHandler(reject).getForm(payload.formId);
                     else if (action === 'listTemplates') run.withSuccessHandler(resolve).withFailureHandler(reject).listTemplates();
                     else if (action === 'getScriptUrl') run.withSuccessHandler(resolve).withFailureHandler(reject).getScriptUrl();
+                    else if (action === 'ping') run.withSuccessHandler(resolve).withFailureHandler(reject).ping();
                 });
             }
 
@@ -1289,29 +1295,48 @@
             }
 
             try {
-                // Post actions
+                // Determine if we can use 'cors' (usually fails with GAS) or MUST use 'no-cors'
+                // GAS ContentService supports CORS for GET, but POST is trickier.
+
                 const postActions = ['saveForm', 'submitForm', 'translateText'];
                 if (postActions.includes(action)) {
+                    // Try standard POST first (likely to have opaque response)
                     const response = await fetch(apiUrl, {
                         method: 'POST',
-                        mode: 'no-cors', // GAS doPost requires no-cors usually or simple headers
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ action, ...payload })
                     });
-                    // With 'no-cors', we can't read the response body. 
-                    // This is a limitation of GAS doPost for external hosting.
-                    // However, we can use JSONP or Redirect techniques, but for now:
-                    return { status: 'success', message: 'Request sent to API.' };
+                    // With 'no-cors', the response is opaque. We return a hint.
+                    return { status: 'success', message: 'Payload sent. Check Drive for file.' };
                 } else {
-                    // Get actions
+                    // GET actions (listTemplates, getForm, ping)
                     let url = `${apiUrl}?action=${action}`;
                     if (payload.formId) url += `&id=${payload.formId}`;
 
                     const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
                     return await response.json();
                 }
             } catch (err) {
                 console.error("API Call Error:", err);
-                return { status: 'error', message: 'API Call Failed: ' + err.toString() };
+                return { status: 'error', message: 'Connection Error: ' + err.toString() };
+            }
+        }
+
+        async function testApiConnection() {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = '...';
+
+            // Test 1: Simple GET Ping
+            const res = await callApi('ping', {});
+
+            btn.innerText = originalText;
+            if (res.status === 'success') {
+                alert("Success! " + res.message);
+            } else {
+                alert("Failed: " + res.message + "\n\n1. Ensure Web App is deployed as 'Anyone'.\n2. Ensure URL is correct.");
             }
         }
 
@@ -1342,20 +1367,19 @@
         }
 
         function openPreview() {
-            const url = `?view=form&id=${formConfig.id}`;
-            // In GAS, we need the script URL. 
+            const apiUrl = formConfig.gasApiUrl;
             if (typeof google !== 'undefined' && google.script) {
                 google.script.run.withSuccessHandler(url => {
-                    window.open(url + '?view=form&id=' + formConfig.id, '_blank');
-                }).getScriptUrl(); // Wait, getScriptUrl is rarely exposed in client.
-
-                // Fallback: Just clear params in current url or alert user
-                // A better way is constructing the URL if we know it, but we don't.
-                // We will rely on user knowing the query param pattern or provide it in the alert.
-                // However, GAS `google.script.url.getLocation` might work? No.
-                alert("To preview, replace the URL ending with: ?view=form&id=" + formConfig.id);
+                    const finalUrl = url + '?view=form&id=' + formConfig.id;
+                    window.open(finalUrl, '_blank');
+                }).getScriptUrl();
+                alert("Redirecting to preview... if window doesn't open, use the link from browser address bar with ?view=form&id=" + formConfig.id);
             } else {
-                window.open(`viewer.html?view=form&id=${formConfig.id}`, '_blank');
+                let previewUrl = `viewer.html?view=form&id=${formConfig.id}`;
+                if (apiUrl) {
+                    previewUrl += `&api=${encodeURIComponent(apiUrl)}`;
+                }
+                window.open(previewUrl, '_blank');
             }
         }
 
