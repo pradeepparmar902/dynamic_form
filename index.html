@@ -989,6 +989,66 @@
 
     <!-- MAIN BUILDER LOGIC -->
     <script>
+        // API Helper Function
+        async function callApi(action, payload) {
+            // Check if running in Google Apps Script environment
+            if (typeof google !== 'undefined' && google.script) {
+                return new Promise((resolve, reject) => {
+                    const run = google.script.run;
+                    run.withSuccessHandler(resolve).withFailureHandler(reject);
+
+                    if (action === 'saveForm') {
+                        run.saveForm(payload.formId, payload.schema, payload.config, payload.metadata);
+                    } else if (action === 'getForm') {
+                        run.getForm(payload.formId);
+                    } else if (action === 'listTemplates') {
+                        run.listTemplates();
+                    } else if (action === 'getPortalConfig') {
+                        run.getPortalConfig();
+                    } else if (action === 'savePortalConfig') {
+                        run.savePortalConfig(payload.config);
+                    } else {
+                        reject({ status: 'error', message: 'Unknown action: ' + action });
+                    }
+                });
+            }
+
+            // Standalone mode - use fetch with GAS URL
+            const gasApiUrl = formConfig.gasApiUrl || localStorage.getItem('gasApiUrl') || '';
+            if (!gasApiUrl) {
+                return { status: 'error', message: 'GAS API URL not configured. Please set it in Settings.' };
+            }
+
+            try {
+                const url = gasApiUrl.trim().replace(/\/$/, "");
+                const sep = url.includes('?') ? '&' : '?';
+
+                if (action === 'getForm') {
+                    const res = await fetch(`${url}${sep}action=getForm&id=${payload.formId}`);
+                    return await res.json();
+                } else if (action === 'listTemplates') {
+                    const res = await fetch(`${url}${sep}action=listTemplates`);
+                    return await res.json();
+                } else if (action === 'getPortalConfig') {
+                    const res = await fetch(`${url}${sep}action=getPortalConfig`);
+                    return await res.json();
+                } else if (action === 'saveForm' || action === 'savePortalConfig') {
+                    // POST actions
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action, ...payload })
+                    });
+                    // no-cors mode doesn't return response, so assume success
+                    return { status: 'success', message: 'Data sent successfully (no-cors mode)' };
+                }
+            } catch (err) {
+                console.error("API Call failed:", err);
+                return { status: 'error', message: 'Connection Error: ' + err.toString() };
+            }
+        }
+
         // STATE
         let elements = []; // Array of { id, type, x, y, props }
         let selectedIds = []; // Array of strings
