@@ -383,36 +383,57 @@
 
         // 5. Portal Logic
         async function initPortal() {
-            setLoader(true, "Loading Portal...");
-            const portalWrapper = document.getElementById('portal-wrapper');
-            const mainArea = document.getElementById('portal-main');
-            const formArea = document.getElementById('form-container');
+            try {
+                console.log('🚀 Initializing Portal Mode...');
+                setLoader(true, "Loading Portal...");
 
-            portalWrapper.style.display = 'flex';
-            mainArea.appendChild(formArea); // Move form into portal
+                const portalWrapper = document.getElementById('portal-wrapper');
+                const mainArea = document.getElementById('portal-main');
+                const formArea = document.getElementById('form-container');
 
-            const config = await callApi('getPortalConfig', {});
-            const navList = document.getElementById('portal-nav-list');
+                if (!portalWrapper || !mainArea || !formArea) {
+                    console.error('❌ Portal elements not found in DOM');
+                    alert('Portal Error: Required elements not found');
+                    return;
+                }
 
-            if (!config || !config.forms || config.forms.length === 0) {
-                navList.innerHTML = '<li class="portal-nav-item">No forms available</li>';
+                portalWrapper.style.display = 'flex';
+                mainArea.appendChild(formArea); // Move form into portal
+
+                console.log('📡 Fetching portal configuration...');
+                const config = await callApi('getPortalConfig', {});
+                console.log('✅ Portal config received:', config);
+
+                const navList = document.getElementById('portal-nav-list');
+
+                if (!config || !config.forms || config.forms.length === 0) {
+                    console.warn('⚠️ No forms configured in portal');
+                    navList.innerHTML = '<li class="portal-nav-item" style="padding:2rem; text-align:center; color:#999;">No forms available. Please configure forms in the Portal Designer.</li>';
+                    setLoader(false);
+                    return;
+                }
+
+                console.log(`📋 Rendering ${config.forms.length} forms in sidebar`);
+                navList.innerHTML = config.forms.map(f => `
+                    <li class="portal-nav-item" data-id="${f.id}" onclick="loadPortalForm('${f.id}')">
+                        ${f.name}
+                    </li>
+                `).join('');
+
+                // Load first form by default if none selected
+                if (!formId && config.forms.length > 0) {
+                    console.log('📄 Loading first form:', config.forms[0].name);
+                    loadPortalForm(config.forms[0].id);
+                } else if (formId) {
+                    console.log('📄 Loading specified form:', formId);
+                    loadPortalForm(formId);
+                } else {
+                    setLoader(false);
+                }
+            } catch (error) {
+                console.error('❌ Portal initialization failed:', error);
                 setLoader(false);
-                return;
-            }
-
-            navList.innerHTML = config.forms.map(f => `
-                <li class="portal-nav-item" data-id="${f.id}" onclick="loadPortalForm('${f.id}')">
-                    ${f.name}
-                </li>
-            `).join('');
-
-            // Load first form by default if none selected
-            if (!formId && config.forms.length > 0) {
-                loadPortalForm(config.forms[0].id);
-            } else if (formId) {
-                loadPortalForm(formId);
-            } else {
-                setLoader(false);
+                alert('Portal Error: ' + error.message + '\n\nCheck browser console for details.');
             }
         }
 
