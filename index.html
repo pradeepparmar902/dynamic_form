@@ -1613,6 +1613,8 @@
                     else if (action === 'getForm') run.withSuccessHandler(resolve).withFailureHandler(reject).getForm(payload.formId);
                     else if (action === 'listTemplates') run.withSuccessHandler(resolve).withFailureHandler(reject).listTemplates();
                     else if (action === 'getScriptUrl') run.withSuccessHandler(resolve).withFailureHandler(reject).getScriptUrl();
+                    else if (action === 'getPortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).getPortalConfig();
+                    else if (action === 'savePortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).savePortalConfig(payload.config);
                     else if (action === 'ping') run.withSuccessHandler(resolve).withFailureHandler(reject).ping();
                 });
             }
@@ -1630,7 +1632,7 @@
                 // Determine if we can use 'cors' (usually fails with GAS) or MUST use 'no-cors'
                 // GAS ContentService supports CORS for GET, but POST is trickier.
 
-                const postActions = ['saveForm', 'submitForm', 'translateText'];
+                const postActions = ['saveForm', 'submitForm', 'translateText', 'savePortalConfig'];
                 if (postActions.includes(action)) {
                     // Try standard POST first (likely to have opaque response)
                     const response = await fetch(apiUrl, {
@@ -1642,7 +1644,7 @@
                     // With 'no-cors', the response is opaque. We return a hint.
                     return { status: 'success', message: 'Payload sent. Check Drive for file.' };
                 } else {
-                    // GET actions (listTemplates, getForm, ping)
+                    // GET actions (listTemplates, getForm, ping, getPortalConfig)
                     let url = `${apiUrl}?action=${action}`;
                     if (payload.formId) url += `&id=${payload.formId}`;
 
@@ -2022,6 +2024,54 @@
                     </li>
                 `;
             }).join('');
+        }
+
+        async function refreshPortalList() {
+            const listEl = document.getElementById('sidebarPortalList');
+            if (!listEl) return;
+
+            listEl.innerHTML = '<div style="color:var(--text-light); font-size:0.8rem; text-align:center; padding:2rem;">Loading forms...</div>';
+
+            try {
+                // Fetch both all templates AND current portal config
+                const [templates, config] = await Promise.all([
+                    callApi('listTemplates', {}),
+                    callApi('getPortalConfig', {})
+                ]);
+
+                allTemplates = Array.isArray(templates) ? templates : [];
+                portalConfig = config || { forms: [] };
+
+                if (allTemplates.length === 0) {
+                    listEl.innerHTML = '<div style="color:var(--text-light); font-size:0.8rem; text-align:center; padding:2rem;">No saved forms found. Create and save forms first.</div>';
+                    return;
+                }
+
+                // Render the list with checkboxes
+                listEl.innerHTML = allTemplates.map(t => {
+                    const portalItem = portalConfig.forms.find(pf => pf.id === t.id);
+                    const isSelected = !!portalItem;
+                    const order = portalItem ? portalItem.order : 0;
+
+                    return `
+                        <div class="portal-item-row">
+                            <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''} style="width:18px; height:18px; cursor:pointer;">
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-weight:600; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.name}</div>
+                                <div style="font-size:0.7rem; color:var(--text-light);">ID: ${t.id}</div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <span style="font-size:0.7rem; color:var(--text-light);">Order:</span>
+                                <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:50px; padding:3px; border:1px solid var(--border); border-radius:3px; text-align:center; font-size:0.8rem;">
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error("Failed to load portal data:", err);
+                listEl.innerHTML = '<div style="color:#dc2626; font-size:0.8rem; text-align:center; padding:2rem;">❌ Failed to load forms. Check your API connection.</div>';
+            }
         }
 
         async function savePortalSettings() {
