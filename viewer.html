@@ -400,8 +400,15 @@
                 portalWrapper.style.display = 'flex';
                 mainArea.appendChild(formArea); // Move form into portal
 
+                // OPTIMIZED: Fetch config + first form in ONE request
                 console.log('📡 Fetching portal configuration...');
-                const config = await callApi('getPortalConfig', {});
+                const response = await callApi('loadPortal', { formId: formId }); // formId might be null, that's optional
+
+                if (response.status !== 'success') {
+                    throw new Error(response.message || "Failed to load portal data");
+                }
+
+                const config = response.config;
                 console.log('✅ Portal config received:', config);
 
                 const navList = document.getElementById('portal-nav-list');
@@ -420,16 +427,23 @@
                     </li>
                 `).join('');
 
-                // Load first form by default if none selected
-                if (!formId && config.forms.length > 0) {
-                    console.log('📄 Loading first form:', config.forms[0].name);
+                // Render the initial form if provided in the batch response
+                if (response.initialForm && response.initialForm.status === 'success') {
+                    console.log('📄 Rendering initial form from batch response');
+                    renderForm(response.initialForm);
+
+                    // Highlight sidebar item
+                    const activeId = response.initialForm.formId || response.initialForm.id; // Fallback
+                    document.querySelectorAll('.portal-nav-item').forEach(li => {
+                        li.classList.toggle('active', li.dataset.id === activeId);
+                    });
+                } else if (config.forms.length > 0) {
+                    // Fallback to manual load if batch failed for some reason
                     loadPortalForm(config.forms[0].id);
-                } else if (formId) {
-                    console.log('📄 Loading specified form:', formId);
-                    loadPortalForm(formId);
                 } else {
                     setLoader(false);
                 }
+
             } catch (error) {
                 console.error('❌ Portal initialization failed:', error);
                 setLoader(false);
