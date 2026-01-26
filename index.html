@@ -1615,6 +1615,7 @@
                     else if (action === 'getScriptUrl') run.withSuccessHandler(resolve).withFailureHandler(reject).getScriptUrl();
                     else if (action === 'getPortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).getPortalConfig();
                     else if (action === 'savePortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).savePortalConfig(payload.config);
+                    else if (action === 'deleteForm') run.withSuccessHandler(resolve).withFailureHandler(reject).deleteForm(payload.formId);
                     else if (action === 'ping') run.withSuccessHandler(resolve).withFailureHandler(reject).ping();
                 });
             }
@@ -1632,7 +1633,7 @@
                 // Determine if we can use 'cors' (usually fails with GAS) or MUST use 'no-cors'
                 // GAS ContentService supports CORS for GET, but POST is trickier.
 
-                const postActions = ['saveForm', 'submitForm', 'translateText', 'savePortalConfig'];
+                const postActions = ['saveForm', 'submitForm', 'translateText', 'savePortalConfig', 'deleteForm'];
                 if (postActions.includes(action)) {
                     // Try standard POST first (likely to have opaque response)
                     const response = await fetch(apiUrl, {
@@ -1898,10 +1899,19 @@
                 return;
             }
             listEl.innerHTML = templates.map(t => `
-                <li onclick="loadForm('${t.id}')">
-                    <div style="font-weight: bold;">${t.name}</div>
-                    ${t.description ? `<div style="font-size: 0.8rem; color: #666; margin: 2px 0;">${t.description}</div>` : ''}
-                    <div style="font-size: 0.7rem; color: #999;">Updated: ${new Date(t.lastUpdated).toLocaleString()}</div>
+                <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #e5e7eb; cursor: default;">
+                    <div onclick="loadForm('${t.id}')" style="flex: 1; cursor: pointer;">
+                        <div style="font-weight: bold;">${t.name}</div>
+                        ${t.description ? `<div style="font-size: 0.8rem; color: #666; margin: 2px 0;">${t.description}</div>` : ''}
+                        <div style="font-size: 0.7rem; color: #999;">ID: ${t.id}</div>
+                        <div style="font-size: 0.7rem; color: #999;">Updated: ${new Date(t.lastUpdated).toLocaleString()}</div>
+                    </div>
+                    <button onclick="deleteTemplate('${t.id}', '${t.name.replace(/'/g, "\\'")}'); event.stopPropagation();" 
+                            style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; margin-left: 10px;"
+                            onmouseover="this.style.background='#b91c1c'" 
+                            onmouseout="this.style.background='#dc2626'">
+                        🗑️ Delete
+                    </button>
                 </li>
             `).join('');
         }
@@ -1963,6 +1973,31 @@
             renderSelectionState();
             updatePropsPanel();
             updateFormLanguage();
+        }
+
+        async function deleteTemplate(formId, formName) {
+            if (!confirm(`Are you sure you want to DELETE this form?\n\nForm: ${formName}\nID: ${formId}\n\nThis action cannot be undone!`)) {
+                return;
+            }
+
+            const loader = document.getElementById('loader');
+            if (loader) loader.classList.remove('hidden');
+
+            try {
+                const res = await callApi('deleteForm', { formId: formId });
+
+                if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
+                    alert(`✅ Form "${formName}" deleted successfully!`);
+                    // Refresh the template list
+                    fetchTemplates();
+                } else {
+                    alert('❌ Error deleting form: ' + res.message);
+                }
+            } catch (err) {
+                alert('❌ Failed to delete form: ' + err.message);
+            } finally {
+                if (loader) loader.classList.add('hidden');
+            }
         }
 
         // --- EMBED MODAL LOGIC ---
