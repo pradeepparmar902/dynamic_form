@@ -462,7 +462,27 @@
                 }
                 renderForm(res);
             } else {
-                alert("Error loading form: " + res.message);
+                console.error('❌ Form load failed:', res.message);
+                document.getElementById('form-container').innerHTML = `
+                    <div style="padding: 50px; text-align: center; font-family: sans-serif; background: #fff;">
+                        <h3 style="color: #dc3545;">⚠️ Form Not Found</h3>
+                        <p style="margin: 20px 0;"><strong>Form ID:</strong> ${id}</p>
+                        <p style="color: #666;">This form hasn't been saved to your Google backend yet.</p>
+                        <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 20px; margin: 20px auto; max-width: 500px; text-align: left;">
+                            <h4 style="margin-top: 0; color: #9a3412;">📋 How to fix this:</h4>
+                            <ol style="color: #666; line-height: 1.8;">
+                                <li>Open your <strong>Form Builder</strong></li>
+                                <li>Switch to the <strong>"ELEMENTS"</strong> tab</li>
+                                <li>Click <strong>"Load Form"</strong> and select this form</li>
+                                <li>Click <strong>"Save Form"</strong> to store it in Google</li>
+                                <li>Return to the <strong>"Portal View"</strong> tab</li>
+                                <li>Click <strong>"Refresh Forms List"</strong></li>
+                                <li>Re-save your portal collection</li>
+                            </ol>
+                        </div>
+                        <p style="font-size: 0.9em; color: #999;">Error: ${res.message}</p>
+                    </div>
+                `;
             }
         }
 
