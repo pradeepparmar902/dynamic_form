@@ -108,12 +108,58 @@
             flex-direction: column;
         }
 
-        .sidebar-header {
-            padding: 1rem;
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: var(--text-light);
+        .sidebar-tabs {
+            display: flex;
             border-bottom: 1px solid var(--border);
+            background: var(--surface-alt);
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sidebar-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: var(--surface);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .portal-config-panel {
+            padding: 1rem;
+        }
+
+        .portal-item-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--surface-alt);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
         }
 
         .tool-category {
@@ -534,7 +580,7 @@
                 </svg>
                 Get Embed Code
             </button>
-            <button class="btn btn-outline" onclick="showPortalModal()"
+            <button class="btn btn-outline" onclick="switchSidebarTab('portal')"
                 style="background: #fff7ed; border-color: #fed7aa; color: #9a3412;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -543,7 +589,7 @@
                     <rect x="14" y="14" width="7" height="7"></rect>
                     <rect x="3" y="14" width="7" height="7"></rect>
                 </svg>
-                Manage Portal
+                Portal Designer
             </button>
             <button class="btn btn-outline" onclick="openPreview()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -601,82 +647,140 @@
     <div class="workspace">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <div class="sidebar-header">TOOLBOX</div>
-
-            <div class="tool-category">
-                <div class="category-title">Input Fields</div>
-                <div class="tool-grid">
-                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="text">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect>
-                            <line x1="12" y1="22" x2="12" y2="2"></line>
-                        </svg>
-                        <span>Text</span>
-                    </div>
-                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="date">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        <span>Date</span>
-                    </div>
-                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="number">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                        </svg>
-                        <span>Number</span>
-                    </div>
-                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="file">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        <span>File</span>
-                    </div>
-                </div>
+            <div class="sidebar-tabs">
+                <div class="sidebar-tab active" onclick="switchSidebarTab('elements')">Elements</div>
+                <div class="sidebar-tab" onclick="switchSidebarTab('portal')">Portal View</div>
             </div>
 
-            <div class="tool-category">
-                <div class="category-title">Cosmetics</div>
-                <div class="tool-grid">
-                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="heading">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 12h8"></path>
-                            <path d="M4 6h16"></path>
-                            <path d="M4 18h8"></path>
-                        </svg>
-                        <span>Heading</span>
+            <div class="sidebar-content">
+                <!-- ELEMENTS TAB -->
+                <div id="panelElements" class="tab-panel active">
+                    <div class="tool-category">
+                        <div class="category-title">Input Fields</div>
+                        <div class="tool-grid">
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="text">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect>
+                                    <line x1="12" y1="22" x2="12" y2="2"></line>
+                                </svg>
+                                <span>Text</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="date">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Date</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="number">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2">
+                                    </path>
+                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                                </svg>
+                                <span>Number</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="file">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <span>File</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="label">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                        </svg>
-                        <span>Label</span>
+
+                    <div class="tool-category">
+                        <div class="category-title">Cosmetics</div>
+                        <div class="tool-grid">
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="heading">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M4 12h8"></path>
+                                    <path d="M4 6h16"></path>
+                                    <path d="M4 18h8"></path>
+                                </svg>
+                                <span>Heading</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="label">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                </svg>
+                                <span>Label</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="rect">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                </svg>
+                                <span>Box</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="line">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>Line</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="rect">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        </svg>
-                        <span>Box</span>
-                    </div>
-                    <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)" data-type="line">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        <span>Line</span>
+                </div>
+
+                <!-- PORTAL DESIGNER TAB -->
+                <div id="panelPortal" class="tab-panel">
+                    <div class="portal-config-panel">
+                        <div class="category-title">Portal Navigation Designer</div>
+                        <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 1rem;">
+                            Pick forms for your portal sidebar and set their order.
+                        </p>
+
+                        <div style="margin-bottom: 1rem;">
+                            <button class="btn btn-outline"
+                                style="width:100%; justify-content:center; font-size:0.75rem;"
+                                onclick="refreshPortalList()">
+                                ↻ Refresh Forms List
+                            </button>
+                        </div>
+
+                        <div id="sidebarPortalList"
+                            style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem; background: var(--surface-alt);">
+                            <!-- List of forms with checkboxes and order inputs -->
+                            <div style="color:var(--text-light); font-size:0.8rem; text-align:center; padding:2rem;">
+                                Click Refresh to load forms...
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                            <button class="btn btn-primary" id="btnSavePortal"
+                                style="width:100%; justify-content:center;" onclick="savePortalSettings()">
+                                Save Portal Collection
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -933,6 +1037,68 @@
             formConfig.gasApiUrl = e.target.value;
             localStorage.setItem('gasApiUrl', e.target.value);
         });
+
+        // --- SIDEBAR TABS ---
+        function switchSidebarTab(tab) {
+            document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+            if (tab === 'elements') {
+                document.querySelector('.sidebar-tab:nth-child(1)').classList.add('active');
+                document.getElementById('panelElements').classList.add('active');
+            } else {
+                document.querySelector('.sidebar-tab:nth-child(2)').classList.add('active');
+                document.getElementById('panelPortal').classList.add('active');
+                refreshPortalList();
+            }
+        }
+
+        async function refreshPortalList() {
+            const listEl = document.getElementById('sidebarPortalList');
+            listEl.innerHTML = '<div style="text-align:center; padding:1rem;">Loading...</div>';
+
+            try {
+                const [templates, config] = await Promise.all([
+                    callApi('listTemplates', {}),
+                    callApi('getPortalConfig', {})
+                ]);
+
+                allTemplates = templates;
+                portalConfig = config || { forms: [] };
+                renderPortalItemsInSidebar();
+            } catch (err) {
+                listEl.innerHTML = '<div style="color:red; font-size:0.8rem;">Error loading forms.</div>';
+            }
+        }
+
+        function renderPortalItemsInSidebar() {
+            const listEl = document.getElementById('sidebarPortalList');
+            if (!allTemplates || allTemplates.length === 0) {
+                listEl.innerHTML = '<div style="padding:1rem; color:#999; font-size:0.8rem;">No saved forms found.</div>';
+                return;
+            }
+
+            listEl.innerHTML = allTemplates.map(t => {
+                const portalItem = portalConfig.forms.find(pf => pf.id === t.id);
+                const isSelected = !!portalItem;
+                const order = portalItem ? portalItem.order : 0;
+
+                return `
+                    <div style="display:flex; flex-direction:column; gap:0.25rem; background:white; border:1px solid var(--border); padding:0.5rem; border-radius:4px; margin-bottom:0.5rem;">
+                        <label style="display:flex; align-items:center; gap:0.5rem; font-weight:600; cursor:pointer; font-size:0.8rem;">
+                            <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''}>
+                            ${t.name}
+                        </label>
+                        <div style="display:flex; align-items:center; justify-content:space-between; font-size:0.7rem; color:var(--text-light);">
+                            <span>ID: ${t.id}</span>
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                Order: <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:40px; border:1px solid var(--border); text-align:center;">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
 
         function updateFormLanguage() {
             formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
@@ -1800,10 +1966,9 @@
 
         async function savePortalSettings() {
             const checks = document.querySelectorAll('.portal-check');
-            const orders = document.querySelectorAll('.portal-order');
-
             const selectedForms = [];
-            checks.forEach((chk, i) => {
+
+            checks.forEach((chk) => {
                 if (chk.checked) {
                     const id = chk.dataset.id;
                     const name = chk.dataset.name;
@@ -1816,25 +1981,28 @@
                 }
             });
 
-            // Sort by defined order
             selectedForms.sort((a, b) => a.order - b.order);
 
-            const btn = event.target;
-            btn.disabled = true;
-            btn.innerText = 'Saving...';
+            const btn = document.getElementById('btnSavePortal');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = 'Saving...';
+            }
 
             const res = await callApi('savePortalConfig', { config: { forms: selectedForms, layout: 'sidebar' } });
 
-            btn.disabled = false;
-            btn.innerText = 'Save Portal Collection';
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = 'Save Portal Collection';
+            }
 
             if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
                 alert("Portal Collection Updated Successfully!");
-                closePortalModal();
             } else {
                 alert("Error: " + res.message);
             }
         }
+
 
         async function showEmbedModal() {
             const modal = document.getElementById('embedModal');
@@ -1962,29 +2130,6 @@
 
         initRulers();
     </script>
-    <!-- Portal Settings Modal -->
-    <div id="portalModal" class="modal">
-        <div class="modal-content" style="width: 600px;">
-            <div class="modal-header">
-                <h3 style="margin:0;">Manage Multi-Form Portal</h3>
-                <span class="close-modal" onclick="closePortalModal()">&times;</span>
-            </div>
-            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 1.5rem;">
-                Select the forms to display in your sidebar collection and define their sort order.
-            </p>
-            <div id="portalLoading" class="modal-loading hidden">
-                <div class="spinner"></div>
-            </div>
-            <ul id="portalTemplateList" class="template-list">
-                <!-- Portal selection items -->
-            </ul>
-            <div
-                style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
-                <button class="btn btn-outline" onclick="closePortalModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="savePortalSettings()">Save Portal Collection</button>
-            </div>
-        </div>
-    </div>
 </body>
 
 </html>
