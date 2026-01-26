@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Test Page</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            color: #2563eb;
+        }
+
+        .instructions {
+            background: #eff6ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        iframe {
+            border: 2px solid #2563eb;
+            border-radius: 8px;
+        }
+
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Multi-Form Portal Test Page</h1>
+
+    <div class="instructions">
+        <h2>Instructions:</h2>
+        <ol>
+            <li><strong>Update the URL below</strong> with your actual viewer.html path</li>
+            <li><strong>Make sure you've deployed</strong> your Google Apps Script as a "New Version"</li>
+            <li><strong>Check that you've saved</strong> your portal configuration in the builder</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 1: Portal View (Multi-Form)</h2>
+        <p>This should show a sidebar with your forms list:</p>
+        <p><strong>URL Format:</strong> <code>viewer.html?view=portal&api=YOUR_GAS_URL</code></p>
+
+        <!-- REPLACE THIS URL WITH YOUR ACTUAL PATHS -->
+        <iframe src="viewer.html?view=portal&api=YOUR_GOOGLE_SCRIPT_URL_HERE" width="100%" height="600px"
+            style="margin-top: 10px;">
+        </iframe>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Single Form View</h2>
+        <p>This should show one specific form:</p>
+        <p><strong>URL Format:</strong> <code>viewer.html?id=FORM_ID&api=YOUR_GAS_URL</code></p>
+
+        <!-- REPLACE THIS URL WITH YOUR ACTUAL PATHS -->
+        <iframe src="viewer.html?id=YOUR_FORM_ID&api=YOUR_GOOGLE_SCRIPT_URL_HERE" width="100%" height="600px"
+            style="margin-top: 10px;">
+        </iframe>
+    </div>
+
+    <div class="instructions">
+        <h2>🔍 Debugging Checklist:</h2>
+        <ol>
+            <li>✅ Open browser DevTools (F12)</li>
+            <li>✅ Go to the Console tab</li>
+            <li>✅ Look for any red error messages</li>
+            <li>✅ Check the Network tab to see if API calls are failing</li>
+            <li>✅ Verify your GAS API URL is correct in the builder settings</li>
+            <li>✅ Make sure you clicked "Save Portal Collection" in the Portal View tab</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Quick Checklist:</h2>
+        <ul>
+            <li>[ ] Updated Google Apps Script with new code</li>
+            <li>[ ] Deployed as "New Version" in Google Script</li>
+            <li>[ ] Opened Portal View tab in builder</li>
+            <li>[ ] Clicked "Refresh Forms List"</li>
+            <li>[ ] Selected forms and set order numbers</li>
+            <li>[ ] Clicked "Save Portal Collection"</li>
+            <li>[ ] Copied the correct embed code (MULTI-FORM PORTAL)</li>
+            <li>[ ] Replaced YOUR_GOOGLE_SCRIPT_URL_HERE with actual URL</li>
+        </ul>
+    </div>
+
+    <script>
+        // Simple console logger to help debug
+        console.log('🧪 Portal Test Page Loaded');
+        console.log('📍 Current page URL:', window.location.href);
+
+        // Listen for messages from iframes (for debugging)
+        window.addEventListener('message', function (e) {
+            console.log('📨 Message from iframe:', e.data);
+        });
+    </script>
+</body>
+
+</html>

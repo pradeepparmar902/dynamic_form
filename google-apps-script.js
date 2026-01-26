@@ -7,80 +7,191 @@
  * 3. Processing Form Submissions to specific configured Sheets
  */
 
-const REGISTRY_SHEET_NAME = 'System_Forms_Registry';
+const REGISTRY_SS_ID = '1d5zAeorKdGEyirqNMaT9c9gCg0vyIIKKcEILLiOmJfE';
+const REGISTRY_SHEET_NAME = 'list';
+const DRIVE_FOLDER_ID = '1XEWZ_j7vLL7iDSVPudARkofzZ6Nw2b6y';
 
 /**
- * SERVE HTML
- * Usage:
- * - Deploy URL -> Admin Builder
- * - Deploy URL?view=form&id=123 -> Form Viewer
+ * SERVE API GET REQUESTS
  */
 function doGet(e) {
-    const view = e.parameter.view;
-    const formId = e.parameter.id;
+    try {
+        const action = e.parameter.action;
+        const formId = e.parameter.id;
 
-    if (view === 'form' && formId) {
-        // Serve the Viewer
-        const template = HtmlService.createTemplateFromFile('viewer');
-        template.formId = formId;
-        return template.evaluate()
-            .setTitle('Form Viewer')
-            .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-            .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-    } else {
-        // Serve the Admin Builder
-        return HtmlService.createTemplateFromFile('index')
-            .evaluate()
-            .setTitle('Dynamic Form Builder')
-            .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-            .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+        // 1. Handle API Actions
+        if (action === 'getForm' && formId) return createJsonResponse(getForm(formId));
+        if (action === 'listTemplates') return createJsonResponse(listTemplates());
+        if (action === 'getScriptUrl') return createJsonResponse(getScriptUrl());
+        if (action === 'getPortalConfig') return createJsonResponse(getPortalConfig());
+        if (action === 'translateText') {
+            const translated = translateText(e.parameter.text, e.parameter.targetLang, e.parameter.sourceLang);
+            return createJsonResponse({ status: 'success', translated: translated });
+        }
+        if (action === 'ping') return createJsonResponse({ status: 'success', message: 'API Backend is Active!' });
+
+        // 2. Default Status Message (Since you are hosting HTML on Hostinger)
+        return HtmlService.createHtmlOutput(`
+                <div style="font-family: sans-serif; padding: 20px; text-align: center;">
+                    <h2 style="color: #007bff;">MarathiForm API Backend</h2>
+                    <p>This script is running as a pure data backend.</p>
+                    <p style="color: #666; font-size: 0.9em;">Frontend is hosted at: <b>${e.parameter.host || 'Your Domain'}</b></p>
+                    <p style="font-size: 0.8em; color: green;">Status: Online & Ready</p>
+                </div>
+            `).setTitle('Backend Status');
+    } catch (err) {
+        return createJsonResponse({ status: 'error', message: 'GET Error: ' + err.toString() });
     }
+}
+
+/**
+ * Handle POST API requests (CORS enabled by default for GAS Web Apps)
+ */
+function doPost(e) {
+    let params;
+    try {
+        // Log incoming for debugging (Check GAS Executions)
+        console.log("Post Received: " + JSON.stringify(e));
+
+        if (e.postData && e.postData.contents) {
+            params = JSON.parse(e.postData.contents);
+        } else {
+            // Fallback for different fetch styles
+            params = e.parameter;
+            // If action is still missing, try to parse the first key (common no-cors side effect)
+            if (!params.action) {
+                const firstKey = Object.keys(e.parameter)[0];
+                if (firstKey) params = JSON.parse(firstKey);
+            }
+        }
+
+        const action = params.action;
+        let result = { status: 'error', message: 'Invalid action: ' + action };
+
+        if (action === 'saveForm') {
+            result = saveForm(params.formId, params.schema, params.config, params.metadata);
+        } else if (action === 'submitForm') {
+            result = submitForm(params.formId, params.formData);
+        } else if (action === 'translateText') {
+            const translated = translateText(params.text, params.targetLang, params.sourceLang);
+            result = { status: 'success', translated: translated };
+        } else if (action === 'savePortalConfig') {
+            result = savePortalConfig(params.config);
+        } else if (action === 'deleteForm') {
+            result = deleteForm(params.formId);
+        } else if (action === 'ping') {
+            result = { status: 'success', message: 'POST Connection Successful!' };
+        }
+
+        return createJsonResponse(result);
+    } catch (err) {
+        console.error("doPost Error: " + err.toString());
+        return createJsonResponse({ status: 'error', message: 'Server Process Error: ' + err.toString() });
+    }
+}
+
+function createJsonResponse(data) {
+    return ContentService.createTextOutput(JSON.stringify(data))
+        .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
  * 
  * API: SAVE FORM SCHEMA
  * 
- * @param {string} formId - Unique ID/Number for the form
  * @param {object} schema - The JSON structure of the form (fields, layout)
  * @param {object} config - Configuration (Target Sheet URL, Sheet Name)
+ * @param {object} metadata - Metadata (Description, Allowed Domains)
  */
-function saveForm(formId, schema, config) {
+function saveForm(formId, schema, config, metadata) {
     try {
-        const ss = SpreadsheetApp.getActiveSpreadsheet();
-        let registrySheet = ss.getSheetByName(REGISTRY_SHEET_NAME);
+        metadata = metadata || {};
+        // --- SAVE TO REGISTRY SHEET ---
+        const regSs = SpreadsheetApp.openById(REGISTRY_SS_ID);
+        let registrySheet = regSs.getSheetByName(REGISTRY_SHEET_NAME);
 
         // Initialize Registry if not exists
         if (!registrySheet) {
-            registrySheet = ss.insertSheet(REGISTRY_SHEET_NAME);
-            registrySheet.appendRow(['Form ID', 'Schema JSON', 'Config JSON', 'Last Updated']);
-            registrySheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+            registrySheet = regSs.insertSheet(REGISTRY_SHEET_NAME);
+            registrySheet.appendRow(['Form ID', 'Form Name', 'Description', 'File ID', 'Last Updated', 'Schema Data']);
+            registrySheet.getRange(1, 1, 1, 6).setFontWeight('bold');
         }
 
-        const payloadSchema = JSON.stringify(schema);
-        const payloadConfig = JSON.stringify(config);
         const timestamp = new Date();
-
-        // Check if ID exists -> Update, else Append
-        // This is a simple linear search. For huge datasets, use a Dictionary object approach.
         const data = registrySheet.getDataRange().getValues();
         let foundIndex = -1;
 
         for (let i = 1; i < data.length; i++) {
             if (String(data[i][0]) === String(formId)) {
-                foundIndex = i + 1; // 1-based row index
+                foundIndex = i + 1;
                 break;
             }
         }
 
+        // Add Description/Schema columns if missing (backward compatibility)
+        if (data.length > 0) {
+            if (data[0].length < 3) {
+                registrySheet.insertColumnAfter(2);
+                registrySheet.getRange(1, 3).setValue('Description').setFontWeight('bold');
+            }
+            // Ensure column 6 for 'Schema Data' exists
+            const currentHeaders = registrySheet.getRange(1, 1, 1, registrySheet.getLastColumn()).getValues()[0];
+            if (currentHeaders.length < 6) {
+                registrySheet.getRange(1, 6).setValue('Schema Data').setFontWeight('bold');
+            }
+        }
+
+        const fullContent = JSON.stringify({
+            id: formId,
+            schema: schema,
+            config: config,
+            metadata: metadata,
+            savedAt: timestamp
+        });
+
+        // --- SAVE TO DRIVE ---
+        let fileId = "";
+        try {
+            const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+            const fileName = `Form_Template_${formId}.json`;
+            const fileContent = JSON.stringify(JSON.parse(fullContent), null, 2); // Pretty print for Drive
+
+            const files = folder.getFilesByName(fileName);
+            if (files.hasNext()) {
+                const file = files.next();
+                file.setContent(fileContent);
+                fileId = file.getId();
+            } else {
+                const newFile = folder.createFile(fileName, fileContent, MimeType.PLAIN_TEXT);
+                fileId = newFile.getId();
+            }
+        } catch (driveErr) {
+            return { status: 'error', message: `Drive Save Error: ${driveErr.toString()}` };
+        }
+
+        // --- UPDATE REGISTRY ---
+        const formName = config.formName || formId;
+        const description = metadata.description || "";
         if (foundIndex > 0) {
-            // Update
-            registrySheet.getRange(foundIndex, 2).setValue(payloadSchema);
-            registrySheet.getRange(foundIndex, 3).setValue(payloadConfig);
-            registrySheet.getRange(foundIndex, 4).setValue(timestamp);
+            registrySheet.getRange(foundIndex, 2).setValue(formName);
+            registrySheet.getRange(foundIndex, 3).setValue(description);
+            registrySheet.getRange(foundIndex, 4).setValue(fileId);
+            registrySheet.getRange(foundIndex, 5).setValue(timestamp);
+            registrySheet.getRange(foundIndex, 6).setValue(fullContent);
         } else {
-            // Create
-            registrySheet.appendRow([formId, payloadSchema, payloadConfig, timestamp]);
+            registrySheet.appendRow([formId, formName, description, fileId, timestamp, fullContent]);
+        }
+
+        // --- ULTRA-FAST PATH: Cache in PropertiesService (9KB limit) ---
+        try {
+            if (fullContent.length < 9000) {
+                PropertiesService.getScriptProperties().setProperty('CACHE_' + formId, fullContent);
+            } else {
+                // If too large, clear cache to avoid stale data
+                PropertiesService.getScriptProperties().deleteProperty('CACHE_' + formId);
+            }
+        } catch (cacheErr) {
+            console.warn("Cache Write Error: " + cacheErr.toString());
         }
 
         return { status: 'success', message: `Form ${formId} saved successfully.` };
@@ -95,25 +206,64 @@ function saveForm(formId, schema, config) {
  */
 function getForm(formId) {
     try {
-        const ss = SpreadsheetApp.getActiveSpreadsheet();
-        const registrySheet = ss.getSheetByName(REGISTRY_SHEET_NAME);
-
-        if (!registrySheet) return { status: 'error', message: 'Registry not found.' };
-
-        const data = registrySheet.getDataRange().getValues();
-
-        for (let i = 1; i < data.length; i++) {
-            if (String(data[i][0]) === String(formId)) {
+        // --- ULTRA-FAST PATH: Check Script Cache first ---
+        try {
+            const cachedValue = PropertiesService.getScriptProperties().getProperty('CACHE_' + formId);
+            if (cachedValue) {
+                const parsed = JSON.parse(cachedValue);
                 return {
                     status: 'success',
                     formId: formId,
-                    schema: JSON.parse(data[i][1]),
-                    config: JSON.parse(data[i][2])
+                    schema: parsed.schema,
+                    config: parsed.config,
+                    metadata: parsed.metadata || {},
+                    source: 'cache'
                 };
+            }
+        } catch (e) { console.warn("Cache Read Error"); }
+
+        // --- FAST PATH: Check Registry Sheet next ---
+        const regSs = SpreadsheetApp.openById(REGISTRY_SS_ID);
+        const registrySheet = regSs.getSheetByName(REGISTRY_SHEET_NAME);
+        if (registrySheet) {
+            const data = registrySheet.getDataRange().getValues();
+            for (let i = 1; i < data.length; i++) {
+                if (String(data[i][0]) === String(formId)) {
+                    const schemaData = data[i][5]; // Column 6
+                    if (schemaData && schemaData.trim() !== '') {
+                        const parsed = JSON.parse(schemaData);
+                        return {
+                            status: 'success',
+                            formId: formId,
+                            schema: parsed.schema,
+                            config: parsed.config,
+                            metadata: parsed.metadata || {}
+                        };
+                    }
+                    break;
+                }
             }
         }
 
-        return { status: 'error', message: 'Form not found.' };
+        // --- FALLBACK: Check Drive ---
+        const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+        const fileName = `Form_Template_${formId}.json`;
+        const files = folder.getFilesByName(fileName);
+
+        if (files.hasNext()) {
+            const file = files.next();
+            const content = file.getBlob().getDataAsString();
+            const parsed = JSON.parse(content);
+            return {
+                status: 'success',
+                formId: formId,
+                schema: parsed.schema,
+                config: parsed.config,
+                metadata: parsed.metadata || {}
+            };
+        }
+
+        return { status: 'error', message: 'Form file not found in Sheet or Drive.' };
 
     } catch (err) {
         return { status: 'error', message: err.toString() };
@@ -124,6 +274,33 @@ function getForm(formId) {
  * API: SUBMIT FORM DATA
  * Handles routing to external sheets and dynamic column creation
  */
+/**
+ * API: LIST ALL FORM TEMPLATES
+ */
+function listTemplates() {
+    try {
+        const regSs = SpreadsheetApp.openById(REGISTRY_SS_ID);
+        const registrySheet = regSs.getSheetByName(REGISTRY_SHEET_NAME);
+        if (!registrySheet) return [];
+
+        const data = registrySheet.getDataRange().getValues();
+        const templates = [];
+
+        for (let i = 1; i < data.length; i++) {
+            templates.push({
+                id: data[i][0],
+                name: data[i][1],
+                description: data[i][2],
+                lastUpdated: data[i][4]
+            });
+        }
+        return templates;
+    } catch (e) {
+        console.error("List Templates Error: " + e.toString());
+        return [];
+    }
+}
+
 function submitForm(formId, formData) {
     try {
         // 1. Get Config
@@ -211,11 +388,12 @@ function submitForm(formId, formData) {
 /**
  * API: TRANSLATE TEXT (English -> Marathi)
  */
-function translateText(text, targetLang) {
+function translateText(text, targetLang, sourceLang) {
     try {
         if (!text) return '';
-        const lang = targetLang || 'mr';
-        return LanguageApp.translate(text, 'en', lang);
+        const target = targetLang || 'mr';
+        const source = sourceLang || 'en';
+        return LanguageApp.translate(text, source, target);
     } catch (e) {
         return text;
     }
@@ -233,4 +411,91 @@ function getScriptUrl() {
  */
 function include(filename) {
     return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+/**
+ * PORTAL CONFIG: SAVE
+ */
+function savePortalConfig(config) {
+    try {
+        PropertiesService.getScriptProperties().setProperty('_PORTAL_CONFIG', JSON.stringify(config));
+        return { status: 'success', message: 'Portal configuration saved.' };
+    } catch (e) {
+        return { status: 'error', message: e.toString() };
+    }
+}
+
+/**
+ * PORTAL CONFIG: GET
+ */
+function getPortalConfig() {
+    try {
+        const config = PropertiesService.getScriptProperties().getProperty('_PORTAL_CONFIG');
+        return config ? JSON.parse(config) : { forms: [], layout: 'sidebar' };
+    } catch (e) {
+        return { forms: [], layout: 'sidebar' };
+    }
+}
+
+/**
+ * DELETE FORM
+ * Removes form from registry sheet, Drive, and cache
+ */
+function deleteForm(formId) {
+    try {
+        let deletedItems = [];
+
+        // 1. Delete from Registry Sheet
+        const regSs = SpreadsheetApp.openById(REGISTRY_SS_ID);
+        const registrySheet = regSs.getSheetByName(REGISTRY_SHEET_NAME);
+
+        if (registrySheet) {
+            const data = registrySheet.getDataRange().getValues();
+            for (let i = 1; i < data.length; i++) {
+                if (String(data[i][0]) === String(formId)) {
+                    registrySheet.deleteRow(i + 1);
+                    deletedItems.push('Registry Sheet');
+                    break;
+                }
+            }
+        }
+
+        // 2. Delete from Drive
+        try {
+            const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+            const fileName = `Form_Template_${formId}.json`;
+            const files = folder.getFilesByName(fileName);
+
+            while (files.hasNext()) {
+                const file = files.next();
+                file.setTrashed(true);
+                deletedItems.push('Drive File');
+            }
+        } catch (driveErr) {
+            console.warn('Drive deletion error: ' + driveErr.toString());
+        }
+
+        // 3. Delete from Cache
+        try {
+            PropertiesService.getScriptProperties().deleteProperty('CACHE_' + formId);
+            deletedItems.push('Cache');
+        } catch (cacheErr) {
+            console.warn('Cache deletion error: ' + cacheErr.toString());
+        }
+
+        if (deletedItems.length > 0) {
+            return {
+                status: 'success',
+                message: `Form ${formId} deleted from: ${deletedItems.join(', ')}`
+            };
+        } else {
+            return {
+                status: 'error',
+                message: 'Form not found in any location'
+            };
+        }
+
+    } catch (err) {
+        return { status: 'error', message: err.toString() };
+    }
 }

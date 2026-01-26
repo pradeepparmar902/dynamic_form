@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Portal Diagnostic</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f3f4f6;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2563eb;
+        }
+
+        h2 {
+            color: #374151;
+            margin-top: 0;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        pre {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #2563eb;
+            background: #f9fafb;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Form Portal Diagnostic Tool</h1>
+
+    <div class="card">
+        <h2>Step 1: Configuration</h2>
+        <p>Enter your Google Apps Script URL:</p>
+        <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/..."
+            style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px;">
+        <br><br>
+        <button onclick="saveConfig()">Save Configuration</button>
+        <div id="configStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>Step 2: Test API Connection</h2>
+        <button onclick="testConnection()">Test Connection</button>
+        <div id="connectionStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>Step 3: Test Portal Config</h2>
+        <button onclick="testPortalConfig()">Get Portal Configuration</button>
+        <div id="portalConfigStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>Step 4: Test Form Loading</h2>
+        <p>Enter a Form ID to test:</p>
+        <input type="text" id="testFormId" placeholder="Form_1234567890"
+            style="width: 300px; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px;">
+        <button onclick="testFormLoad()">Test Load Form</button>
+        <div id="formLoadStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>Step 5: View Portal</h2>
+        <button onclick="openPortal()">Open Portal in New Tab</button>
+        <button onclick="openSingleForm()">Open Single Form in New Tab</button>
+    </div>
+
+    <div class="card">
+        <h2>Console Log</h2>
+        <div id="consoleLog"
+            style="max-height: 300px; overflow-y: auto; background: #1f2937; color: #10b981; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+        </div>
+    </div>
+
+    <script>
+        let gasApiUrl = localStorage.getItem('diagnostic_gas_url') || '';
+        if (gasApiUrl) {
+            document.getElementById('gasUrl').value = gasApiUrl;
+        }
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('consoleLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#3b82f6';
+            logDiv.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function saveConfig() {
+            gasApiUrl = document.getElementById('gasUrl').value.trim();
+            if (!gasApiUrl) {
+                document.getElementById('configStatus').innerHTML = '<div class="status error">❌ Please enter a valid URL</div>';
+                return;
+            }
+            localStorage.setItem('diagnostic_gas_url', gasApiUrl);
+            document.getElementById('configStatus').innerHTML = '<div class="status success">✅ Configuration saved!</div>';
+            log('✅ GAS URL saved: ' + gasApiUrl, 'success');
+        }
+
+        async function testConnection() {
+            if (!gasApiUrl) {
+                document.getElementById('connectionStatus').innerHTML = '<div class="status error">❌ Please save configuration first</div>';
+                return;
+            }
+
+            document.getElementById('connectionStatus').innerHTML = '<div class="status info">🔄 Testing connection...</div>';
+            log('🔄 Testing connection to: ' + gasApiUrl);
+
+            try {
+                const url = gasApiUrl + (gasApiUrl.includes('?') ? '&' : '?') + 'action=ping';
+                log('📡 Fetching: ' + url);
+
+                const response = await fetch(url);
+                log('📥 Response status: ' + response.status);
+
+                const data = await response.json();
+                log('📦 Response data: ' + JSON.stringify(data));
+
+                if (data.status === 'success') {
+                    document.getElementById('connectionStatus').innerHTML = '<div class="status success">✅ Connection successful!</div>';
+                    log('✅ Connection test passed', 'success');
+                } else {
+                    document.getElementById('connectionStatus').innerHTML = '<div class="status warning">⚠️ Connected but got unexpected response: ' + JSON.stringify(data) + '</div>';
+                    log('⚠️ Unexpected response', 'warning');
+                }
+            } catch (error) {
+                document.getElementById('connectionStatus').innerHTML = '<div class="status error">❌ Connection failed: ' + error.message + '</div>';
+                log('❌ Connection error: ' + error.message, 'error');
+            }
+        }
+
+        async function testPortalConfig() {
+            if (!gasApiUrl) {
+                document.getElementById('portalConfigStatus').innerHTML = '<div class="status error">❌ Please save configuration first</div>';
+                return;
+            }
+
+            document.getElementById('portalConfigStatus').innerHTML = '<div class="status info">🔄 Fetching portal configuration...</div>';
+            log('🔄 Fetching portal config...');
+
+            try {
+                const url = gasApiUrl + (gasApiUrl.includes('?') ? '&' : '?') + 'action=getPortalConfig';
+                log('📡 Fetching: ' + url);
+
+                const response = await fetch(url);
+                const data = await response.json();
+                log('📦 Portal config: ' + JSON.stringify(data, null, 2));
+
+                if (data && data.forms) {
+                    document.getElementById('portalConfigStatus').innerHTML = `
+                        <div class="status success">✅ Portal config loaded! Found ${data.forms.length} forms:</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    log('✅ Portal config loaded: ' + data.forms.length + ' forms', 'success');
+                } else {
+                    document.getElementById('portalConfigStatus').innerHTML = '<div class="status warning">⚠️ No forms configured in portal</div>';
+                    log('⚠️ No forms in portal config', 'warning');
+                }
+            } catch (error) {
+                document.getElementById('portalConfigStatus').innerHTML = '<div class="status error">❌ Failed: ' + error.message + '</div>';
+                log('❌ Portal config error: ' + error.message, 'error');
+            }
+        }
+
+        async function testFormLoad() {
+            const formId = document.getElementById('testFormId').value.trim();
+            if (!formId) {
+                document.getElementById('formLoadStatus').innerHTML = '<div class="status error">❌ Please enter a Form ID</div>';
+                return;
+            }
+
+            if (!gasApiUrl) {
+                document.getElementById('formLoadStatus').innerHTML = '<div class="status error">❌ Please save configuration first</div>';
+                return;
+            }
+
+            document.getElementById('formLoadStatus').innerHTML = '<div class="status info">🔄 Loading form...</div>';
+            log('🔄 Loading form: ' + formId);
+
+            try {
+                const url = gasApiUrl + (gasApiUrl.includes('?') ? '&' : '?') + 'action=getForm&id=' + formId;
+                log('📡 Fetching: ' + url);
+
+                const response = await fetch(url);
+                const data = await response.json();
+                log('📦 Form data: ' + JSON.stringify(data, null, 2));
+
+                if (data.status === 'success') {
+                    document.getElementById('formLoadStatus').innerHTML = `
+                        <div class="status success">✅ Form loaded successfully!</div>
+                        <div class="test-result">
+                            <strong>Form ID:</strong> ${data.formId}<br>
+                            <strong>Elements:</strong> ${data.schema ? data.schema.length : 0}<br>
+                            <strong>Source:</strong> ${data.source || 'unknown'}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    log('✅ Form loaded successfully', 'success');
+                } else {
+                    document.getElementById('formLoadStatus').innerHTML = '<div class="status error">❌ Failed to load form: ' + data.message + '</div>';
+                    log('❌ Form load failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                document.getElementById('formLoadStatus').innerHTML = '<div class="status error">❌ Error: ' + error.message + '</div>';
+                log('❌ Form load error: ' + error.message, 'error');
+            }
+        }
+
+        function openPortal() {
+            if (!gasApiUrl) {
+                alert('Please save configuration first');
+                return;
+            }
+            const url = `viewer.html?view=portal&api=${encodeURIComponent(gasApiUrl)}`;
+            log('🚀 Opening portal: ' + url);
+            window.open(url, '_blank');
+        }
+
+        function openSingleForm() {
+            const formId = document.getElementById('testFormId').value.trim();
+            if (!formId) {
+                alert('Please enter a Form ID first');
+                return;
+            }
+            if (!gasApiUrl) {
+                alert('Please save configuration first');
+                return;
+            }
+            const url = `viewer.html?id=${formId}&api=${encodeURIComponent(gasApiUrl)}`;
+            log('🚀 Opening single form: ' + url);
+            window.open(url, '_blank');
+        }
+
+        log('🔧 Diagnostic tool ready');
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Portal Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .step {
+            background: #f0f9ff;
+            border-left: 4px solid #2563eb;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .error {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .success {
+            background: #d1fae5;
+            border-left: 4px solid #059669;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        pre {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Simple Portal Test</h1>
+
+    <div class="step">
+        <h2>Step 1: Enter Your GAS URL</h2>
+        <p>Paste your Google Apps Script deployment URL here:</p>
+        <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec">
+        <br><br>
+        <button onclick="testAll()">🚀 Run All Tests</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        async function testAll() {
+            const gasUrl = document.getElementById('gasUrl').value.trim();
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="step"><h3>Running tests...</h3></div>';
+
+            if (!gasUrl) {
+                results.innerHTML = '<div class="error"><h3>❌ Error</h3><p>Please enter your GAS URL</p></div>';
+                return;
+            }
+
+            let html = '';
+
+            // Test 1: Ping
+            html += '<div class="step"><h3>Test 1: API Connection</h3>';
+            try {
+                const pingUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=ping';
+                const res = await fetch(pingUrl);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    html += '<p class="success">✅ API is reachable</p>';
+                } else {
+                    html += '<p class="error">❌ API returned unexpected response</p>';
+                }
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (e) {
+                html += '<p class="error">❌ Connection failed: ' + e.message + '</p>';
+            }
+            html += '</div>';
+            results.innerHTML = html;
+
+            // Test 2: Portal Config
+            html += '<div class="step"><h3>Test 2: Portal Configuration</h3>';
+            try {
+                const configUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getPortalConfig';
+                const res = await fetch(configUrl);
+                const data = await res.json();
+
+                if (data && data.forms && data.forms.length > 0) {
+                    html += '<p class="success">✅ Portal config found with ' + data.forms.length + ' forms</p>';
+                    html += '<ul>';
+                    data.forms.forEach(f => {
+                        html += '<li><strong>' + f.name + '</strong> (ID: ' + f.id + ', Order: ' + f.order + ')</li>';
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p class="error">⚠️ No forms configured in portal</p>';
+                    html += '<p><strong>Action needed:</strong> Go to your builder, click "Portal View" tab, select forms, and click "Save Portal Collection"</p>';
+                }
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (e) {
+                html += '<p class="error">❌ Failed to get portal config: ' + e.message + '</p>';
+            }
+            html += '</div>';
+            results.innerHTML = html;
+
+            // Test 3: List Templates
+            html += '<div class="step"><h3>Test 3: Available Forms</h3>';
+            try {
+                const listUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=listTemplates';
+                const res = await fetch(listUrl);
+                const data = await res.json();
+
+                if (Array.isArray(data) && data.length > 0) {
+                    html += '<p class="success">✅ Found ' + data.length + ' saved forms</p>';
+                    html += '<ul>';
+                    data.forEach(f => {
+                        html += '<li><strong>' + f.name + '</strong> (ID: ' + f.id + ')</li>';
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p class="error">⚠️ No forms found</p>';
+                    html += '<p><strong>Action needed:</strong> Create and save forms in the builder first</p>';
+                }
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (e) {
+                html += '<p class="error">❌ Failed to list templates: ' + e.message + '</p>';
+            }
+            html += '</div>';
+            results.innerHTML = html;
+
+            // Test 4: Try to load first form
+            html += '<div class="step"><h3>Test 4: Load Sample Form</h3>';
+            try {
+                const listUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=listTemplates';
+                const listRes = await fetch(listUrl);
+                const templates = await listRes.json();
+
+                if (Array.isArray(templates) && templates.length > 0) {
+                    const firstForm = templates[0];
+                    const formUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getForm&id=' + firstForm.id;
+                    const formRes = await fetch(formUrl);
+                    const formData = await formRes.json();
+
+                    if (formData.status === 'success') {
+                        html += '<p class="success">✅ Successfully loaded form: ' + firstForm.name + '</p>';
+                        html += '<p>Elements: ' + (formData.schema ? formData.schema.length : 0) + '</p>';
+                        html += '<p>Source: ' + (formData.source || 'unknown') + '</p>';
+                    } else {
+                        html += '<p class="error">❌ Failed to load form: ' + formData.message + '</p>';
+                        html += '<p><strong>This is your problem!</strong> The form exists in the list but can\'t be loaded.</p>';
+                        html += '<p><strong>Fix:</strong> Open the builder, load this form, and click "Save Form" again.</p>';
+                    }
+                    html += '<pre>' + JSON.stringify(formData, null, 2) + '</pre>';
+                } else {
+                    html += '<p class="error">⚠️ No forms to test</p>';
+                }
+            } catch (e) {
+                html += '<p class="error">❌ Test failed: ' + e.message + '</p>';
+            }
+            html += '</div>';
+            results.innerHTML = html;
+
+            // Final Summary
+            html += '<div class="step"><h3>📋 Summary & Next Steps</h3>';
+            html += '<p>If all tests passed ✅, your portal should work!</p>';
+            html += '<p>If any test failed ❌, follow the "Action needed" instructions above.</p>';
+            html += '<br>';
+            html += '<p><strong>To test the actual portal:</strong></p>';
+            html += '<p>Open this URL in a new tab:</p>';
+            html += '<input type="text" value="viewer.html?view=portal&api=' + encodeURIComponent(gasUrl) + '" readonly onclick="this.select()">';
+            html += '<br><br>';
+            html += '<button onclick="window.open(\'viewer.html?view=portal&api=' + encodeURIComponent(gasUrl) + '\', \'_blank\')">🚀 Open Portal Now</button>';
+            html += '</div>';
+
+            results.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>

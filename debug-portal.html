@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Debug Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #2563eb;
+            background: #f0f9ff;
+        }
+
+        .error {
+            border-left-color: #dc2626;
+            background: #fee2e2;
+        }
+
+        .success {
+            border-left-color: #059669;
+            background: #d1fae5;
+        }
+
+        pre {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+
+        .step h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 Portal Configuration Debugger</h1>
+        <p class="subtitle">This tool will help diagnose why your portal isn't loading forms</p>
+
+        <div class="step">
+            <h3>Step 1: Enter Your GAS API URL</h3>
+            <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec">
+            <button onclick="runDiagnostics()">🚀 Run Full Diagnostics</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function runDiagnostics() {
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            const resultsDiv = document.getElementById('results');
+
+            if (!apiUrl) {
+                resultsDiv.innerHTML = '<div class="result-box error"><strong>❌ Error:</strong> Please enter your GAS API URL</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div class="result-box"><strong>⏳ Running diagnostics...</strong></div>';
+
+            let html = '';
+
+            // Test 1: Check Portal Config
+            html += '<div class="step"><h3>Test 1: Portal Configuration</h3>';
+            try {
+                const configRes = await fetch(`${apiUrl}?action=getPortalConfig`);
+                const config = await configRes.json();
+
+                if (config && config.forms && config.forms.length > 0) {
+                    html += `<div class="result-box success">✅ Portal config found with ${config.forms.length} form(s)</div>`;
+                    html += '<pre>' + JSON.stringify(config, null, 2) + '</pre>';
+                } else {
+                    html += '<div class="result-box error">❌ Portal config is empty or missing</div>';
+                    html += '<p><strong>Fix:</strong> Go to your builder, click "Portal View" tab, select forms, and click "Save Portal Collection"</p>';
+                }
+            } catch (e) {
+                html += `<div class="result-box error">❌ Failed to get portal config: ${e.message}</div>`;
+            }
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+
+            // Test 2: List All Forms
+            html += '<div class="step"><h3>Test 2: Available Forms in Registry</h3>';
+            try {
+                const listRes = await fetch(`${apiUrl}?action=listTemplates`);
+                const templates = await listRes.json();
+
+                if (Array.isArray(templates) && templates.length > 0) {
+                    html += `<div class="result-box success">✅ Found ${templates.length} form(s) in registry</div>`;
+                    html += '<pre>' + JSON.stringify(templates, null, 2) + '</pre>';
+                } else {
+                    html += '<div class="result-box error">❌ No forms found in registry</div>';
+                    html += '<p><strong>Fix:</strong> Create and save forms in the builder first</p>';
+                }
+            } catch (e) {
+                html += `<div class="result-box error">❌ Failed to list forms: ${e.message}</div>`;
+            }
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+
+            // Test 3: Try to Load Each Form from Portal Config
+            html += '<div class="step"><h3>Test 3: Load Forms from Portal Config</h3>';
+            try {
+                const configRes = await fetch(`${apiUrl}?action=getPortalConfig`);
+                const config = await configRes.json();
+
+                if (config && config.forms && config.forms.length > 0) {
+                    for (const form of config.forms) {
+                        html += `<h4>Testing form: ${form.name} (${form.id})</h4>`;
+
+                        try {
+                            const formRes = await fetch(`${apiUrl}?action=getForm&id=${form.id}`);
+                            const formData = await formRes.json();
+
+                            if (formData.status === 'success') {
+                                html += `<div class="result-box success">✅ Form loaded successfully</div>`;
+                                html += `<p>Elements: ${formData.schema ? formData.schema.length : 0}, Source: ${formData.source || 'unknown'}</p>`;
+                            } else {
+                                html += `<div class="result-box error">❌ Failed to load form: ${formData.message}</div>`;
+                                html += '<p><strong>Fix:</strong> Open this form in the builder and click "Save Form" again</p>';
+                            }
+                        } catch (e) {
+                            html += `<div class="result-box error">❌ Error loading form: ${e.message}</div>`;
+                        }
+                        resultsDiv.innerHTML = html;
+                    }
+                } else {
+                    html += '<div class="result-box error">⚠️ No forms in portal config to test</div>';
+                }
+            } catch (e) {
+                html += `<div class="result-box error">❌ Failed: ${e.message}</div>`;
+            }
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+
+            // Test 4: Check Registry Sheet Structure
+            html += '<div class="step"><h3>Test 4: Summary & Recommendations</h3>';
+            html += '<div class="result-box">';
+            html += '<h4>Common Issues & Fixes:</h4>';
+            html += '<ol>';
+            html += '<li><strong>Portal config empty:</strong> Go to builder → Portal View → Select forms → Save Portal Collection</li>';
+            html += '<li><strong>Forms not loading:</strong> Open each form in builder and click "Save Form" to refresh the data</li>';
+            html += '<li><strong>Form IDs mismatch:</strong> Make sure the form IDs in portal config match the actual saved forms</li>';
+            html += '<li><strong>Registry sheet missing data:</strong> Check column 6 (Schema Data) in your Google Sheet registry</li>';
+            html += '</ol>';
+            html += '</div>';
+            html += '</div>';
+
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>

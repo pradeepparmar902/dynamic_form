@@ -20,8 +20,20 @@
             min-height: 1123px;
             background: white;
             position: relative;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transform-origin: top center;
+            margin-bottom: 2rem;
+        }
+
+        /* Hide shadow and extra padding if in iframe */
+        @media (min-width: 800px) {
+            body.is-embedded {
+                padding: 0;
+                background: transparent;
+            }
+
+            body.is-embedded #form-container {
+                box-shadow: none;
+            }
         }
 
         .canvas-element {
@@ -92,6 +104,10 @@
             }
         }
 
+        .hidden {
+            display: none !important;
+        }
+
         /* Actions */
         .action-bar {
             position: fixed;
@@ -131,6 +147,93 @@
                 margin-top: -300px;
             }
         }
+
+        /* --- PORTAL STYLES --- */
+        .portal-wrapper {
+            display: none;
+            /* Shown via JS */
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #f3f4f6;
+        }
+
+        .portal-sidebar {
+            width: 260px;
+            height: 100%;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .portal-sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 700;
+            color: #2563eb;
+            font-size: 1.1rem;
+        }
+
+        .portal-nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .portal-nav-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #4b5563;
+            font-weight: 500;
+        }
+
+        .portal-nav-item:hover {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .portal-nav-item.active {
+            background: #eff6ff;
+            color: #2563eb;
+            border-left: 4px solid #2563eb;
+        }
+
+        .portal-main {
+            flex: 1;
+            height: 100%;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .portal-wrapper {
+                flex-direction: column;
+            }
+
+            .portal-sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 200px;
+            }
+
+            .portal-nav-list {
+                display: flex;
+                overflow-x: auto;
+            }
+
+            .portal-nav-item {
+                white-space: nowrap;
+                padding: 0.75rem 1rem;
+            }
+        }
     </style>
 </head>
 
@@ -138,16 +241,24 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <p style="margin-top: 10px; color: #555;">Loading Form...</p>
-        <div id="debug-info"
-            style="margin-top:20px; font-size:12px; color:#888; font-family:monospace; white-space: pre-wrap;">
-            Initializing...</div>
+        <p id="loader-text" style="margin-top: 15px; color: #666; font-size: 0.9em;">Loading Form Engine...</p>
     </div>
 
-    <!-- The Form Page -->
-    <div id="form-container">
-        <!-- Elements Rendered Here -->
+    <!-- PORTAL WRAPPER (Split Screen) -->
+    <div id="portal-wrapper" class="portal-wrapper">
+        <aside class="portal-sidebar">
+            <div class="portal-sidebar-header">Forms Collection</div>
+            <ul id="portal-nav-list" class="portal-nav-list">
+                <!-- Portal Menu Items -->
+            </ul>
+        </aside>
+        <main id="portal-main" class="portal-main">
+            <!-- Form container will be moved here in portal mode -->
+        </main>
     </div>
+
+    <!-- SINGLE FORM CONTAINER -->
+    <div id="form-container"></div>
 
     <div class="action-bar">
         <button class="btn" onclick="submitData()">Submit Form</button>
@@ -173,60 +284,247 @@
         if (formId.includes('?')) formId = '';
         if (!formId) formId = urlParams.get('id');
 
+        // GAS API URL detection (can be passed via URL or stored)
+        let gasApiUrl = urlParams.get('api') || localStorage.getItem('gasApiUrl') || '';
+
         // MOCK FOR LOCAL DEV
         if (!formId && window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
             formId = prompt("Local Dev Mode: Enter Form ID to load (Save one in Admin first)", "101");
         }
 
-        // 2. Fetch Schema
-        // 2. Fetch Schema
-        window.onload = function () {
+        // 2. API Helper
+        async function callApi(action, payload) {
             if (typeof google !== 'undefined' && google.script) {
-                // Apps Script Env
-                google.script.run
-                    .withSuccessHandler(renderForm)
-                    .withFailureHandler(err => alert("Failed to load form: " + err))
-                    .getForm(formId);
+                return new Promise((resolve, reject) => {
+                    const run = google.script.run;
+                    if (action === 'getForm') run.withSuccessHandler(resolve).withFailureHandler(reject).getForm(payload.formId);
+                    else if (action === 'getPortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).getPortalConfig();
+                    else if (action === 'submitForm') run.withSuccessHandler(resolve).withFailureHandler(reject).submitForm(payload.formId, payload.formData);
+                    else if (action === 'translateText') run.withSuccessHandler(resolve).withFailureHandler(reject).translateText(payload.text, payload.targetLang);
+                });
+            }
+
+            if (!gasApiUrl) {
+                return { status: 'error', message: 'GAS API URL not found. Use ?api=[URL] if external.' };
+            }
+
+            try {
+                // Ensure URL is clean and specifically remove any accidental whitespace
+                let url = gasApiUrl.trim().replace(/\/$/, "");
+                const sep = url.includes('?') ? '&' : '?';
+
+                if (action === 'getForm') {
+                    const res = await fetch(`${url}${sep}action=getForm&id=${payload.formId}`, { redirect: 'follow' });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.json();
+                } else if (action === 'getPortalConfig') {
+                    const res = await fetch(`${url}${sep}action=getPortalConfig`);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.json();
+                } else if (action === 'translateText') {
+                    const fetchUrl = `${url}${sep}action=translateText&text=${encodeURIComponent(payload.text)}&targetLang=${payload.targetLang}&sourceLang=${payload.sourceLang}`;
+                    const res = await fetch(fetchUrl, { redirect: 'follow' });
+                    if (!res.ok) throw new Error(`Network Error: ${res.status}`);
+                    const json = await res.json();
+                    if (json.status === 'error') throw new Error(json.message);
+                    return json;
+                } else {
+                    // POST actions (submitForm)
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action, ...payload }),
+                        redirect: 'follow'
+                    });
+                    return { status: 'success', message: 'Payload sent successfully.' };
+                }
+            } catch (err) {
+                console.error("API Call failed:", err);
+                let msg = err.message || err.toString();
+                if (msg.includes("Failed to fetch")) {
+                    msg = "Network Error: Could not connect to Google Script. (Are you logged into multiple Google accounts?)";
+                }
+                return { status: 'error', message: msg };
+            }
+        }
+
+        // 3. Security (Referrer Check)
+        function checkReferrer(allowedDomains) {
+            // If field is empty, security is DISABLED (for testing)
+            if (!allowedDomains || allowedDomains.trim() === '') return true;
+
+            const domainList = allowedDomains.split(',').map(d => d.trim().toLowerCase()).filter(d => d !== '');
+            if (domainList.length === 0) return true;
+
+            const referrer = document.referrer;
+            if (!referrer) {
+                // If direct access (like builder preview), we allow during testing
+                return true;
+            }
+
+            try {
+                const refHost = new URL(referrer).hostname.toLowerCase();
+                // Check if referrer domain is in our allowed list
+                return domainList.some(d => refHost.includes(d));
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // 4. Fetch Schema
+        // 4. Loader Control
+        function setLoader(show, text) {
+            const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loader-text');
+            if (loaderText && text) loaderText.innerText = text;
+            loader.classList.toggle('hidden', !show);
+        }
+
+        // 5. Portal Logic
+        async function initPortal() {
+            try {
+                console.log('🚀 Initializing Portal Mode...');
+                setLoader(true, "Loading Portal...");
+
+                const portalWrapper = document.getElementById('portal-wrapper');
+                const mainArea = document.getElementById('portal-main');
+                const formArea = document.getElementById('form-container');
+
+                if (!portalWrapper || !mainArea || !formArea) {
+                    console.error('❌ Portal elements not found in DOM');
+                    alert('Portal Error: Required elements not found');
+                    return;
+                }
+
+                portalWrapper.style.display = 'flex';
+                mainArea.appendChild(formArea); // Move form into portal
+
+                console.log('📡 Fetching portal configuration...');
+                const config = await callApi('getPortalConfig', {});
+                console.log('✅ Portal config received:', config);
+
+                const navList = document.getElementById('portal-nav-list');
+
+                if (!config || !config.forms || config.forms.length === 0) {
+                    console.warn('⚠️ No forms configured in portal');
+                    navList.innerHTML = '<li class="portal-nav-item" style="padding:2rem; text-align:center; color:#999;">No forms available. Please configure forms in the Portal Designer.</li>';
+                    setLoader(false);
+                    return;
+                }
+
+                console.log(`📋 Rendering ${config.forms.length} forms in sidebar`);
+                navList.innerHTML = config.forms.map(f => `
+                    <li class="portal-nav-item" data-id="${f.id}" onclick="loadPortalForm('${f.id}')">
+                        ${f.name}
+                    </li>
+                `).join('');
+
+                // Load first form by default if none selected
+                if (!formId && config.forms.length > 0) {
+                    console.log('📄 Loading first form:', config.forms[0].name);
+                    loadPortalForm(config.forms[0].id);
+                } else if (formId) {
+                    console.log('📄 Loading specified form:', formId);
+                    loadPortalForm(formId);
+                } else {
+                    setLoader(false);
+                }
+            } catch (error) {
+                console.error('❌ Portal initialization failed:', error);
+                setLoader(false);
+                alert('Portal Error: ' + error.message + '\n\nCheck browser console for details.');
+            }
+        }
+
+        async function loadPortalForm(id) {
+            // Update UI
+            document.querySelectorAll('.portal-nav-item').forEach(li => {
+                li.classList.toggle('active', li.dataset.id === id);
+            });
+
+            formId = id;
+            setLoader(true, "Loading Form...");
+
+            const res = await callApi('getForm', { formId: id });
+            setLoader(false);
+
+            if (res.status === 'success') {
+                const metadata = res.metadata || {};
+                if (!checkReferrer(metadata.allowedDomains)) {
+                    document.getElementById('form-container').innerHTML = `
+                        <div style="padding: 50px; text-align: center; font-family: sans-serif; background: #fff;">
+                            <h3 style="color: #dc3545;">Domain Not Authorized</h3>
+                            <p>This form collection is restricted.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                renderForm(res);
             } else {
-                // Local dev mock
-                console.log("Fetching local storage mock for ID:", formId);
-                const debugEl = document.getElementById('debug-info');
-                if (debugEl) debugEl.innerText = `Attempting to load Form ID: "${formId}"...`;
+                console.error('❌ Form load failed:', res.message);
+                document.getElementById('form-container').innerHTML = `
+                    <div style="padding: 50px; text-align: center; font-family: sans-serif; background: #fff;">
+                        <h3 style="color: #dc3545;">⚠️ Form Not Found</h3>
+                        <p style="margin: 20px 0;"><strong>Form ID:</strong> ${id}</p>
+                        <p style="color: #666;">This form hasn't been saved to your Google backend yet.</p>
+                        <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 20px; margin: 20px auto; max-width: 500px; text-align: left;">
+                            <h4 style="margin-top: 0; color: #9a3412;">📋 How to fix this:</h4>
+                            <ol style="color: #666; line-height: 1.8;">
+                                <li>Open your <strong>Form Builder</strong></li>
+                                <li>Switch to the <strong>"ELEMENTS"</strong> tab</li>
+                                <li>Click <strong>"Load Form"</strong> and select this form</li>
+                                <li>Click <strong>"Save Form"</strong> to store it in Google</li>
+                                <li>Return to the <strong>"Portal View"</strong> tab</li>
+                                <li>Click <strong>"Refresh Forms List"</strong></li>
+                                <li>Re-save your portal collection</li>
+                            </ol>
+                        </div>
+                        <p style="font-size: 0.9em; color: #999;">Error: ${res.message}</p>
+                    </div>
+                `;
+            }
+        }
 
-                setTimeout(() => {
-                    let mockData = null;
-                    try {
-                        // 1. Try Local Storage
-                        const saved = localStorage.getItem('form_' + formId);
-                        if (saved) {
-                            mockData = JSON.parse(saved);
-                            if (debugEl) debugEl.innerText += `\nSUCCESS: Found data in LocalStorage.`;
-                        } else {
-                            if (debugEl) debugEl.innerText += `\nFAILED: No data in LocalStorage for "form_${formId}".`;
-                            // List keys to help debug
-                            const keys = Object.keys(localStorage).filter(k => k.startsWith('form_'));
-                            if (debugEl) debugEl.innerText += `\nAvailable Keys: ${keys.length > 0 ? keys.join(', ') : 'None'}`;
-                        }
-                    } catch (e) {
-                        console.error("Local Load Error", e);
-                        if (debugEl) debugEl.innerText += `\nERROR: ${e.message}`;
-                    }
+        // 6. Init Sequence
+        window.onload = async function () {
+            const isPortal = urlParams.get('view') === 'portal';
 
-                    // 2. Fallback Mock if failed
-                    if (!mockData) {
-                        mockData = {
-                            schema: [
-                                { id: '1', type: 'text', x: 50, y: 50, props: { label: 'Fallback Name', labelRegional: 'नाव', name: 'name', translatable: true } },
-                                { id: '2', type: 'date', x: 50, y: 150, props: { label: 'Fallback DOB', name: 'dob' } }
-                            ],
-                            config: { targetSheetUrl: 'mock', language: 'mr' }
-                        };
-                        console.warn("No local save found, using hardcoded fallback.");
-                        if (debugEl) debugEl.innerText += `\nUSING FALLBACK MOCK DATA.`;
-                    }
+            if (isPortal) {
+                initPortal();
+                return;
+            }
 
-                    renderForm({ status: 'success', schema: mockData.schema, config: mockData.config });
-                }, 500);
+            if (!formId) {
+                document.getElementById('form-container').innerHTML = '<div style="padding:40px; text-align:center; color:#666;">No Form ID provided.</div>';
+                setLoader(false);
+                return;
+            }
+
+            setLoader(true, "Loading Form...");
+            const res = await callApi('getForm', { formId });
+            setLoader(false);
+
+            if (res.status === 'success') {
+                const metadata = res.metadata || {};
+                if (!checkReferrer(metadata.allowedDomains)) {
+                    document.body.innerHTML = `
+                        <div style="padding: 50px; text-align: center; font-family: sans-serif; background: #fff; height: 100vh;">
+                            <h2 style="color: #dc3545;">Domain Not Authorized</h2>
+                            <p>This form is restricted.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                renderForm(res);
+            } else {
+                // Local fallback
+                const saved = localStorage.getItem('form_' + formId);
+                if (saved) {
+                    renderForm({ status: 'success', ...JSON.parse(saved) });
+                } else {
+                    document.getElementById('form-container').innerHTML = `<div style="padding:40px; text-align:center; color:#dc3545;">${res.message}</div>`;
+                }
             }
         };
 
@@ -239,11 +537,12 @@
             }
 
             formSchema = response.schema;
-            formConfig = response.config; // Config includes 'language' e.g., 'mr', 'hi'
+            formConfig = response.config;
             const container = document.getElementById('form-container');
-            container.innerHTML = ''; // Clear
+            container.innerHTML = '';
 
-            const langCode = formConfig.language || 'mr';
+            const langCodeSecondary = formConfig.languageSecondary || formConfig.language || 'mr';
+            const langCodePrimary = formConfig.languagePrimary || 'en';
 
             formSchema.forEach(elm => {
                 const div = document.createElement('div');
@@ -253,7 +552,7 @@
 
                 // Helper to get regional label
                 const regLabelHtml = elm.props.labelRegional
-                    ? ` <span class="lang-${langCode}" style="font-weight:400; color:#555">/ ${elm.props.labelRegional}</span>`
+                    ? ` <span class="lang-${langCodeSecondary}" style="font-weight:400; color:#555">/ ${elm.props.labelRegional}</span>`
                     : '';
 
                 // Render Input
@@ -305,50 +604,43 @@
         }
 
         // 3. Translation Handler
-        function handleTranslation(e, elmId) {
+        async function handleTranslation(e, elmId) {
             const text = e.target.value;
             if (!text) return;
 
             const hint = document.getElementById('hint-' + elmId);
             hint.innerText = 'Translating...';
+            hint.style.color = '#888';
 
-            const targetLang = formConfig.language || 'mr';
+            const sourceLang = formConfig.languagePrimary || 'en';
+            const targetLang = formConfig.languageSecondary || formConfig.language || 'mr';
 
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler(translated => {
-                        e.target.dataset.translated = translated;
-                        hint.innerText = translated; // Show to user
-                    })
-                    .translateText(text, targetLang);
-            } else {
-                // Local Mock for Translation
-                // Simple offline dictionary for demonstration
-                const mockDict = {
-                    "pradeep parmar": "प्रदीप परमार",
-                    "hello": "नमस्कार",
-                    "school": "शाळा"
-                };
-
-                const lowerText = text.toLowerCase().trim();
-                if (mockDict[lowerText]) {
-                    const translated = mockDict[lowerText];
-                    e.target.dataset.translated = translated;
-                    hint.innerText = translated + " (Local Demo)";
+            try {
+                const res = await callApi('translateText', { text, sourceLang, targetLang });
+                if (res.status === 'success' && res.translated) {
+                    e.target.dataset.translated = res.translated;
+                    hint.innerText = res.translated;
                     hint.style.color = '#2563eb'; // Blue for success
                 } else {
-                    const simulated = `[Simulated ${targetLang}]: ` + text;
-                    e.target.dataset.translated = simulated;
-                    hint.innerText = simulated + " (Deploy to see real translation)";
-                    hint.style.color = '#888';
+                    // If we got an error object or missing status
+                    throw new Error(res.message || 'Translation failed. Ensure GAS script is re-deployed as "New Version".');
                 }
+            } catch (err) {
+                console.error("Translation Error:", err);
+                // Extract useful message parts
+                let msg = err.message || "Unknown error";
+                if (msg.includes("Unexpected token") || msg.includes("is not valid JSON")) {
+                    msg = "Invalid Server Response. Did you re-deploy GAS?";
+                }
+                hint.innerText = "Error: " + msg;
+                hint.style.color = '#dc3545'; // Red for error
             }
         }
 
         // 4. Submit
-        function submitData() {
+        async function submitData() {
             const inputs = document.querySelectorAll('input, select, textarea');
-            const data = {};
+            const formData = {};
             let valid = true;
 
             const targetLang = (formConfig.language || 'mr').toUpperCase();
@@ -362,11 +654,26 @@
                 }
 
                 if (input.name) {
-                    data[input.name] = input.value;
+                    try {
+                        // Safe mapping with fallback
+                        const schema = formSchema || [];
+                        const elm = schema.find(e => e.props && e.props.name === input.name);
 
-                    // Include translated if present
-                    if (input.dataset.translated) {
-                        data[`${input.name} (${targetLang})`] = input.dataset.translated;
+                        // Priority 1: Label, Priority 2: input.name
+                        const header = (elm && elm.props && elm.props.label) ? elm.props.label : input.name;
+
+                        formData[header] = input.value;
+
+                        if (input.dataset.translated) {
+                            const regHeader = (elm && elm.props && elm.props.labelRegional)
+                                ? elm.props.labelRegional
+                                : `${header} (${targetLang})`;
+                            formData[regHeader] = input.dataset.translated;
+                        }
+                    } catch (mapErr) {
+                        console.error("Mapping error for input:", input.name, mapErr);
+                        // Extreme fallback: always include the raw value
+                        formData[input.name] = input.value;
                     }
                 }
             });
@@ -376,33 +683,21 @@
                 return;
             }
 
-            // Add ID for tracking
-            data['Form_ID'] = formId;
+            formData['Form_ID'] = formId;
 
             const btn = document.querySelector('.action-bar .btn');
             const orgText = btn.innerText;
             btn.innerText = 'Submitting...';
             btn.disabled = true;
 
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler(res => {
-                        btn.innerText = orgText;
-                        btn.disabled = false;
-                        if (res.status === 'success') {
-                            alert('Submitted Successfully!');
-                        } else {
-                            alert('Error: ' + res.message);
-                        }
-                    })
-                    .submitForm(formId, data);
+            const res = await callApi('submitForm', { formId, formData });
+
+            btn.innerText = orgText;
+            btn.disabled = false;
+            if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
+                alert('Submitted Successfully!');
             } else {
-                console.log("Submitting:", data);
-                setTimeout(() => {
-                    alert('Submitted (Local Dev)');
-                    btn.innerText = orgText;
-                    btn.disabled = false;
-                }, 1000);
+                alert('Error: ' + res.message);
             }
         }
 
