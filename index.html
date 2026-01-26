@@ -534,6 +534,17 @@
                 </svg>
                 Get Embed Code
             </button>
+            <button class="btn btn-outline" onclick="showPortalModal()"
+                style="background: #fff7ed; border-color: #fed7aa; color: #9a3412;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                Manage Portal
+            </button>
             <button class="btn btn-outline" onclick="openPreview()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1727,18 +1738,119 @@
         }
 
         // --- EMBED MODAL LOGIC ---
+        // --- PORTAL MODAL LOGIC ---
+        let allTemplates = [];
+        let portalConfig = { forms: [] };
+
+        async function showPortalModal() {
+            document.getElementById('portalModal').style.display = 'flex';
+            document.getElementById('portalLoading').classList.remove('hidden');
+            const listEl = document.getElementById('portalTemplateList');
+            listEl.innerHTML = '';
+
+            try {
+                // Fetch both all templates AND current portal config
+                const [templates, config] = await Promise.all([
+                    callApi('listTemplates', {}),
+                    callApi('getPortalConfig', {})
+                ]);
+
+                allTemplates = templates;
+                portalConfig = config || { forms: [] };
+
+                document.getElementById('portalLoading').classList.add('hidden');
+                renderPortalItems();
+            } catch (err) {
+                alert("Failed to load portal data.");
+                closePortalModal();
+            }
+        }
+
+        function closePortalModal() {
+            document.getElementById('portalModal').style.display = 'none';
+        }
+
+        function renderPortalItems() {
+            const listEl = document.getElementById('portalTemplateList');
+            if (!allTemplates || allTemplates.length === 0) {
+                listEl.innerHTML = '<li style="padding:1rem; color:#999;">No saved forms found to include.</li>';
+                return;
+            }
+
+            listEl.innerHTML = allTemplates.map(t => {
+                const portalItem = portalConfig.forms.find(pf => pf.id === t.id);
+                const isSelected = !!portalItem;
+                const order = portalItem ? portalItem.order : 0;
+
+                return `
+                    <li style="display:flex; align-items:center; gap:1rem; cursor:default; hover:none;">
+                        <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;">
+                        <div style="flex:1;">
+                            <div style="font-weight:600;">${t.name}</div>
+                            <div style="font-size:0.75rem; color:var(--text-light); text-transform:uppercase;">ID: ${t.id}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:0.8rem; color:var(--text-light);">Sort Order:</span>
+                            <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:60px; padding:4px; border:1px solid var(--border); border-radius:4px; text-align:center;">
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        async function savePortalSettings() {
+            const checks = document.querySelectorAll('.portal-check');
+            const orders = document.querySelectorAll('.portal-order');
+
+            const selectedForms = [];
+            checks.forEach((chk, i) => {
+                if (chk.checked) {
+                    const id = chk.dataset.id;
+                    const name = chk.dataset.name;
+                    const orderInput = document.querySelector(`.portal-order[data-id="${id}"]`);
+                    selectedForms.push({
+                        id: id,
+                        name: name,
+                        order: parseInt(orderInput.value) || 0
+                    });
+                }
+            });
+
+            // Sort by defined order
+            selectedForms.sort((a, b) => a.order - b.order);
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerText = 'Saving...';
+
+            const res = await callApi('savePortalConfig', { config: { forms: selectedForms, layout: 'sidebar' } });
+
+            btn.disabled = false;
+            btn.innerText = 'Save Portal Collection';
+
+            if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
+                alert("Portal Collection Updated Successfully!");
+                closePortalModal();
+            } else {
+                alert("Error: " + res.message);
+            }
+        }
+
         async function showEmbedModal() {
             const modal = document.getElementById('embedModal');
             const area = document.getElementById('embedCodeArea');
             if (!modal || !area) return;
 
-            const currentApiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
+            const currentApiUrl = (document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : "") || formConfig.gasApiUrl;
             const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
             const viewerPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'viewer.html';
 
             if (currentApiUrl) {
                 const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiUrl)}`;
-                const code = `<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
+                const portalUrl = `${viewerPath}?view=portal&api=${encodeURIComponent(currentApiUrl)}`;
+
+                const code = `<!-- SINGLE FORM -->\n<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>\n\n<!-- MULTI-FORM PORTAL -->\n<iframe src="${portalUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
+
                 area.value = code;
                 modal.style.display = 'flex';
             } else {
@@ -1850,6 +1962,29 @@
 
         initRulers();
     </script>
+    <!-- Portal Settings Modal -->
+    <div id="portalModal" class="modal">
+        <div class="modal-content" style="width: 600px;">
+            <div class="modal-header">
+                <h3 style="margin:0;">Manage Multi-Form Portal</h3>
+                <span class="close-modal" onclick="closePortalModal()">&times;</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 1.5rem;">
+                Select the forms to display in your sidebar collection and define their sort order.
+            </p>
+            <div id="portalLoading" class="modal-loading hidden">
+                <div class="spinner"></div>
+            </div>
+            <ul id="portalTemplateList" class="template-list">
+                <!-- Portal selection items -->
+            </ul>
+            <div
+                style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                <button class="btn btn-outline" onclick="closePortalModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="savePortalSettings()">Save Portal Collection</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
