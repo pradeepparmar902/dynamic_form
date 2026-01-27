@@ -1123,52 +1123,6 @@
             }
         }
 
-        async function refreshPortalList() {
-            const listEl = document.getElementById('sidebarPortalList');
-            listEl.innerHTML = '<div style="text-align:center; padding:1rem;">Loading...</div>';
-
-            try {
-                const [templates, config] = await Promise.all([
-                    callApi('listTemplates', {}),
-                    callApi('getPortalConfig', {})
-                ]);
-
-                allTemplates = templates;
-                portalConfig = config || { forms: [] };
-                renderPortalItemsInSidebar();
-            } catch (err) {
-                listEl.innerHTML = '<div style="color:red; font-size:0.8rem;">Error loading forms.</div>';
-            }
-        }
-
-        function renderPortalItemsInSidebar() {
-            const listEl = document.getElementById('sidebarPortalList');
-            if (!allTemplates || allTemplates.length === 0) {
-                listEl.innerHTML = '<div style="padding:1rem; color:#999; font-size:0.8rem;">No saved forms found.</div>';
-                return;
-            }
-
-            listEl.innerHTML = allTemplates.map(t => {
-                const portalItem = portalConfig.forms.find(pf => pf.id === t.id);
-                const isSelected = !!portalItem;
-                const order = portalItem ? portalItem.order : 0;
-
-                return `
-                    <div style="display:flex; flex-direction:column; gap:0.25rem; background:white; border:1px solid var(--border); padding:0.5rem; border-radius:4px; margin-bottom:0.5rem;">
-                        <label style="display:flex; align-items:center; gap:0.5rem; font-weight:600; cursor:pointer; font-size:0.8rem;">
-                            <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''}>
-                            ${t.name}
-                        </label>
-                        <div style="display:flex; align-items:center; justify-content:space-between; font-size:0.7rem; color:var(--text-light);">
-                            <span>ID: ${t.id}</span>
-                            <div style="display:flex; align-items:center; gap:4px;">
-                                Order: <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:40px; border:1px solid var(--border); text-align:center;">
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
 
         function updateFormLanguage() {
             formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
@@ -2100,19 +2054,17 @@
                     const order = portalItem ? portalItem.order : 0;
 
                     return `
-                    return `
-                        < div class="portal-item-row" style = "display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); padding:12px; border-radius:12px; margin-bottom:8px; transition:all 0.2s; box-shadow:0 1px 2px rgba(0,0,0,0.05);" >
+                        <div class="portal-item-row" style="display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); padding:12px; border-radius:12px; margin-bottom:8px; transition:all 0.2s; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
                             <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer; accent-color:var(--primary);">
-                                <div style="flex:1; min-width:0;">
-                                    <div style="font-weight:700; font-size:0.85rem; color:var(--text-main);">${t.name}</div>
-                                    <div style="font-size:0.7rem; color:var(--text-light); text-transform:uppercase; letter-spacing:0.025em; margin-top:2px;">ID: ${t.id}</div>
-                                </div>
-                                <div style="display:flex; align-items:center; gap:6px;">
-                                    <span style="font-size:0.75rem; color:var(--text-light); font-weight:600;">Order:</span>
-                                    <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:48px; height:32px; padding:4px; border:2px solid var(--surface-alt); background:var(--surface-alt); border-radius:8px; text-align:center; font-size:0.9rem; font-weight:700; outline:none; transition:all 0.2s; color:var(--primary);" onfocus="this.style.borderColor='var(--primary)'; this.style.background='white';">
-                                </div>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-weight:700; font-size:0.85rem; color:var(--text-main);">${t.name}</div>
+                                <div style="font-size:0.7rem; color:var(--text-light); text-transform:uppercase; letter-spacing:0.025em; margin-top:2px;">ID: ${t.id}</div>
                             </div>
-                    `;
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:0.75rem; color:var(--text-light); font-weight:600;">Order:</span>
+                                <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:48px; height:32px; padding:4px; border:2px solid var(--surface-alt); background:var(--surface-alt); border-radius:8px; text-align:center; font-size:0.9rem; font-weight:700; outline:none; transition:all 0.2s; color:var(--primary);" onfocus="this.style.borderColor='var(--primary)'; this.style.background='white';">
+                            </div>
+                        </div>
                     `;
                 }).join('');
 
