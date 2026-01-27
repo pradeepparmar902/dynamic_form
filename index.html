@@ -1636,8 +1636,9 @@
             if (!apiUrl) {
                 return { status: 'error', message: 'GAS API URL not configured in settings.' };
             }
-            // Sync back to config
+            // Sync back to config and storage
             formConfig.gasApiUrl = apiUrl;
+            localStorage.setItem('gasApiUrl', apiUrl);
 
             try {
                 // Determine if we can use 'cors' (usually fails with GAS) or MUST use 'no-cors'
@@ -2154,6 +2155,7 @@
             }
 
             if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
+                localStorage.setItem('gasApiUrl', document.getElementById('propApiUrl').value || formConfig.gasApiUrl);
                 alert("Portal Collection Updated Successfully!");
             } else {
                 alert("Error: " + res.message);
@@ -2304,6 +2306,9 @@
                 showGlobalProps(); // Open settings
                 return;
             }
+
+            // FORCE Persistence
+            localStorage.setItem('gasApiUrl', currentApiUrl);
 
             // Construct absolute path to portal.html
             // Assuming index.html and portal.html are in the same directory
