@@ -599,6 +599,16 @@
                 </svg>
                 Preview
             </button>
+            <button class="btn" onclick="openPortalWithApi()"
+                style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; border: none; font-weight: 600; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                Launch Portal
+            </button>
             <button class="btn btn-primary" onclick="saveForm()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1669,9 +1679,9 @@
 
             btn.innerText = originalText;
             if (res.status === 'success') {
-                alert("Success! " + res.message);
+                alert("Success! " + (res.message || "API Connected"));
             } else {
-                alert("Failed: " + res.message + "\n\n1. Ensure Web App is deployed as 'Anyone'.\n2. Ensure URL is correct.");
+                alert("Failed: " + (res.message || "Unknown Error") + "\n\n1. Ensure Web App is deployed as 'Anyone'.\n2. Ensure URL is correct.");
             }
         }
 
@@ -2089,17 +2099,19 @@
                     const order = portalItem ? portalItem.order : 0;
 
                     return `
-                        <div class="portal-item-row">
-                            <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''} style="width:18px; height:18px; cursor:pointer;">
-                            <div style="flex:1; min-width:0;">
-                                <div style="font-weight:600; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.name}</div>
-                                <div style="font-size:0.7rem; color:var(--text-light);">ID: ${t.id}</div>
+                    return `
+                        < div class="portal-item-row" style = "display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); padding:12px; border-radius:12px; margin-bottom:8px; transition:all 0.2s; box-shadow:0 1px 2px rgba(0,0,0,0.05);" >
+                            <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer; accent-color:var(--primary);">
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-weight:700; font-size:0.85rem; color:var(--text-main);">${t.name}</div>
+                                    <div style="font-size:0.7rem; color:var(--text-light); text-transform:uppercase; letter-spacing:0.025em; margin-top:2px;">ID: ${t.id}</div>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <span style="font-size:0.75rem; color:var(--text-light); font-weight:600;">Order:</span>
+                                    <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:48px; height:32px; padding:4px; border:2px solid var(--surface-alt); background:var(--surface-alt); border-radius:8px; text-align:center; font-size:0.9rem; font-weight:700; outline:none; transition:all 0.2s; color:var(--primary);" onfocus="this.style.borderColor='var(--primary)'; this.style.background='white';">
+                                </div>
                             </div>
-                            <div style="display:flex; align-items:center; gap:4px;">
-                                <span style="font-size:0.7rem; color:var(--text-light);">Order:</span>
-                                <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:50px; padding:3px; border:1px solid var(--border); border-radius:3px; text-align:center; font-size:0.8rem;">
-                            </div>
-                        </div>
+                    `;
                     `;
                 }).join('');
 
@@ -2282,6 +2294,23 @@
             }
             const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
             const portalUrl = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html?api=' + encodeURIComponent(currentApiUrl);
+            window.open(portalUrl, '_blank');
+        }
+
+        function openPortalWithApi() {
+            const currentApiUrl = (document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : "") || formConfig.gasApiUrl;
+            if (!currentApiUrl) {
+                alert("⚠️ Please enter and save your GAS API URL in Settings first!");
+                showGlobalProps(); // Open settings
+                return;
+            }
+
+            // Construct absolute path to portal.html
+            // Assuming index.html and portal.html are in the same directory
+            const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
+            const portalUrl = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html?api=' + encodeURIComponent(currentApiUrl);
+
+            // Open in new tab
             window.open(portalUrl, '_blank');
         }
 
