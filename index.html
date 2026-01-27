@@ -1001,60 +1001,50 @@
     <script>
         // API Helper Function
         async function callApi(action, payload) {
-            // Check if running in Google Apps Script environment
+            // Priority 1: google.script.run (if hosted on GAS)
             if (typeof google !== 'undefined' && google.script) {
                 return new Promise((resolve, reject) => {
                     const run = google.script.run;
-                    run.withSuccessHandler(resolve).withFailureHandler(reject);
-
-                    if (action === 'saveForm') {
-                        run.saveForm(payload.formId, payload.schema, payload.config, payload.metadata);
-                    } else if (action === 'getForm') {
-                        run.getForm(payload.formId);
-                    } else if (action === 'listTemplates') {
-                        run.listTemplates();
-                    } else if (action === 'getPortalConfig') {
-                        run.getPortalConfig();
-                    } else if (action === 'savePortalConfig') {
-                        run.savePortalConfig(payload.config);
-                    } else {
-                        reject({ status: 'error', message: 'Unknown action: ' + action });
-                    }
+                    if (action === 'saveForm') run.withSuccessHandler(resolve).withFailureHandler(reject).saveForm(payload.formId, payload.schema, payload.config);
+                    else if (action === 'getForm') run.withSuccessHandler(resolve).withFailureHandler(reject).getForm(payload.formId);
+                    else if (action === 'listTemplates') run.withSuccessHandler(resolve).withFailureHandler(reject).listTemplates();
+                    else if (action === 'getScriptUrl') run.withSuccessHandler(resolve).withFailureHandler(reject).getScriptUrl();
+                    else if (action === 'getPortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).getPortalConfig();
+                    else if (action === 'savePortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).savePortalConfig(payload.config);
+                    else if (action === 'deleteForm') run.withSuccessHandler(resolve).withFailureHandler(reject).deleteForm(payload.formId);
+                    else if (action === 'ping') run.withSuccessHandler(resolve).withFailureHandler(reject).ping();
                 });
             }
 
-            // Standalone mode - use fetch with GAS URL
-            const gasApiUrl = formConfig.gasApiUrl || localStorage.getItem('gasApiUrl') || '';
-            if (!gasApiUrl) {
-                return { status: 'error', message: 'GAS API URL not configured. Please set it in Settings.' };
+            // Priority 2: fetch (if hosted externally, e.g. GitHub Pages)
+            // Always pull latest from DOM just in case sync failed
+            const apiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
+            if (!apiUrl) {
+                return { status: 'error', message: 'GAS API URL not configured in settings.' };
             }
+            // Sync back to config and storage
+            formConfig.gasApiUrl = apiUrl;
+            localStorage.setItem('gasApiUrl', apiUrl);
 
             try {
-                const url = gasApiUrl.trim().replace(/\/$/, "");
-                const sep = url.includes('?') ? '&' : '?';
-
-                if (action === 'getForm') {
-                    const res = await fetch(`${url}${sep}action=getForm&id=${payload.formId}`);
-                    return await res.json();
-                } else if (action === 'listTemplates') {
-                    const res = await fetch(`${url}${sep}action=listTemplates`);
-                    return await res.json();
-                } else if (action === 'getPortalConfig') {
-                    const res = await fetch(`${url}${sep}action=getPortalConfig`);
-                    return await res.json();
-                } else if (action === 'saveForm' || action === 'savePortalConfig') {
-                    // POST actions
-                    const res = await fetch(url, {
+                const postActions = ['saveForm', 'submitForm', 'translateText', 'savePortalConfig', 'deleteForm'];
+                if (postActions.includes(action)) {
+                    const response = await fetch(apiUrl, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ action, ...payload })
                     });
-                    // no-cors mode doesn't return response, so assume success
-                    return { status: 'success', message: 'Data sent successfully (no-cors mode)' };
+                    return { status: 'success', message: 'Payload sent.' };
+                } else {
+                    let url = `${apiUrl}?action=${action}`;
+                    if (payload.formId) url += `&id=${payload.formId}`;
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+                    return await response.json();
                 }
             } catch (err) {
-                console.error("API Call failed:", err);
+                console.error("API Call Error:", err);
                 return { status: 'error', message: 'Connection Error: ' + err.toString() };
             }
         }
@@ -1568,61 +1558,6 @@
 
 
         // --- API HELPER ---
-        async function callApi(action, payload) {
-            // Priority 1: google.script.run (if hosted on GAS)
-            if (typeof google !== 'undefined' && google.script) {
-                return new Promise((resolve, reject) => {
-                    const run = google.script.run;
-                    if (action === 'saveForm') run.withSuccessHandler(resolve).withFailureHandler(reject).saveForm(payload.formId, payload.schema, payload.config);
-                    else if (action === 'getForm') run.withSuccessHandler(resolve).withFailureHandler(reject).getForm(payload.formId);
-                    else if (action === 'listTemplates') run.withSuccessHandler(resolve).withFailureHandler(reject).listTemplates();
-                    else if (action === 'getScriptUrl') run.withSuccessHandler(resolve).withFailureHandler(reject).getScriptUrl();
-                    else if (action === 'getPortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).getPortalConfig();
-                    else if (action === 'savePortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).savePortalConfig(payload.config);
-                    else if (action === 'deleteForm') run.withSuccessHandler(resolve).withFailureHandler(reject).deleteForm(payload.formId);
-                    else if (action === 'ping') run.withSuccessHandler(resolve).withFailureHandler(reject).ping();
-                });
-            }
-
-            // Priority 2: fetch (if hosted externally, e.g. GitHub Pages)
-            // Always pull latest from DOM just in case sync failed
-            const apiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
-            if (!apiUrl) {
-                return { status: 'error', message: 'GAS API URL not configured in settings.' };
-            }
-            // Sync back to config and storage
-            formConfig.gasApiUrl = apiUrl;
-            localStorage.setItem('gasApiUrl', apiUrl);
-
-            try {
-                // Determine if we can use 'cors' (usually fails with GAS) or MUST use 'no-cors'
-                // GAS ContentService supports CORS for GET, but POST is trickier.
-
-                const postActions = ['saveForm', 'submitForm', 'translateText', 'savePortalConfig', 'deleteForm'];
-                if (postActions.includes(action)) {
-                    // Try standard POST first (likely to have opaque response)
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({ action, ...payload })
-                    });
-                    // With 'no-cors', the response is opaque. We return a hint.
-                    return { status: 'success', message: 'Payload sent. Check Drive for file.' };
-                } else {
-                    // GET actions (listTemplates, getForm, ping, getPortalConfig)
-                    let url = `${apiUrl}?action=${action}`;
-                    if (payload.formId) url += `&id=${payload.formId}`;
-
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-                    return await response.json();
-                }
-            } catch (err) {
-                console.error("API Call Error:", err);
-                return { status: 'error', message: 'Connection Error: ' + err.toString() };
-            }
-        }
 
         async function testApiConnection() {
             const btn = event.target;
