@@ -145,28 +145,28 @@
         /* CONTENT AREA */
         main {
             flex: 1;
-            padding: 48px;
+            padding: 0;
+            /* Remove padding for edge-to-edge feel */
             overflow-y: auto;
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            background-image:
-                radial-gradient(#e2e8f0 1px, transparent 1px);
-            background-size: 24px 24px;
+            background: #ffffff;
+            /* Clean white background */
         }
 
-        /* FORM CONTAINER */
+        /* FORM CONTAINER - Now Full Screen */
         #form-wrapper {
             background: white;
             width: 100%;
-            max-width: 850px;
-            min-height: 600px;
+            max-width: 1000px;
+            /* Still limit width for readability, but looks more integrated */
+            min-height: 100vh;
             padding: 48px;
-            border-radius: 16px;
-            box-shadow: var(--shadow-lg);
             position: relative;
             transform-origin: top center;
-            border: 1px solid var(--border);
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
             transition: transform 0.3s ease, opacity 0.3s ease;
         }
 

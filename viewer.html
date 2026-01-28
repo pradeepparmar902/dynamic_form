@@ -8,20 +8,27 @@
     <style>
         body {
             margin: 0;
-            background: #f3f4f6;
+            background: #ffffff;
+            /* Unified white background */
             font-family: sans-serif;
             display: flex;
             justify-content: center;
-            padding: 20px;
+            padding: 0;
+            overflow-x: hidden;
         }
 
         #form-container {
-            width: 794px;
-            min-height: 1123px;
+            width: 100%;
+            max-width: 900px;
+            /* Professional readable width */
+            min-height: 100vh;
             background: white;
             position: relative;
             transform-origin: top center;
-            margin-bottom: 2rem;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+            padding: 40px;
+            box-sizing: border-box;
         }
 
         /* Hide shadow and extra padding if in iframe */
