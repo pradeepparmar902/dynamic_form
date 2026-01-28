@@ -1941,12 +1941,16 @@
             listEl.innerHTML = '';
             loadingEl.classList.remove('hidden');
             try {
-                const templates = await callApi('listTemplates', {});
+                const res = await callApi('listTemplates', {});
                 loadingEl.classList.add('hidden');
-                if (Array.isArray(templates)) {
-                    renderTemplates(templates);
-                } else if (templates.status === 'error') {
-                    listEl.innerHTML = `<li>Error: ${templates.message}</li>`;
+
+                // Standardize: Handle both flat array and {status, templates} formats
+                let data = Array.isArray(res) ? res : (res.templates || []);
+
+                if (data.length > 0) {
+                    renderTemplates(data);
+                } else if (res.status === 'error') {
+                    listEl.innerHTML = `<li>Error: ${res.message}</li>`;
                 } else {
                     renderTemplates([]);
                 }
@@ -2083,13 +2087,14 @@
 
             try {
                 // Fetch both all templates AND current portal config
-                const [templates, config] = await Promise.all([
+                const [res, configRes] = await Promise.all([
                     callApi('listTemplates', {}),
                     callApi('getPortalConfig', {})
                 ]);
 
-                allTemplates = templates;
-                portalConfig = config || { forms: [] };
+                // Standardize template response
+                allTemplates = Array.isArray(res) ? res : (res.templates || []);
+                portalConfig = (configRes && configRes.config) ? configRes.config : { forms: [] };
 
                 document.getElementById('portalLoading').classList.add('hidden');
                 renderPortalItems();
