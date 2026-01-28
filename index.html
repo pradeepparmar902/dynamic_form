@@ -2165,8 +2165,9 @@
                     callApi('getPortalConfig', {})
                 ]);
 
-                allTemplates = Array.isArray(templates) ? templates : [];
-                portalConfig = config || { forms: [] };
+                // Standardize: Handle both flat array and {status, templates} formats
+                allTemplates = Array.isArray(templates) ? templates : (templates.templates || []);
+                portalConfig = (config && config.config) ? config.config : (config || { forms: [] });
 
                 if (allTemplates.length === 0) {
                     listEl.innerHTML = '<div style="color:var(--text-light); font-size:0.8rem; text-align:center; padding:2rem;">No saved forms found. Create and save forms first.</div>';
