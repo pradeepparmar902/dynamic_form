@@ -385,7 +385,8 @@
 
         let currentState = {
             config: null,
-            currentFormId: null
+            currentFormId: null,
+            formCache: {} // Cache for instant switching
         };
 
         // INIT
@@ -463,18 +464,29 @@
         // FETCH SINGLE
         async function fetchForm(id) {
             const wrapper = document.getElementById('form-wrapper');
-            wrapper.classList.add('loading');
 
-            // Set active sidebar item immediately for responsiveness
+            // Set active sidebar item immediately
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             const activeEl = document.getElementById(`nav-${id}`);
             if (activeEl) activeEl.classList.add('active');
 
+            // --- CACHE CHECK ---
+            if (currentState.formCache[id]) {
+                console.log(`⚡ Instant load from cache: ${id}`);
+                renderForm(id, currentState.formCache[id]);
+                return;
+            }
+
+            wrapper.classList.add('loading');
+
             try {
                 const res = await fetch(`${API_URL}?action=getForm&id=${id}`).then(r => r.json());
                 if (res.status === 'success') {
-                    // Small delay to ensure the "loading" animation is visible if it's too fast
-                    setTimeout(() => renderForm(id, res), 200);
+                    // Save to Cache
+                    currentState.formCache[id] = res;
+
+                    // Small delay for smooth transition if needed, but the cache will make next time instant
+                    setTimeout(() => renderForm(id, res), 100);
                 } else {
                     throw new Error(res.message || "Form not found");
                 }

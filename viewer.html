@@ -9,26 +9,50 @@
         body {
             margin: 0;
             background: #ffffff;
-            /* Unified white background */
-            font-family: sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
             padding: 0;
             overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        header {
+            width: 100%;
+            background: #2563eb;
+            /* Contextual Blue */
+            color: white;
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         #form-container {
             width: 100%;
             max-width: 900px;
-            /* Professional readable width */
-            min-height: 100vh;
+            min-height: calc(100vh - 60px);
             background: white;
             position: relative;
             transform-origin: top center;
-            border-left: 1px solid #e5e7eb;
-            border-right: 1px solid #e5e7eb;
             padding: 40px;
             box-sizing: border-box;
+            border-left: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
         }
 
         /* Hide shadow and extra padding if in iframe */
@@ -245,6 +269,22 @@
 </head>
 
 <body>
+    <header id="mainHeader">
+        <div class="brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span id="headerFormName">Form Viewer</span>
+        </div>
+        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); font-weight: 600; text-transform: uppercase;">
+            SECURE FORM
+        </div>
+    </header>
 
     <div id="loader">
         <div class="spinner"></div>
@@ -409,6 +449,12 @@
                 if (response.status !== 'success') {
                     throw new Error(response.message || "Failed to load portal data");
                 }
+
+                // Set Config & Title
+                formConfig = response.config || {};
+                const name = formConfig.formName || response.metadata?.formName || "Dynamic Form";
+                document.getElementById('headerFormName').innerText = name;
+                document.title = name + " | Portal";
 
                 const config = response.config;
                 console.log('✅ Portal config received:', config);

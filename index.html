@@ -1099,6 +1099,7 @@
 
         // --- SIDEBAR TABS ---
         function switchSidebarTab(tab) {
+            currentSidebarTab = tab; // Update tracker
             document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
 
@@ -2052,6 +2053,7 @@
         async function showEmbedModal() {
             const modal = document.getElementById('embedModal');
             const area = document.getElementById('embedCodeArea');
+            const title = modal ? modal.querySelector('h3') : null;
             if (!modal || !area) return;
 
             const apiInput = document.getElementById('propApiUrl');
@@ -2068,14 +2070,16 @@
             const viewerPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'viewer.html';
             const portalPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html';
 
-            const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiSUrl)}`;
-            const portalUrl = `${portalPath}?api=${encodeURIComponent(currentApiSUrl)}`;
-
-            const code = `<!-- Option 1: Single Form Only -->
-<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none; max-width:100%;"></iframe>
-
-<!-- Option 2: Full Collection Portal -->
-<iframe src="${portalUrl}" width="100%" height="800px" frameborder="0" style="border:none; max-width:100%;"></iframe>`;
+            let code = "";
+            if (currentSidebarTab === 'portal') {
+                const portalUrl = `${portalPath}?api=${encodeURIComponent(currentApiSUrl)}`;
+                code = `<!-- MULTI-FORM PORTAL EMBED -->\n<iframe src="${portalUrl}" width="100%" height="800px" frameborder="0" style="border:none; max-width:100%;"></iframe>`;
+                if (title) title.innerText = "Embed Code: Portal Collection";
+            } else {
+                const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiSUrl)}`;
+                code = `<!-- SINGLE FORM EMBED -->\n<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none; max-width:100%;"></iframe>`;
+                if (title) title.innerText = "Embed Code: Single Form";
+            }
 
             area.value = code;
             modal.style.display = 'flex';
