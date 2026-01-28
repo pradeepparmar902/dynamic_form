@@ -335,9 +335,16 @@
 
         // GAS API URL detection (can be passed via URL or stored)
         let gasApiUrl = urlParams.get('api') || localStorage.getItem('gasApiUrl') || '';
+        const backend = urlParams.get('backend') || 'gas'; // gas or firebase
 
         // 2. API Helper
         async function callApi(action, payload) {
+            if (backend === 'firebase') {
+                console.log("🔥 Firebase Engine: Routing to Firestore...");
+                // Scaffolding for Firebase (to be fully implemented when user provides config)
+                // return { status: 'error', message: 'Firebase not configured' };
+            }
+
             if (typeof google !== 'undefined' && google.script) {
                 return new Promise((resolve, reject) => {
                     const run = google.script.run;

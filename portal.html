@@ -383,6 +383,7 @@
         }
 
         let API_URL = getStableApiUrl();
+        const backend = urlParams.get('backend') || 'gas'; // gas or firebase
 
         let currentState = {
             config: null,
@@ -479,6 +480,12 @@
             }
 
             wrapper.classList.add('loading');
+
+            if (backend === 'firebase') {
+                console.log("🔥 Firebase Engine: Routing to Firestore...");
+                // Scaffolding for Firebase (to be fully implemented when user provides config)
+                // return; 
+            }
 
             try {
                 const res = await fetch(`${API_URL}?action=getForm&id=${id}`).then(r => r.json());
