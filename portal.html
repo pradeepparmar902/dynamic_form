@@ -368,16 +368,16 @@
         const urlParams = new URLSearchParams(window.location.search);
 
         function getStableApiUrl() {
-            if (typeof HARDCODED_API_URL !== 'undefined' && HARDCODED_API_URL && HARDCODED_API_URL.length > 20) return HARDCODED_API_URL.trim();
+            if (typeof HARDCODED_API_URL !== 'undefined' && HARDCODED_API_URL && HARDCODED_API_URL.length > 5) return HARDCODED_API_URL.trim();
 
             const fromUrl = urlParams.get('api') || urlParams.get('url');
-            if (fromUrl && fromUrl.length > 20 && fromUrl !== "null" && fromUrl !== "undefined") {
+            if (fromUrl && fromUrl.length > 5 && fromUrl !== "null" && fromUrl !== "undefined") {
                 localStorage.setItem('gasApiUrl', fromUrl.trim());
                 return fromUrl.trim();
             }
 
             const fromStorage = localStorage.getItem('gasApiUrl') || localStorage.getItem('diagnostic_gas_url');
-            if (fromStorage && fromStorage.length > 20 && fromStorage !== "null" && fromStorage !== "undefined") {
+            if (fromStorage && fromStorage.length > 5 && fromStorage !== "null" && fromStorage !== "undefined") {
                 return fromStorage.trim();
             }
 
@@ -491,13 +491,30 @@
         }
 
         function showConfigModal() {
-            const manual = prompt("Enter Google Script API URL:", API_URL || "");
-            if (manual) {
-                API_URL = manual.trim();
-                localStorage.setItem('gasApiUrl', API_URL);
+            const current = API_URL || "";
+            document.getElementById('loader').innerHTML = `
+                <div style="text-align:center; padding:40px; background:white; border-radius:16px; box-shadow:var(--shadow-lg); max-width:440px; margin: 20px; border: 1px solid var(--border);">
+                    <div style="font-size:3rem; margin-bottom:20px;">🔗</div>
+                    <h2 style="margin:0 0 10px 0;">Configure API</h2>
+                    <p style="color:var(--text-light); margin-bottom:24px; font-size:0.95rem;">Paste your Google Script Web App URL below.</p>
+                    
+                    <input type="text" id="manualApiUrl" value="${current}" 
+                           placeholder="https://script.google.com/macros/s/.../exec"
+                           style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; margin-bottom:20px; font-size:0.9rem;">
+
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="saveManualUrl()" class="btn-submit" style="flex:1; justify-content:center;">Save & Connect</button>
+                        <button onclick="location.reload()" style="padding:10px 20px; border:1px solid var(--border); background:none; border-radius:8px; cursor:pointer;">Cancel</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveManualUrl() {
+            const val = document.getElementById('manualApiUrl').value.trim();
+            if (val) {
+                localStorage.setItem('gasApiUrl', val);
                 location.reload();
-            } else {
-                document.getElementById('loader').innerHTML = '<div style="padding:20px;">Setup Cancelled. Refresh to retry.</div>';
             }
         }
 
