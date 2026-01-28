@@ -2055,22 +2055,31 @@
             const area = document.getElementById('embedCodeArea');
             if (!modal || !area) return;
 
-            const currentApiUrl = (document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : "") || formConfig.gasApiUrl;
+            const apiInput = document.getElementById('propApiUrl');
+            const currentApiSUrl = (apiInput ? apiInput.value.trim() : "") || formConfig.gasApiUrl;
+
+            if (!currentApiSUrl || currentApiSUrl.length < 20) {
+                alert("⚠️ Please enter your Google Script API URL in Settings first.");
+                showGlobalProps();
+                if (apiInput) apiInput.style.borderColor = '#ef4444';
+                return;
+            }
+
             const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
             const viewerPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'viewer.html';
+            const portalPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html';
 
-            if (currentApiUrl) {
-                const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiUrl)}`;
-                // UPDATED: Point to portal.html
-                const portalUrl = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html?api=' + encodeURIComponent(currentApiUrl);
+            const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiSUrl)}`;
+            const portalUrl = `${portalPath}?api=${encodeURIComponent(currentApiSUrl)}`;
 
-                const code = `<!-- SINGLE FORM -->\n<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>\n\n<!-- MULTI-FORM PORTAL -->\n<iframe src="${portalUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
+            const code = `<!-- Option 1: Single Form Only -->
+<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none; max-width:100%;"></iframe>
 
-                area.value = code;
-                modal.style.display = 'flex';
-            } else {
-                alert("Please configure 'GAS API URL' in Settings first.");
-            }
+<!-- Option 2: Full Collection Portal -->
+<iframe src="${portalUrl}" width="100%" height="800px" frameborder="0" style="border:none; max-width:100%;"></iframe>`;
+
+            area.value = code;
+            modal.style.display = 'flex';
         }
 
         function closeEmbedModal() {
