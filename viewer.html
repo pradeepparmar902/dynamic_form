@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Form Viewer</title>
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
         body {
             margin: 0;
@@ -337,12 +341,50 @@
         let gasApiUrl = urlParams.get('api') || localStorage.getItem('gasApiUrl') || '';
         const backend = urlParams.get('backend') || 'gas'; // gas or firebase
 
+        // FIREBASE INITIALIZATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+            authDomain: "buildform-e7d3b.firebaseapp.com",
+            projectId: "buildform-e7d3b",
+            storageBucket: "buildform-e7d3b.firebasestorage.app",
+            messagingSenderId: "1010258612784",
+            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+            measurementId: "G-L217Q3WM0G"
+        };
+
+        if (backend === 'firebase') {
+            try {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                console.log("🔥 Firebase Initialized");
+            } catch (err) {
+                console.error("❌ Firebase Init Error:", err);
+            }
+        }
+
         // 2. API Helper
         async function callApi(action, payload) {
             if (backend === 'firebase') {
-                console.log("🔥 Firebase Engine: Routing to Firestore...");
-                // Scaffolding for Firebase (to be fully implemented when user provides config)
-                // return { status: 'error', message: 'Firebase not configured' };
+                try {
+                    const db = firebase.firestore();
+                    if (action === 'getForm') {
+                        const doc = await db.collection('forms').doc(payload.formId).get();
+                        if (!doc.exists) throw new Error('Form not found in Firestore');
+                        return { status: 'success', ...doc.data() };
+                    } else if (action === 'getPortalConfig') {
+                        const doc = await db.collection('config').doc('portal').get();
+                        if (!doc.exists) throw new Error('Portal config not found');
+                        return { status: 'success', config: doc.data() };
+                    }
+                    // For submitForm, we still use GAS as primary for Sheets integration, 
+                    // or we could add Firestore storage later.
+                } catch (err) {
+                    console.error("🔥 Firestore Fetch Error:", err);
+                    // Fallback to GAS if Firestore fails? 
+                    // No, let's keep it clean.
+                    return { status: 'error', message: 'Firestore Error: ' + err.message };
+                }
             }
 
             if (typeof google !== 'undefined' && google.script) {

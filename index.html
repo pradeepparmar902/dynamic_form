@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Form Builder</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -1020,6 +1024,35 @@
 
     <!-- MAIN BUILDER LOGIC -->
     <script>
+        // FIREBASE INITIALIZATION
+        const defaultFirebaseConfig = {
+            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+            authDomain: "buildform-e7d3b.firebaseapp.com",
+            projectId: "buildform-e7d3b",
+            storageBucket: "buildform-e7d3b.firebasestorage.app",
+            messagingSenderId: "1010258612784",
+            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+            measurementId: "G-L217Q3WM0G"
+        };
+
+        // Initialize Firebase
+        let firebaseApp;
+        let db;
+
+        function initFirebase(config) {
+            try {
+                if (!firebase.apps.length) {
+                    firebaseApp = firebase.initializeApp(config || defaultFirebaseConfig);
+                } else {
+                    firebaseApp = firebase.app();
+                }
+                db = firebase.firestore();
+                console.log("🔥 Firebase Initialized Successfully");
+            } catch (err) {
+                console.error("❌ Firebase Init Error:", err);
+            }
+        }
+        initFirebase();
         // API Helper Function
         async function callApi(action, payload) {
             // Priority 1: google.script.run (if hosted on GAS)
@@ -1041,9 +1074,55 @@
             const engine = document.getElementById('propStorageEngine').value || formConfig.storageEngine || 'gas';
 
             if (engine === 'firebase') {
-                console.log("🔥 Firebase Engine Selected - Waiting for config...");
-                // Placeholder for Firebase Logic (we will implement this when user provides credentials)
-                return { status: 'error', message: 'Firebase not yet configured. Switching to GAS for now.' };
+                if (!db) {
+                    initFirebase();
+                    if (!db) return { status: 'error', message: 'Firebase not initialized' };
+                }
+
+                try {
+                    if (action === 'saveForm') {
+                        await db.collection('forms').doc(payload.formId).set({
+                            id: payload.formId,
+                            schema: payload.schema,
+                            config: payload.config,
+                            metadata: payload.metadata,
+                            lastUpdated: Date.now()
+                        });
+                        return { status: 'success' };
+                    } else if (action === 'getForm') {
+                        const doc = await db.collection('forms').doc(payload.formId).get();
+                        if (!doc.exists) return { status: 'error', message: 'Form not found in Firestore' };
+                        return { status: 'success', ...doc.data() };
+                    } else if (action === 'listTemplates') {
+                        const snapshot = await db.collection('forms').orderBy('lastUpdated', 'desc').get();
+                        const forms = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            forms.push({
+                                id: doc.id,
+                                name: (data.config && data.config.formName) ? data.config.formName : doc.id,
+                                description: (data.metadata && data.metadata.description) ? data.metadata.description : '',
+                                lastUpdated: data.lastUpdated || Date.now()
+                            });
+                        });
+                        return { status: 'success', templates: forms };
+                    } else if (action === 'savePortalConfig') {
+                        await db.collection('config').doc('portal').set(payload.config);
+                        return { status: 'success' };
+                    } else if (action === 'getPortalConfig') {
+                        const doc = await db.collection('config').doc('portal').get();
+                        if (!doc.exists) return { status: 'error', message: 'Portal config not found' };
+                        return { status: 'success', config: doc.data() };
+                    } else if (action === 'deleteForm') {
+                        await db.collection('forms').doc(payload.formId).delete();
+                        return { status: 'success' };
+                    } else if (action === 'ping') {
+                        return { status: 'success', message: 'Firestore connected' };
+                    }
+                } catch (err) {
+                    console.error("🔥 Firestore Error:", err);
+                    return { status: 'error', message: 'Firestore Error: ' + err.message };
+                }
             }
 
             // Priority 2: GAS fetch (if hosted externally, e.g. GitHub Pages)

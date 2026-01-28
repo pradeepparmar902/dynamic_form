@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Form Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -385,6 +389,28 @@
         let API_URL = getStableApiUrl();
         const backend = urlParams.get('backend') || 'gas'; // gas or firebase
 
+        // FIREBASE INITIALIZATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+            authDomain: "buildform-e7d3b.firebaseapp.com",
+            projectId: "buildform-e7d3b",
+            storageBucket: "buildform-e7d3b.firebasestorage.app",
+            messagingSenderId: "1010258612784",
+            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+            measurementId: "G-L217Q3WM0G"
+        };
+
+        if (backend === 'firebase') {
+            try {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                console.log("🔥 Portal: Firebase Initialized");
+            } catch (err) {
+                console.error("❌ Firebase Init Error:", err);
+            }
+        }
+
         let currentState = {
             config: null,
             currentFormId: null,
@@ -404,19 +430,27 @@
             }
 
             try {
-                // Timeout after 10s
-                const timeout = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Connection timed out (10s). Check internet / API URL.")), 10000)
-                );
+                let res;
+                if (backend === 'firebase') {
+                    console.log("🔥 Portal: Fetching config from Firestore...");
+                    const db = firebase.firestore();
+                    const doc = await db.collection('config').doc('portal').get();
+                    if (!doc.exists) throw new Error("Portal config not found in Firestore");
+                    res = { status: 'success', config: doc.data() };
+                } else {
+                    // Timeout after 10s for GAS
+                    const timeout = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Connection timed out (10s). Check internet / API URL.")), 10000)
+                    );
 
-                // Fetch
-                const fetchPromise = fetch(`${API_URL}?action=loadPortal`)
-                    .then(r => {
-                        if (!r.ok) throw new Error(`HTTP Error: ${r.status}`);
-                        return r.json();
-                    });
+                    const fetchPromise = fetch(`${API_URL}?action=loadPortal`)
+                        .then(r => {
+                            if (!r.ok) throw new Error(`HTTP Error: ${r.status}`);
+                            return r.json();
+                        });
 
-                const res = await Promise.race([fetchPromise, timeout]);
+                    res = await Promise.race([fetchPromise, timeout]);
+                }
 
                 if (res.status !== 'success') throw new Error(res.message || "Failed to load portal configuration");
 
@@ -482,9 +516,20 @@
             wrapper.classList.add('loading');
 
             if (backend === 'firebase') {
-                console.log("🔥 Firebase Engine: Routing to Firestore...");
-                // Scaffolding for Firebase (to be fully implemented when user provides config)
-                // return; 
+                try {
+                    console.log(`🔥 Portal: Fetching form ${id} from Firestore...`);
+                    const db = firebase.firestore();
+                    const doc = await db.collection('forms').doc(id).get();
+                    if (!doc.exists) throw new Error("Form not found in Firestore");
+
+                    const res = { status: 'success', ...doc.data() };
+                    currentState.formCache[id] = res;
+                    setTimeout(() => renderForm(id, res), 100);
+                    return;
+                } catch (err) {
+                    console.error("🔥 Firestore Fetch Error:", err);
+                    throw err;
+                }
             }
 
             try {
