@@ -1121,19 +1121,32 @@
                         if (!doc.exists) return { status: 'error', message: 'Form not found in Firestore' };
                         return { status: 'success', ...doc.data() };
                     } else if (action === 'listTemplates') {
-                        console.log("🔍 Firestore: Listing forms...");
-                        const snapshot = await db.collection('forms').orderBy('lastUpdated', 'desc').get();
-                        console.log(`📄 Firestore: Found ${snapshot.size} forms`);
+                        console.log("🔍 Firestore: Querying 'forms' collection...");
+                        let snapshot;
+                        try {
+                            // Try without orderBy first to avoid index requirements
+                            snapshot = await db.collection('forms').get();
+                            console.log(`📄 Firestore: Found ${snapshot.size} documents in 'forms'`);
+                        } catch (qErr) {
+                            console.error("❌ Firestore Query Fail:", qErr);
+                            return { status: 'error', message: 'Query Failed: ' + qErr.message };
+                        }
+
                         const forms = [];
                         snapshot.forEach(doc => {
                             const data = doc.data();
+                            console.log("📍 Processing Doc:", doc.id, data);
                             forms.push({
                                 id: doc.id,
-                                name: (data.config && data.config.formName) ? data.config.formName : doc.id,
-                                description: (data.metadata && data.metadata.description) ? data.metadata.description : '',
+                                name: data.formName || (data.config && data.config.formName) || doc.id,
+                                description: data.description || (data.metadata && data.metadata.description) || '',
                                 lastUpdated: data.lastUpdated || Date.now()
                             });
                         });
+
+                        // Sort manually in JS to avoid Firestore index requirement
+                        forms.sort((a, b) => b.lastUpdated - a.lastUpdated);
+
                         return { status: 'success', templates: forms };
                     } else if (action === 'savePortalConfig') {
                         await db.collection('config').doc('portal').set(payload.config);
@@ -1947,9 +1960,12 @@
                 // Standardize: Handle both flat array and {status, templates} formats
                 let data = Array.isArray(res) ? res : (res.templates || []);
 
+                console.log("📊 UI Data Package:", data);
+
                 if (data.length > 0) {
                     renderTemplates(data);
                 } else if (res.status === 'error') {
+                    alert("❌ Firebase Error: " + res.message);
                     listEl.innerHTML = `<li>Error: ${res.message}</li>`;
                 } else {
                     renderTemplates([]);
