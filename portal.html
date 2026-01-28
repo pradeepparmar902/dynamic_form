@@ -393,34 +393,11 @@
 
         // INIT
         async function init() {
-            const loaderMsg = document.querySelector('#loader p');
-            if (loaderMsg) loaderMsg.innerText = "Initializing Dynamic Portal...";
-
             if (!API_URL) {
+                console.error("❌ Portal Error: No GAS API URL provided via ?api= OR localStorage.");
                 document.getElementById('loader').innerHTML = `
-                    <div style="text-align:center; padding:40px; background:white; border-radius:16px; box-shadow:var(--shadow-lg); max-width:440px; margin: 20px; border: 1px solid var(--border);">
-                        <div style="font-size:3rem; margin-bottom:20px;">⚙️</div>
-                        <h2 style="margin:0 0 10px 0;">Setup Required</h2>
-                        <p style="color:var(--text-light); margin-bottom:24px; font-size:0.95rem;">This portal needs your Google Script API URL to connect to your forms.</p>
-                        
-                        <div style="background: #f1f5f9; padding: 16px; border-radius: 12px; margin-bottom: 24px; text-align: left; font-size: 0.85rem;">
-                            <strong style="display:block; margin-bottom:8px; color: var(--primary);">How to fix this:</strong>
-                            <ol style="margin: 0; padding-left: 20px; color: #475569; line-height: 1.5;">
-                                <li>Open your <strong>Form Builder</strong></li>
-                                <li>Click the blue <strong>"Launch Portal"</strong> button</li>
-                                <li>The portal will open and save the URL automatically</li>
-                            </ol>
-                        </div>
-
-                        <button onclick="showConfigModal()" class="btn-submit" style="width:100%; justify-content:center; border-radius:8px; padding:12px; height: 48px; font-weight: 600;">
-                            Enter API URL Manually
-                        </button>
-
-                        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border);">
-                            <p style="font-size:0.75rem; color:var(--text-light); line-height:1.4;">
-                                <strong>Technical Note:</strong> If you've already done this, please try clicking <strong>"Clear Cache & Reset"</strong> on the error screen if it appears.
-                            </p>
-                        </div>
+                    <div style="text-align:center; padding:20px; color:#64748b;">
+                        <p>Unable to connect to service. Please check your implementation.</p>
                     </div>
                 `;
                 return;
@@ -467,56 +444,13 @@
             } catch (err) {
                 console.error("❌ Init Error:", err);
                 document.getElementById('loader').innerHTML = `
-                    <div style="text-align:center; padding:20px; max-width:400px;">
-                        <div style="color:#ef4444; font-size:2rem; margin-bottom:10px;">⚠️</div>
-                        <h3 style="margin:0 0 10px 0;">Connection Failed</h3>
-                        <p style="color:#666; margin-bottom:20px;">${err.message}</p>
-                        <div style="font-size:0.8rem; color:#999; margin-bottom:10px; text-align:left; background:#f9fafb; padding:10px; border-radius:4px; overflow:auto;">
-                           <strong>Debug Info:</strong><br>
-                           API: ${API_URL}<br>
-                           Error: ${err.toString()}
-                        </div>
-                         <button onclick="showConfigModal()" class="btn-submit" style="background:#374151;">Update API URL Manually</button>
-                         <button onclick="resetCacheAndReload()" class="btn-submit" style="margin-top:10px; background:#ef4444;">Clear Cache & Reset Portal</button>
-                         <button onclick="location.reload()" class="btn-submit" style="margin-top:10px;">Retry Connection</button>
-                     </div>
-                 `;
-            }
-        }
-
-        function resetCacheAndReload() {
-            localStorage.clear();
-            sessionStorage.clear();
-            location.href = location.pathname; // Reload without query params to force clean state
-        }
-
-        function showConfigModal() {
-            const current = API_URL || "";
-            document.getElementById('loader').innerHTML = `
-                <div style="text-align:center; padding:40px; background:white; border-radius:16px; box-shadow:var(--shadow-lg); max-width:440px; margin: 20px; border: 1px solid var(--border);">
-                    <div style="font-size:3rem; margin-bottom:20px;">🔗</div>
-                    <h2 style="margin:0 0 10px 0;">Configure API</h2>
-                    <p style="color:var(--text-light); margin-bottom:24px; font-size:0.95rem;">Paste your Google Script Web App URL below.</p>
-                    
-                    <input type="text" id="manualApiUrl" value="${current}" 
-                           placeholder="https://script.google.com/macros/s/.../exec"
-                           style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; margin-bottom:20px; font-size:0.9rem;">
-
-                    <div style="display:flex; gap:10px;">
-                        <button onclick="saveManualUrl()" class="btn-submit" style="flex:1; justify-content:center;">Save & Connect</button>
-                        <button onclick="location.reload()" style="padding:10px 20px; border:1px solid var(--border); background:none; border-radius:8px; cursor:pointer;">Cancel</button>
+                    <div style="text-align:center; padding:20px; color:#64748b;">
+                        <p>Connection issue. Please retry later.</p>
                     </div>
-                </div>
-            `;
-        }
-
-        function saveManualUrl() {
-            const val = document.getElementById('manualApiUrl').value.trim();
-            if (val) {
-                localStorage.setItem('gasApiUrl', val);
-                location.reload();
+                `;
             }
         }
+
 
         // SIDEBAR
         function renderSidebar(forms) {
