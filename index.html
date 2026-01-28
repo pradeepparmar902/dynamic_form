@@ -369,6 +369,9 @@
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            /* Ensure vertical scrolling */
+            max-height: 100vh;
+            /* Prevent overflow of the whole app */
         }
 
         .props-header {
@@ -379,6 +382,8 @@
 
         .props-content {
             padding: 1rem;
+            flex: 1;
+            /* Allow content to fill available space */
         }
 
         .form-group {
