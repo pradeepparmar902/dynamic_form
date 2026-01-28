@@ -2187,23 +2187,39 @@
         }
 
         function openPortalWithApi() {
-            const currentApiUrl = (document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : "") || formConfig.gasApiUrl;
-            if (!currentApiUrl) {
-                alert("⚠️ Please enter and save your GAS API URL in Settings first!");
+            const apiInput = document.getElementById('propApiUrl');
+            const currentApiUrl = (apiInput ? apiInput.value.trim() : "") || formConfig.gasApiUrl;
+
+            if (!currentApiUrl || currentApiUrl.length < 20) {
+                alert("⚠️ Please enter your Google Script API URL in Settings first!");
                 showGlobalProps(); // Open settings
+                if (apiInput) apiInput.style.borderColor = '#ef4444';
                 return;
             }
 
             // FORCE Persistence
             localStorage.setItem('gasApiUrl', currentApiUrl);
+            formConfig.gasApiUrl = currentApiUrl;
 
-            // Construct absolute path to portal.html
-            // Assuming index.html and portal.html are in the same directory
             const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
             const portalUrl = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html?api=' + encodeURIComponent(currentApiUrl);
 
-            // Open in new tab
+            console.log("🚀 Launching Portal:", portalUrl);
             window.open(portalUrl, '_blank');
+        }
+
+        function copyPortalLink() {
+            const currentApiUrl = document.getElementById('propApiUrl').value.trim() || formConfig.gasApiUrl;
+            if (!currentApiUrl || currentApiUrl.length < 20) {
+                alert("⚠️ Please enter your Google Script API URL in Settings first.");
+                return;
+            }
+            const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
+            const portalUrl = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html?api=' + encodeURIComponent(currentApiUrl);
+
+            navigator.clipboard.writeText(portalUrl).then(() => {
+                alert("✅ Portal Link copied to clipboard! You can share this link directly.");
+            });
         }
 
         initRulers();

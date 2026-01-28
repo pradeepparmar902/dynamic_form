@@ -366,16 +366,25 @@
         // -------------------------------------------------------------------------
 
         const urlParams = new URLSearchParams(window.location.search);
-        let API_URL = HARDCODED_API_URL ||
-            urlParams.get('api') ||
-            localStorage.getItem('gasApiUrl') ||
-            localStorage.getItem('diagnostic_gas_url') ||
-            localStorage.getItem('diagnostic_url');
 
-        // Auto-save if found in URL
-        if (urlParams.get('api')) {
-            localStorage.setItem('gasApiUrl', urlParams.get('api'));
+        function getStableApiUrl() {
+            if (typeof HARDCODED_API_URL !== 'undefined' && HARDCODED_API_URL && HARDCODED_API_URL.length > 20) return HARDCODED_API_URL.trim();
+
+            const fromUrl = urlParams.get('api') || urlParams.get('url');
+            if (fromUrl && fromUrl.length > 20 && fromUrl !== "null" && fromUrl !== "undefined") {
+                localStorage.setItem('gasApiUrl', fromUrl.trim());
+                return fromUrl.trim();
+            }
+
+            const fromStorage = localStorage.getItem('gasApiUrl') || localStorage.getItem('diagnostic_gas_url');
+            if (fromStorage && fromStorage.length > 20 && fromStorage !== "null" && fromStorage !== "undefined") {
+                return fromStorage.trim();
+            }
+
+            return null;
         }
+
+        let API_URL = getStableApiUrl();
 
         let currentState = {
             config: null,
@@ -389,16 +398,29 @@
 
             if (!API_URL) {
                 document.getElementById('loader').innerHTML = `
-                    <div style="text-align:center; padding:40px; background:white; border-radius:16px; box-shadow:var(--shadow-lg); max-width:400px; margin: 20px;">
+                    <div style="text-align:center; padding:40px; background:white; border-radius:16px; box-shadow:var(--shadow-lg); max-width:440px; margin: 20px; border: 1px solid var(--border);">
                         <div style="font-size:3rem; margin-bottom:20px;">⚙️</div>
                         <h2 style="margin:0 0 10px 0;">Setup Required</h2>
-                        <p style="color:var(--text-light); margin-bottom:24px; font-size:0.95rem;">This portal needs a Google Script API URL to load your forms.</p>
-                        <button onclick="showConfigModal()" class="btn-submit" style="width:100%; justify-content:center; border-radius:8px; padding:12px;">
+                        <p style="color:var(--text-light); margin-bottom:24px; font-size:0.95rem;">This portal needs your Google Script API URL to connect to your forms.</p>
+                        
+                        <div style="background: #f1f5f9; padding: 16px; border-radius: 12px; margin-bottom: 24px; text-align: left; font-size: 0.85rem;">
+                            <strong style="display:block; margin-bottom:8px; color: var(--primary);">How to fix this:</strong>
+                            <ol style="margin: 0; padding-left: 20px; color: #475569; line-height: 1.5;">
+                                <li>Open your <strong>Form Builder</strong></li>
+                                <li>Click the blue <strong>"Launch Portal"</strong> button</li>
+                                <li>The portal will open and save the URL automatically</li>
+                            </ol>
+                        </div>
+
+                        <button onclick="showConfigModal()" class="btn-submit" style="width:100%; justify-content:center; border-radius:8px; padding:12px; height: 48px; font-weight: 600;">
                             Enter API URL Manually
                         </button>
-                        <p style="font-size:0.75rem; color:var(--text-light); margin-top:20px; line-height:1.4;">
-                            <strong>Pro Tip:</strong> Open your <strong>Form Builder</strong> and click the blue <strong>"Launch Portal"</strong> button to set this up automatically.
-                        </p>
+
+                        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border);">
+                            <p style="font-size:0.75rem; color:var(--text-light); line-height:1.4;">
+                                <strong>Technical Note:</strong> If you've already done this, please try clicking <strong>"Clear Cache & Reset"</strong> on the error screen if it appears.
+                            </p>
+                        </div>
                     </div>
                 `;
                 return;
