@@ -2167,9 +2167,14 @@
 
                 // Standardize: Handle both flat array and {status, templates} formats
                 allTemplates = Array.isArray(templates) ? templates : (templates.templates || []);
-                portalConfig = (config && config.config) ? config.config : (config || { forms: [] });
+                portalConfig = (config && config.config) ? config.config : { forms: [] };
+
+                console.log("📊 Portal Source Data:", { allTemplates, portalConfig });
 
                 if (allTemplates.length === 0) {
+                    if (templates.status === 'error') {
+                        alert("❌ Portal Load Error: " + templates.message);
+                    }
                     listEl.innerHTML = '<div style="color:var(--text-light); font-size:0.8rem; text-align:center; padding:2rem;">No saved forms found. Create and save forms first.</div>';
                     return;
                 }
