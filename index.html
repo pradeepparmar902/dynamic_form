@@ -815,18 +815,6 @@
                             Pick forms for your portal sidebar and set their order.
                         </p>
 
-                        <div class="form-group"
-                            style="margin-bottom: 1.5rem; background: #fffbeb; padding: 12px; border-radius: 8px; border: 1px dashed #fcd34d;">
-                            <label
-                                style="font-size: 0.75rem; font-weight: 700; color: #92400e; display: flex; align-items: center; gap: 5px;">
-                                🔗 Professional Branding (Slug)
-                            </label>
-                            <input type="text" id="portalSlug" placeholder="e.g. my-business-name"
-                                style="width: 100%; margin-top: 5px; padding: 8px; border-radius: 6px; border: 1px solid #fde68a; font-size: 0.85rem;">
-                            <small style="font-size: 0.65rem; color: #b45309; display: block; margin-top: 4px;">
-                                This creates a clean link: <b>portal.html?p=slug</b>
-                            </small>
-                        </div>
 
                         <div style="margin-bottom: 1rem;">
                             <button class="btn btn-outline"
@@ -940,6 +928,39 @@
                     <input type="text" id="propAllowedDomains" placeholder="google.com, example.org">
                     <small style="font-size: 0.7rem; color: var(--text-light);">Comma-separated. Leave empty to allow
                         all.</small>
+                </div>
+
+                <!-- NEW BRANDING SECTION -->
+                <div class="category-title"
+                    style="margin-top: 1.5rem; color: #1e40af; border-bottom: 2px solid #bfdbfe; padding-bottom: 5px;">
+                    🔗 Branding & Custom URLs
+                </div>
+                <div
+                    style="background: #eff6ff; padding: 1rem; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label style="color: #1e40af; font-weight: 700;">Single Form URL Name (Slug)</label>
+                        <input type="text" id="fieldFormSlug" placeholder="e.g. donation-link"
+                            style="border-color: #93c5fd; margin-bottom: 5px;">
+                        <small style="font-size: 0.65rem; color: #3b82f6; display: block;">Clean Link:
+                            <b>viewer.html?v=your-name</b></small>
+                    </div>
+
+                    <div class="form-group"
+                        style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
+                        <label style="color: #1e40af; font-weight: 700;">Portal Collection Name (Slug)</label>
+                        <input type="text" id="portalSlug" placeholder="e.g. pradeep-parmar"
+                            style="border-color: #93c5fd;">
+                        <small style="font-size: 0.65rem; color: #3b82f6;">Clean Link:
+                            <b>portal.html?p=your-name</b></small>
+                    </div>
+
+                    <div class="form-group"
+                        style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
+                        <label style="color: #1e40af; font-weight: 700;">Branded Base URL (Optional)</label>
+                        <input type="text" id="propCustomDomain" placeholder="https://yourbrand.com"
+                            style="border-color: #93c5fd; margin-bottom: 5px;">
+                        <small style="font-size: 0.65rem; color: #3b82f6;">Hides "github.io" in sharing links.</small>
+                    </div>
                 </div>
 
                 <div id="adminSettingsArea" class="hidden"
@@ -1182,6 +1203,17 @@
                             metadata: payload.metadata,
                             lastUpdated: Date.now()
                         });
+
+                        // Vanity Mapping for Single Forms
+                        if (payload.config.slug) {
+                            console.log("📂 Firestore: Creating form vanity mapping for...", payload.config.slug);
+                            await db.collection('form_slugs').doc(payload.config.slug.toLowerCase()).set({
+                                formId: payload.formId,
+                                apiUrl: payload.config.gasApiUrl || localStorage.getItem('gasApiUrl'),
+                                storageEngine: payload.config.storageEngine || 'firebase',
+                                lastUpdated: Date.now()
+                            });
+                        }
                         console.log("✅ Firestore: Save Successful");
                         return { status: 'success' };
                     } else if (action === 'getForm') {
@@ -1291,6 +1323,8 @@
             language: 'mr', // Legacy field for compat
             languagePrimary: 'en',
             languageSecondary: 'mr',
+            slug: '',
+            customDomain: localStorage.getItem('customDomain') || '',
             gasApiUrl: localStorage.getItem('gasApiUrl') || '',
             storageEngine: localStorage.getItem('storageEngine') || 'gas',
             firebaseConfig: localStorage.getItem('firebaseConfig') || ''
@@ -1863,7 +1897,9 @@
                 targetSheetUrl: formConfig.sheetUrl,
                 targetSheetName: formConfig.sheetName,
                 language: formConfig.language,
-                storageEngine: document.getElementById('propStorageEngine').value
+                storageEngine: document.getElementById('propStorageEngine').value,
+                slug: document.getElementById('fieldFormSlug').value.trim(),
+                customDomain: document.getElementById('propCustomDomain').value.trim()
             };
             const metadata = {
                 description: formConfig.description,
@@ -1875,11 +1911,14 @@
             formConfig.storageEngine = config.storageEngine;
             formConfig.firebaseConfig = metadata.firebaseConfig;
             formConfig.gasApiUrl = document.getElementById('propApiUrl').value;
+            formConfig.slug = config.slug;
+            formConfig.customDomain = config.customDomain;
 
             // Persist
             localStorage.setItem('storageEngine', formConfig.storageEngine);
             localStorage.setItem('firebaseConfig', formConfig.firebaseConfig);
             localStorage.setItem('gasApiUrl', formConfig.gasApiUrl);
+            localStorage.setItem('customDomain', formConfig.customDomain);
 
             const res = await callApi('saveForm', { formId: formConfig.id, schema, config, metadata });
 
@@ -2147,6 +2186,8 @@
             formConfig.languageSecondary = config.languageSecondary || config.language || 'mr';
             formConfig.storageEngine = config.storageEngine || 'gas';
             formConfig.firebaseConfig = metadata.firebaseConfig || "";
+            formConfig.slug = config.slug || "";
+            formConfig.customDomain = config.customDomain || "";
 
             document.getElementById('propFormId').value = formConfig.id;
             document.getElementById('propFormName').value = formConfig.formName;
@@ -2159,6 +2200,8 @@
             document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary;
             document.getElementById('propStorageEngine').value = formConfig.storageEngine;
             document.getElementById('propFirebaseConfig').value = formConfig.firebaseConfig;
+            document.getElementById('fieldFormSlug').value = formConfig.slug;
+            document.getElementById('propCustomDomain').value = formConfig.customDomain;
             document.getElementById('headerFormId').innerText = formConfig.id;
 
             toggleBackendConfig();
@@ -2277,7 +2320,15 @@
 
                 // Standardize: Handle both flat array and {status, templates} formats
                 allTemplates = Array.isArray(templates) ? templates : (templates.templates || []);
-                portalConfig = (config && config.config) ? config.config : { forms: [] };
+
+                // CRITICAL FIX: Extract config correctly from either raw object (GAS) or wrapped object (Firebase)
+                portalConfig = (config && config.config) ? config.config : (config || { forms: [] });
+
+                const slugInput = document.getElementById('portalSlug');
+                if (slugInput) slugInput.value = portalConfig.slug || "";
+
+                const domainInput = document.getElementById('propCustomDomain');
+                if (domainInput) domainInput.value = portalConfig.customDomain || formConfig.customDomain || "";
 
                 console.log("📊 Portal Source Data:", { allTemplates, portalConfig });
 
@@ -2347,6 +2398,7 @@
                     forms: selectedForms,
                     layout: 'sidebar',
                     slug: slug,
+                    customDomain: document.getElementById('propCustomDomain').value.trim(),
                     gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl,
                     storageEngine: document.getElementById('propStorageEngine').value || formConfig.storageEngine
                 }
@@ -2384,26 +2436,34 @@
                 return;
             }
 
-            const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
-            const viewerPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'viewer.html';
-            const portalPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html';
+            const customBase = document.getElementById('propCustomDomain').value.trim();
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            const base = customBase ? customBase.replace(/\/$/, '') : currentHost;
+
+            const viewerPath = base + '/viewer.html';
+            const portalPath = base + '/portal.html';
 
             const engine = document.getElementById('propStorageEngine').value || formConfig.storageEngine || 'gas';
             const backendParam = `&backend=${engine}`;
-            const slug = document.getElementById('portalSlug').value.trim();
+            const portalSlug = document.getElementById('portalSlug').value.trim();
+            const formSlug = document.getElementById('fieldFormSlug').value.trim();
 
             let code = "";
             let shareUrl = "";
             if (currentSidebarTab === 'portal') {
-                if (slug) {
-                    shareUrl = `${portalPath}?p=${slug}`;
+                if (portalSlug) {
+                    shareUrl = `${portalPath}?p=${portalSlug}`;
                 } else {
                     shareUrl = `${portalPath}?api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
                 }
                 code = `<!-- MULTI-FORM PORTAL EMBED -->\n<iframe src="${shareUrl}" width="100%" height="800" frameborder="0" style="border:none; width:100%; height:800px;"></iframe>`;
                 if (title) title.innerText = "Share Portal Collection";
             } else {
-                shareUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
+                if (formSlug) {
+                    shareUrl = `${viewerPath}?v=${formSlug}`;
+                } else {
+                    shareUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
+                }
                 code = `<!-- SINGLE FORM EMBED -->\n<iframe src="${shareUrl}" width="100%" height="800" frameborder="0" style="border:none; width:100%; height:800px;"></iframe>`;
                 if (title) title.innerText = "Share Single Form";
             }
@@ -2550,8 +2610,10 @@
             localStorage.setItem('gasApiUrl', currentApiUrl);
             formConfig.gasApiUrl = currentApiUrl;
 
-            const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
-            const portalUrl = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html?api=' + encodeURIComponent(currentApiUrl);
+            const customBase = document.getElementById('propCustomDomain').value.trim();
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            const base = customBase ? customBase.replace(/\/$/, '') : currentHost;
+            const portalUrl = base + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
 
             console.log("🚀 Launching Portal:", portalUrl);
             window.open(portalUrl, '_blank');
@@ -2563,8 +2625,10 @@
                 alert("⚠️ Please enter your Google Script API URL in Settings first.");
                 return;
             }
-            const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
-            const portalUrl = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html?api=' + encodeURIComponent(currentApiUrl);
+            const customBase = document.getElementById('propCustomDomain').value.trim();
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            const base = customBase ? customBase.replace(/\/$/, '') : currentHost;
+            const portalUrl = base + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
 
             navigator.clipboard.writeText(portalUrl).then(() => {
                 alert("✅ Portal Link copied to clipboard! You can share this link directly.");
