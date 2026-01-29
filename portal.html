@@ -448,7 +448,7 @@
         }
 
         let API_URL = getStableApiUrl();
-        const backend = urlParams.get('backend') || 'gas'; // gas or firebase
+        let backend = urlParams.get('backend') || 'gas'; // gas or firebase
 
         // FIREBASE INITIALIZATION
         const firebaseConfig = {
@@ -461,15 +461,19 @@
             measurementId: "G-L217Q3WM0G"
         };
 
-        if (backend === 'firebase') {
+        function initFirebase() {
             try {
                 if (!firebase.apps.length) {
                     firebase.initializeApp(firebaseConfig);
+                    console.log("🔥 Portal: Firebase Initialized");
                 }
-                console.log("🔥 Portal: Firebase Initialized");
             } catch (err) {
                 console.error("❌ Firebase Init Error:", err);
             }
+        }
+
+        if (backend === 'firebase') {
+            initFirebase();
         }
 
         let currentState = {
@@ -480,6 +484,47 @@
 
         // INIT
         async function init() {
+            const portalSlug = urlParams.get('p');
+
+            // --- VANITY URL RESOLUTION ---
+            if (portalSlug) {
+                console.log(`🌐 Branding: Resolving vanity slug "${portalSlug}"...`);
+                try {
+                    // Initialize Firebase first to do the lookup
+                    initFirebase();
+                    const db = firebase.firestore();
+                    const slugDoc = await db.collection('portals').doc(portalSlug.toLowerCase()).get();
+
+                    if (slugDoc.exists) {
+                        const data = slugDoc.data();
+                        console.log("✅ Branding: Resolved configuration:", data);
+
+                        // Inject settings from slug document
+                        const cfg = data.config || {};
+                        if (cfg.gasApiUrl) {
+                            API_URL = cfg.gasApiUrl;
+                            localStorage.setItem('gasApiUrl', API_URL);
+                        }
+
+                        // IMPORTANT: Override backend based on slug-saved storage engine
+                        if (cfg.storageEngine) {
+                            backend = cfg.storageEngine;
+                            console.log(`⚙️ Engine: Using ${cfg.storageEngine} from vanity mapping`);
+                        }
+
+                        currentState.config = cfg;
+
+                        // We continue as "firebase" backend to fetch the individual forms if needed
+                        // but individual forms could still be GAS if that's what's saved
+                        console.log("🔗 Mapping: Redirecting to correct backend/API");
+                    } else {
+                        console.warn("⚠️ Branding: Slug not found, falling back to URL params.");
+                    }
+                } catch (err) {
+                    console.error("❌ Branding Resolution failed:", err);
+                }
+            }
+
             if (!API_URL) {
                 console.error("❌ Portal Error: No GAS API URL provided via ?api= OR localStorage.");
                 document.getElementById('loader').innerHTML = `
@@ -492,7 +537,11 @@
 
             try {
                 let res;
-                if (backend === 'firebase') {
+                // If config was already loaded via slug resolution, skip fetching it again
+                if (currentState.config) {
+                    res = { status: 'success', config: currentState.config };
+                }
+                else if (backend === 'firebase') {
                     console.log("🔥 Portal: Fetching config from Firestore...");
                     const db = firebase.firestore();
                     const doc = await db.collection('config').doc('portal').get();

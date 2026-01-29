@@ -815,6 +815,19 @@
                             Pick forms for your portal sidebar and set their order.
                         </p>
 
+                        <div class="form-group"
+                            style="margin-bottom: 1.5rem; background: #fffbeb; padding: 12px; border-radius: 8px; border: 1px dashed #fcd34d;">
+                            <label
+                                style="font-size: 0.75rem; font-weight: 700; color: #92400e; display: flex; align-items: center; gap: 5px;">
+                                🔗 Professional Branding (Slug)
+                            </label>
+                            <input type="text" id="portalSlug" placeholder="e.g. my-business-name"
+                                style="width: 100%; margin-top: 5px; padding: 8px; border-radius: 6px; border: 1px solid #fde68a; font-size: 0.85rem;">
+                            <small style="font-size: 0.65rem; color: #b45309; display: block; margin-top: 4px;">
+                                This creates a clean link: <b>portal.html?p=slug</b>
+                            </small>
+                        </div>
+
                         <div style="margin-bottom: 1rem;">
                             <button class="btn btn-outline"
                                 style="width:100%; justify-content:center; font-size:0.75rem;"
@@ -1205,7 +1218,17 @@
 
                         return { status: 'success', templates: forms };
                     } else if (action === 'savePortalConfig') {
+                        // Standard global config
                         await db.collection('config').doc('portal').set(payload.config);
+
+                        // Vanity Slug Mapping
+                        if (payload.config.slug) {
+                            console.log("📂 Firestore: Creating vanity mapping for...", payload.config.slug);
+                            await db.collection('portals').doc(payload.config.slug).set({
+                                config: payload.config,
+                                lastUpdated: Date.now()
+                            });
+                        }
                         return { status: 'success' };
                     } else if (action === 'getPortalConfig') {
                         const doc = await db.collection('config').doc('portal').get();
@@ -2318,7 +2341,16 @@
                 btn.innerText = 'Saving...';
             }
 
-            const res = await callApi('savePortalConfig', { config: { forms: selectedForms, layout: 'sidebar' } });
+            const slug = document.getElementById('portalSlug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            const res = await callApi('savePortalConfig', {
+                config: {
+                    forms: selectedForms,
+                    layout: 'sidebar',
+                    slug: slug,
+                    gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl,
+                    storageEngine: document.getElementById('propStorageEngine').value || formConfig.storageEngine
+                }
+            });
 
             if (btn) {
                 btn.disabled = false;
@@ -2358,11 +2390,16 @@
 
             const engine = document.getElementById('propStorageEngine').value || formConfig.storageEngine || 'gas';
             const backendParam = `&backend=${engine}`;
+            const slug = document.getElementById('portalSlug').value.trim();
 
             let code = "";
             let shareUrl = "";
             if (currentSidebarTab === 'portal') {
-                shareUrl = `${portalPath}?api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
+                if (slug) {
+                    shareUrl = `${portalPath}?p=${slug}`;
+                } else {
+                    shareUrl = `${portalPath}?api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
+                }
                 code = `<!-- MULTI-FORM PORTAL EMBED -->\n<iframe src="${shareUrl}" width="100%" height="800" frameborder="0" style="border:none; width:100%; height:800px;"></iframe>`;
                 if (title) title.innerText = "Share Portal Collection";
             } else {
