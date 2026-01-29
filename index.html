@@ -814,7 +814,29 @@
                         <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 1rem;">
                             Pick forms for your portal sidebar and set their order.
                         </p>
+                        <!-- BRANDING SETTINGS FOR PORTAL -->
+                        <div
+                            style="background: #fffbeb; padding: 1rem; border-radius: 8px; border: 1px solid #fcd34d; margin-bottom: 1.5rem;">
+                            <label
+                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Professional
+                                Branding (Slug)</label>
+                            <input type="text" id="sidebarPortalSlug" placeholder="e.g. my-organization"
+                                style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px; margin-bottom: 5px;"
+                                oninput="syncPortalSlug(this.value)">
+                            <small style="font-size: 0.65rem; color: #92400e; display: block; margin-bottom: 10px;">
+                                This creates a clean link: <b>portal.html?p=your-name</b>
+                            </small>
 
+                            <label
+                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Branded
+                                Base URL (Bitly Style)</label>
+                            <input type="text" id="sidebarCustomDomain" placeholder="https://yourbrand.com"
+                                style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px;"
+                                oninput="syncCustomDomain(this.value)">
+                            <small style="font-size: 0.65rem; color: #92400e; display: block; margin-top: 4px;">
+                                Hides "github.io" in sharing links.
+                            </small>
+                        </div>
 
                         <div style="margin-bottom: 1rem;">
                             <button class="btn btn-outline"
@@ -949,7 +971,7 @@
                         style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
                         <label style="color: #1e40af; font-weight: 700;">Portal Collection Name (Slug)</label>
                         <input type="text" id="portalSlug" placeholder="e.g. pradeep-parmar"
-                            style="border-color: #93c5fd;">
+                            style="border-color: #93c5fd;" oninput="syncPortalSlug(this.value, 'sidebarPortalSlug')">
                         <small style="font-size: 0.65rem; color: #3b82f6;">Clean Link:
                             <b>portal.html?p=your-name</b></small>
                     </div>
@@ -958,7 +980,8 @@
                         style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
                         <label style="color: #1e40af; font-weight: 700;">Branded Base URL (Optional)</label>
                         <input type="text" id="propCustomDomain" placeholder="https://yourbrand.com"
-                            style="border-color: #93c5fd; margin-bottom: 5px;">
+                            style="border-color: #93c5fd; margin-bottom: 5px;"
+                            oninput="syncCustomDomain(this.value, 'sidebarCustomDomain')">
                         <small style="font-size: 0.65rem; color: #3b82f6;">Hides "github.io" in sharing links.</small>
                     </div>
                 </div>
@@ -2201,7 +2224,10 @@
             document.getElementById('propStorageEngine').value = formConfig.storageEngine;
             document.getElementById('propFirebaseConfig').value = formConfig.firebaseConfig;
             document.getElementById('fieldFormSlug').value = formConfig.slug;
-            document.getElementById('propCustomDomain').value = formConfig.customDomain;
+            document.getElementById('propCustomDomain').value = formConfig.customDomain || "";
+            if (document.getElementById('sidebarCustomDomain')) document.getElementById('sidebarCustomDomain').value = formConfig.customDomain || "";
+            document.getElementById('portalSlug').value = portalConfig.slug || "";
+            if (document.getElementById('sidebarPortalSlug')) document.getElementById('sidebarPortalSlug').value = portalConfig.slug || "";
             document.getElementById('headerFormId').innerText = formConfig.id;
 
             toggleBackendConfig();
@@ -2326,9 +2352,11 @@
 
                 const slugInput = document.getElementById('portalSlug');
                 if (slugInput) slugInput.value = portalConfig.slug || "";
+                if (document.getElementById('sidebarPortalSlug')) document.getElementById('sidebarPortalSlug').value = portalConfig.slug || "";
 
                 const domainInput = document.getElementById('propCustomDomain');
                 if (domainInput) domainInput.value = portalConfig.customDomain || formConfig.customDomain || "";
+                if (document.getElementById('sidebarCustomDomain')) document.getElementById('sidebarCustomDomain').value = portalConfig.customDomain || formConfig.customDomain || "";
 
                 console.log("📊 Portal Source Data:", { allTemplates, portalConfig });
 
@@ -2419,6 +2447,26 @@
         }
 
 
+
+        function getBrandedBase() {
+            const customBase = (formConfig.customDomain || "").trim();
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            return customBase ? customBase.replace(/\/$/, '') : currentHost;
+        }
+
+        function syncPortalSlug(val, targetId = 'portalSlug') {
+            const target = document.getElementById(targetId);
+            if (target) target.value = val;
+            portalConfig.slug = val;
+        }
+
+        function syncCustomDomain(val, targetId = 'propCustomDomain') {
+            const target = document.getElementById(targetId);
+            if (target) target.value = val;
+            formConfig.customDomain = val;
+            portalConfig.customDomain = val;
+        }
+
         async function showEmbedModal() {
             const modal = document.getElementById('embedModal');
             const area = document.getElementById('embedCodeArea');
@@ -2436,10 +2484,7 @@
                 return;
             }
 
-            const customBase = document.getElementById('propCustomDomain').value.trim();
-            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
-            const base = customBase ? customBase.replace(/\/$/, '') : currentHost;
-
+            const base = getBrandedBase();
             const viewerPath = base + '/viewer.html';
             const portalPath = base + '/portal.html';
 
@@ -2610,9 +2655,7 @@
             localStorage.setItem('gasApiUrl', currentApiUrl);
             formConfig.gasApiUrl = currentApiUrl;
 
-            const customBase = document.getElementById('propCustomDomain').value.trim();
-            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
-            const base = customBase ? customBase.replace(/\/$/, '') : currentHost;
+            const base = getBrandedBase();
             const portalUrl = base + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
 
             console.log("🚀 Launching Portal:", portalUrl);
@@ -2625,9 +2668,7 @@
                 alert("⚠️ Please enter your Google Script API URL in Settings first.");
                 return;
             }
-            const customBase = document.getElementById('propCustomDomain').value.trim();
-            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
-            const base = customBase ? customBase.replace(/\/$/, '') : currentHost;
+            const base = getBrandedBase();
             const portalUrl = base + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
 
             navigator.clipboard.writeText(portalUrl).then(() => {
