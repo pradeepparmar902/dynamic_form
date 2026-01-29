@@ -818,7 +818,13 @@
             <div class="props-header">Configuration</div>
 
             <div id="globalProps" class="props-content">
-                <div class="category-title">Form Settings</div>
+                <div class="category-title" style="display:flex; justify-content:space-between; align-items:center;">
+                    Form Settings
+                    <button class="btn btn-outline" id="adminUnlockArea" onclick="unlockAdminSettings()"
+                        style="font-size: 0.7rem; padding: 4px 8px; border-style: dashed; background: #fffbeb; border-color: #fcd34d; color: #92400e;">
+                        🔐 Unlock Admin
+                    </button>
+                </div>
                 <div class="form-group">
                     <label>Form Name (Display)</label>
                     <input type="text" id="propFormName" placeholder="e.g. Donation Form">
@@ -883,12 +889,6 @@
                     <input type="text" id="propAllowedDomains" placeholder="google.com, example.org">
                     <small style="font-size: 0.7rem; color: var(--text-light);">Comma-separated. Leave empty to allow
                         all.</small>
-                </div>
-                <div class="form-group" id="adminUnlockArea">
-                    <button class="btn btn-outline" onclick="unlockAdminSettings()"
-                        style="width: 100%; justify-content: center; border-style: dashed; background: #fffbeb; border-color: #fcd34d; color: #92400e;">
-                        🔐 Unlock Admin Settings
-                    </button>
                 </div>
 
                 <div id="adminSettingsArea" class="hidden"
