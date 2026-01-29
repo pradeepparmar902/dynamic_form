@@ -646,19 +646,57 @@
 
     <!-- EMBED MODAL -->
     <div id="embedModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>Embed This Form</h3>
+                <h3>Get Sharing Code</h3>
                 <span class="close-modal" onclick="closeEmbedModal()">&times;</span>
             </div>
-            <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem;">
-                Copy the code below and paste it into any website where you want the form to appear.
-            </p>
-            <textarea id="embedCodeArea" rows="6" readonly
-                style="width: 100%; padding: 0.75rem; font-family: monospace; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 4px; background: #f8f9fa; margin-bottom: 1rem;"></textarea>
-            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="copyEmbedCode()">
-                Copy to Clipboard
-            </button>
+
+            <!-- OPTION 1: DIRECT LINK -->
+            <div style="margin-bottom: 2rem;">
+                <div
+                    style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; color: var(--primary);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                    <span style="font-weight: 700; font-size: 0.9rem;">Option 1: Direct Share Link</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.75rem;">
+                    Best for sending via WhatsApp, Email, or Social Media.
+                </p>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="directLinkArea" readonly
+                        style="flex: 1; padding: 0.6rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; outline: none;">
+                    <button class="btn btn-primary" onclick="copyDirectLink()" style="padding: 0.6rem 1rem;">
+                        Copy Link
+                    </button>
+                </div>
+            </div>
+
+            <div style="height: 1px; background: var(--border); margin-bottom: 1.5rem;"></div>
+
+            <!-- OPTION 2: IFRAME EMBED -->
+            <div>
+                <div
+                    style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; color: var(--primary);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                    <span style="font-weight: 700; font-size: 0.9rem;">Option 2: Website Embed (Iframe)</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.75rem;">
+                    Copy this code to paste into your website's HTML editor.
+                </p>
+                <textarea id="embedCodeArea" rows="4" readonly
+                    style="width: 100%; padding: 0.75rem; font-family: monospace; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: #f8f9fa; margin-bottom: 0.75rem; resize: none;"></textarea>
+                <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="copyEmbedCode()">
+                    Copy Embed Code
+                </button>
+            </div>
         </div>
     </div>
 
@@ -2300,8 +2338,9 @@
         async function showEmbedModal() {
             const modal = document.getElementById('embedModal');
             const area = document.getElementById('embedCodeArea');
+            const directArea = document.getElementById('directLinkArea');
             const title = modal ? modal.querySelector('h3') : null;
-            if (!modal || !area) return;
+            if (!modal || !area || !directArea) return;
 
             const apiInput = document.getElementById('propApiUrl');
             const currentApiSUrl = (apiInput ? apiInput.value.trim() : "") || formConfig.gasApiUrl;
@@ -2321,17 +2360,19 @@
             const backendParam = `&backend=${engine}`;
 
             let code = "";
+            let shareUrl = "";
             if (currentSidebarTab === 'portal') {
-                const portalUrl = `${portalPath}?api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
-                code = `<!-- MULTI-FORM PORTAL EMBED -->\n<iframe src="${portalUrl}" width="100%" height="100vh" frameborder="0" style="border:none; width:100%; height:100vh; position:fixed; top:0; left:0; z-index:9999;"></iframe>`;
-                if (title) title.innerText = "Embed Code: Portal Collection";
+                shareUrl = `${portalPath}?api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
+                code = `<!-- MULTI-FORM PORTAL EMBED -->\n<iframe src="${shareUrl}" width="100%" height="800" frameborder="0" style="border:none; width:100%; height:800px;"></iframe>`;
+                if (title) title.innerText = "Share Portal Collection";
             } else {
-                const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
-                code = `<!-- SINGLE FORM EMBED -->\n<iframe src="${embedUrl}" width="100%" height="100vh" frameborder="0" style="border:none; width:100%; height:100vh;"></iframe>`;
-                if (title) title.innerText = "Embed Code: Single Form";
+                shareUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
+                code = `<!-- SINGLE FORM EMBED -->\n<iframe src="${shareUrl}" width="100%" height="800" frameborder="0" style="border:none; width:100%; height:800px;"></iframe>`;
+                if (title) title.innerText = "Share Single Form";
             }
 
             area.value = code;
+            directArea.value = shareUrl;
             modal.style.display = 'flex';
         }
 
@@ -2345,7 +2386,16 @@
             if (area) {
                 area.select();
                 document.execCommand('copy');
-                alert('Embed code copied!');
+                alert('✅ Embed code copied to clipboard!');
+            }
+        }
+
+        function copyDirectLink() {
+            const area = document.getElementById('directLinkArea');
+            if (area) {
+                area.select();
+                document.execCommand('copy');
+                alert('✅ Share Link copied to clipboard!');
             }
         }
 
