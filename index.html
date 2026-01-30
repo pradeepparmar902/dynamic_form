@@ -2046,6 +2046,10 @@
             formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
             formConfig.languageSecondary = document.getElementById('propLanguageSecondary').value;
 
+            // Sync API and Branding
+            formConfig.gasApiUrl = document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : formConfig.gasApiUrl;
+            formConfig.customDomain = document.getElementById('propCustomDomain') ? document.getElementById('propCustomDomain').value : formConfig.customDomain;
+
             const schema = elements;
             const config = formConfig;
             const metadata = {
@@ -2053,7 +2057,11 @@
                 formName: formConfig.formName
             };
 
-            // Persist
+            // Local Fallback for Preview (Instant)
+            const localData = { schema, config, metadata };
+            localStorage.setItem('form_' + formConfig.id, JSON.stringify(localData));
+
+            // Persist settings
             localStorage.setItem('gasApiUrl', formConfig.gasApiUrl);
             localStorage.setItem('customDomain', formConfig.customDomain);
 
@@ -2061,6 +2069,7 @@
 
             btn.innerHTML = originalText;
             btn.disabled = false;
+
             if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
                 if (!silent) alert('Form Saved! (Check Drive/Sheet to confirm if external)');
             } else {
@@ -2084,7 +2093,8 @@
             }
 
             const apiUrl = formConfig.gasApiUrl;
-            let previewUrl = `viewer.html?view=form&id=${formConfig.id}`;
+            const backend = document.getElementById('propStorageEngine') ? document.getElementById('propStorageEngine').value : (formConfig.storageEngine || 'firebase');
+            let previewUrl = `viewer.html?view=form&id=${formConfig.id}&backend=${backend}`;
             if (apiUrl) {
                 previewUrl += `&api=${encodeURIComponent(apiUrl)}`;
             }
@@ -2760,7 +2770,8 @@
 
             // PREVIEW MODE: Always use current host (github.io)
             const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
-            const portalUrl = currentHost + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
+            const backend = document.getElementById('propStorageEngine') ? document.getElementById('propStorageEngine').value : (formConfig.storageEngine || 'firebase');
+            const portalUrl = currentHost + '/portal.html?api=' + encodeURIComponent(currentApiUrl) + '&backend=' + backend;
 
             console.log("🚀 Previewing Portal:", portalUrl);
             window.open(portalUrl, '_blank');
