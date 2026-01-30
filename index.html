@@ -737,6 +737,47 @@
                                 <span>Date</span>
                             </div>
                             <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="dropdown">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                                <span>Dropdown</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="image">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                <span>Image</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="textarea">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                <span>Text Area</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="paragraph">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="21" y1="10" x2="3" y2="10"></line>
+                                    <line x1="21" y1="6" x2="3" y2="6"></line>
+                                    <line x1="21" y1="14" x2="3" y2="14"></line>
+                                    <line x1="21" y1="18" x2="3" y2="18"></line>
+                                </svg>
+                                <span>Paragraph</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
                                 data-type="number">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -746,6 +787,39 @@
                                     <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                                 </svg>
                                 <span>Number</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="email">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path
+                                        d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                                    </path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                                <span>Email</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="counter">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>+/- Counter</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="repeater">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                                <span>Add More List</span>
                             </div>
                             <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
                                 data-type="file">
@@ -1046,6 +1120,17 @@
                 <div class="form-group">
                     <label id="lblPropSecondary">Field Label (Secondary)</label>
                     <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
+                </div>
+                <div class="form-group" id="grpOptions" style="display: none;">
+                    <label>Dropdown Options (Comma separated)</label>
+                    <textarea id="propOptions" placeholder="Option 1, Option 2, Option 3" rows="3"
+                        oninput="updateSelectedElement()"></textarea>
+                </div>
+
+                <div class="form-group" id="grpPlaceholder">
+                    <label>Placeholder</label>
+                    <input type="text" id="propPlaceholder" placeholder="Enter placeholder..."
+                        oninput="updateSelectedElement()">
                 </div>
                 <div class="form-group">
                     <label>Field Name (DB Key)</label>
@@ -1539,10 +1624,23 @@
 
             // Content based on type
             let content = '';
-            if (['text', 'date', 'number', 'file'].includes(elmData.type)) {
+            if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'repeater'].includes(elmData.type)) {
+                let inputHtml = "";
+                if (elmData.type === 'dropdown') {
+                    inputHtml = `<div class="preview-input" style="height:30px; background:#eee; display:flex; align-items:center; padding:0 10px; font-size:12px; font-weight:700;">Select Option <svg width="12" height="12" style="margin-left:auto"><polyline points="3 4 6 7 9 4" fill="none" stroke="black"/></svg></div>`;
+                } else if (elmData.type === 'repeater') {
+                    inputHtml = `<div class="preview-input" style="height:35px; border:1px dashed #2563eb; background:#eff6ff; display:flex; align-items:center; justify-content:center; color:#2563eb; font-weight:700; font-size:12px;">+ Add New Item</div>`;
+                } else if (elmData.type === 'image') {
+                    inputHtml = `<div class="preview-input" style="height:80px; border:1px dashed #94a3b8; background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#64748b; font-size:10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Upload Image</div>`;
+                } else if (elmData.type === 'textarea' || elmData.type === 'paragraph') {
+                    inputHtml = `<div class="preview-input" style="height:${elmData.type === 'paragraph' ? '60px' : '40px'}; background:#eee;"></div>`;
+                } else {
+                    inputHtml = `<div class="preview-input" style="height: 30px; background: #eee;"></div>`;
+                }
+
                 content = `
                     <label class="preview-label">${elmData.props.label}${elmData.props.required ? '*' : ''}</label>
-                    <div class="preview-input" style="height: 30px; background: #eee;"></div>
+                    ${inputHtml}
                 `;
             } else if (elmData.type === 'heading') {
                 div.style.width = '300px';
@@ -1642,6 +1740,8 @@
                 setDisplay('grpAlign', t === 'heading' || t === 'label');
                 setDisplay('grpFontSize', t === 'label');
                 setDisplayFlex('grpBold', t === 'label');
+                setDisplay('grpOptions', t === 'dropdown');
+                setDisplay('grpPlaceholder', !['rect', 'line', 'repeater'].includes(t));
 
                 // Shape Styles Visibility
                 const isShape = t === 'rect' || t === 'line';
@@ -1658,6 +1758,8 @@
                 document.getElementById('propStrokeWidth').value = elm.props.strokeWidth || 2;
                 document.getElementById('propBorderStyle').value = elm.props.borderStyle || 'solid';
                 document.getElementById('propBorderRadius').value = elm.props.borderRadius || 0;
+                document.getElementById('propOptions').value = elm.props.options || '';
+                document.getElementById('propPlaceholder').value = elm.props.placeholder || '';
             }
         }
 
@@ -1679,6 +1781,8 @@
             elm.props.name = document.getElementById('propName').value;
             elm.props.required = document.getElementById('propRequired').checked;
             elm.props.translatable = document.getElementById('propTranslatable').checked;
+            elm.props.options = document.getElementById('propOptions').value;
+            elm.props.placeholder = document.getElementById('propPlaceholder').value;
 
             // Style Props
             elm.props.headingLevel = document.getElementById('propHeadingLevel').value;
@@ -1703,8 +1807,9 @@
             // Update Base Styles
             dom.style.textAlign = elm.props.align || 'left';
 
-            if (['text', 'date', 'number', 'file'].includes(elm.type)) {
-                dom.querySelector('.preview-label').innerHTML = elm.props.label + regLabel + (elm.props.required ? '*' : '');
+            if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'repeater'].includes(elm.type)) {
+                const labelEl = dom.querySelector('.preview-label');
+                if (labelEl) labelEl.innerHTML = elm.props.label + regLabel + (elm.props.required ? '*' : '');
             } else if (elm.type === 'heading') {
                 const hTag = document.createElement(elm.props.headingLevel || 'h2');
                 hTag.style.margin = '0';

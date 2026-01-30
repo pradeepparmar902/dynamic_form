@@ -687,14 +687,71 @@
                     : '';
 
                 // Render Input
-                if (elm.type === 'text' || elm.type === 'number' || elm.type === 'date' || elm.type === 'file') {
+                // Render Input
+                if (['text', 'number', 'date', 'file', 'email', 'textarea', 'paragraph', 'dropdown', 'counter', 'image', 'repeater'].includes(elm.type)) {
+                    let inputHtml = "";
+                    const req = elm.props.required ? 'required' : '';
+                    const placeholder = elm.props.placeholder || "";
+                    const name = elm.props.name;
+
+                    if (elm.type === 'dropdown') {
+                        const options = (elm.props.options || "").split(',').map(o => o.trim()).filter(o => o);
+                        inputHtml = `
+                            <select class="field-input" name="${name}" ${req}>
+                                <option value="">${placeholder || 'Select...'}</option>
+                                ${options.map(o => `<option value="${o}">${o}</option>`).join('')}
+                            </select>
+                        `;
+                    } else if (elm.type === 'textarea' || elm.type === 'paragraph') {
+                        inputHtml = `
+                            <textarea class="field-input" name="${name}" ${req} placeholder="${placeholder}" 
+                                      style="height:${elm.type === 'paragraph' ? '120px' : '60px'}; resize:vertical;"></textarea>
+                        `;
+                    } else if (elm.type === 'counter') {
+                        inputHtml = `
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <button type="button" class="btn" style="padding:5px 15px; background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1;" onclick="this.nextElementSibling.stepDown()">-</button>
+                                <input type="number" class="field-input" name="${name}" value="0" style="width:80px; text-align:center;">
+                                <button type="button" class="btn" style="padding:5px 15px; background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1;" onclick="this.previousElementSibling.stepUp()">+</button>
+                            </div>
+                        `;
+                    } else if (elm.type === 'image') {
+                        inputHtml = `
+                            <div class="image-upload-wrapper" style="border:1px solid #d1d5db; padding:10px; border-radius:4px;">
+                                <input type="file" class="field-input" name="${name}" accept="image/*" ${req} 
+                                       style="border:none; padding:0;" onchange="previewImg(this)">
+                                <div class="img-preview" style="margin-top:10px; display:none;">
+                                    <img src="" style="max-width:100%; max-height:150px; border-radius:4px;">
+                                </div>
+                            </div>
+                        `;
+                    } else if (elm.type === 'repeater') {
+                        inputHtml = `
+                            <div class="repeater-wrapper" id="rep-${elm.id}" data-name="${name}">
+                                <div class="repeater-items">
+                                    <div class="repeater-item" style="display:flex; gap:5px; margin-bottom:5px;">
+                                        <input type="text" class="field-input repeater-input" placeholder="Item 1" style="flex:1;">
+                                        <button type="button" class="btn" style="padding:0 10px; background:#fee2e2; color:#b91c1c;" onclick="removeRepItem(this)">×</button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline" style="width:100%; font-size:12px; padding:5px; background:#eff6ff; color:#2563eb; border:1px dashed #2563eb;" 
+                                        onclick="addRepItem('${elm.id}')">+ Add More Items</button>
+                            </div>
+                        `;
+                    } else {
+                        inputHtml = `
+                            <input type="${elm.type}" 
+                                   class="field-input" 
+                                   name="${name}" 
+                                   ${req}
+                                   placeholder="${placeholder}"
+                                   data-translatable="${elm.props.translatable || false}">
+                        `;
+                    }
+
                     div.innerHTML = `
                         <label class="field-label">${elm.props.label}${regLabelHtml}${elm.props.required ? ' *' : ''}</label>
-                        <input type="${elm.type}" 
-                               class="field-input" 
-                               name="${elm.props.name}" 
-                               ${elm.props.required ? 'required' : ''}
-                               data-translatable="${elm.props.translatable || false}">
+                        ${inputHtml}
                         ${elm.props.translatable ? '<div class="trans-hint" id="hint-' + elm.id + '"></div>' : ''}
                     `;
 
@@ -734,7 +791,40 @@
             loader.style.display = 'none';
         }
 
-        // 3. Translation Handler
+        // 3. Helpers for New Fields
+        function previewImg(input) {
+            const preview = input.parentElement.querySelector('.img-preview');
+            const img = preview.querySelector('img');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    img.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function addRepItem(elmId) {
+            const wrapper = document.querySelector(`#rep-${elmId} .repeater-items`);
+            const div = document.createElement('div');
+            div.className = 'repeater-item';
+            div.style.cssText = 'display:flex; gap:5px; margin-bottom:5px;';
+            div.innerHTML = `
+                <input type="text" class="field-input repeater-input" style="flex:1;">
+                <button type="button" class="btn" style="padding:0 10px; background:#fee2e2; color:#b91c1c;" onclick="removeRepItem(this)">×</button>
+            `;
+            wrapper.appendChild(div);
+        }
+
+        function removeRepItem(btn) {
+            const items = btn.closest('.repeater-items');
+            if (items.children.length > 1) {
+                btn.closest('.repeater-item').remove();
+            }
+        }
+
+        // 4. Translation Handler
         async function handleTranslation(e, elmId) {
             const text = e.target.value;
             if (!text) return;
@@ -786,14 +876,23 @@
 
                 if (input.name) {
                     try {
-                        // Safe mapping with fallback
                         const schema = formSchema || [];
                         const elm = schema.find(e => e.props && e.props.name === input.name);
-
-                        // Priority 1: Label, Priority 2: input.name
                         const header = (elm && elm.props && elm.props.label) ? elm.props.label : input.name;
 
-                        formData[header] = input.value;
+                        // HANDLE REPEATER (Multiple inputs with same parent/context)
+                        const repeater = input.closest('.repeater-wrapper');
+                        if (repeater) {
+                            const name = repeater.dataset.name;
+                            const items = Array.from(repeater.querySelectorAll('.repeater-input'))
+                                .map(i => i.value.trim())
+                                .filter(v => v);
+                            formData[header] = items.join(' | '); // Joined for spreadsheet
+                        } else if (input.type === 'file') {
+                            formData[header] = input.files[0] ? input.files[0].name : '';
+                        } else {
+                            formData[header] = input.value;
+                        }
 
                         if (input.dataset.translated) {
                             const regHeader = (elm && elm.props && elm.props.labelRegional)
