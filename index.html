@@ -824,17 +824,17 @@
                                 style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px; margin-bottom: 5px;"
                                 oninput="syncPortalSlug(this.value)">
                             <small style="font-size: 0.65rem; color: #92400e; display: block; margin-bottom: 10px;">
-                                This creates a clean link: <b>portal.html?p=your-name</b>
+                                This creates: <b>portal.html?p=name</b>
                             </small>
 
                             <label
-                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Branded
-                                Base URL (Bitly Style)</label>
+                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Custom
+                                Domain / Alias (Optional)</label>
                             <input type="text" id="sidebarCustomDomain" placeholder="https://yourbrand.com"
                                 style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px;"
                                 oninput="syncCustomDomain(this.value)">
                             <small style="font-size: 0.65rem; color: #92400e; display: block; margin-top: 4px;">
-                                Hides "github.io" in sharing links.
+                                Use this to hide "github.io" in shared links.
                             </small>
                         </div>
 
@@ -946,10 +946,15 @@
                     </small>
                 </div>
                 <div class="form-group">
-                    <label>Allowed Domains (Security)</label>
-                    <input type="text" id="propAllowedDomains" placeholder="google.com, example.org">
-                    <small style="font-size: 0.7rem; color: var(--text-light);">Comma-separated. Leave empty to allow
-                        all.</small>
+                    <label>Allowed Domains (Security Only)</label>
+                    <input type="text" id="propAllowedDomains" placeholder="google.com, example.org"
+                        oninput="checkDomainWarning(this.value)">
+                    <small id="domainWarning"
+                        style="font-size: 0.7rem; color: #ef4444; display: none; margin-top: 4px; font-weight: 600;">
+                        ⚠️ Warning: Do not put your brand URL here for branding. Use the "Branding" box below.
+                    </small>
+                    <small style="font-size: 0.7rem; color: var(--text-light); display: block;">Limit where this form
+                        can be embedded. Empty = All.</small>
                 </div>
 
                 <!-- NEW BRANDING SECTION -->
@@ -963,7 +968,7 @@
                         <label style="color: #1e40af; font-weight: 700;">Single Form URL Name (Slug)</label>
                         <input type="text" id="fieldFormSlug" placeholder="e.g. donation-link"
                             style="border-color: #93c5fd; margin-bottom: 5px;">
-                        <small style="font-size: 0.65rem; color: #3b82f6; display: block;">Clean Link:
+                        <small style="font-size: 0.65rem; color: #3b82f6;">Clean Link:
                             <b>viewer.html?v=your-name</b></small>
                     </div>
 
@@ -2451,7 +2456,17 @@
         function getBrandedBase() {
             const customBase = (formConfig.customDomain || "").trim();
             const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
-            return customBase ? customBase.replace(/\/$/, '') : currentHost;
+            if (!customBase) return currentHost;
+            return customBase.replace(/\/$/, '');
+        }
+
+        function checkDomainWarning(val) {
+            const warning = document.getElementById('domainWarning');
+            if (val.includes('://') || val.includes('.com') || val.includes('.in')) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
         }
 
         function syncPortalSlug(val, targetId = 'portalSlug') {
@@ -2471,7 +2486,6 @@
             const modal = document.getElementById('embedModal');
             const area = document.getElementById('embedCodeArea');
             const directArea = document.getElementById('directLinkArea');
-            const title = modal ? modal.querySelector('h3') : null;
             if (!modal || !area || !directArea) return;
 
             const apiInput = document.getElementById('propApiUrl');
@@ -2480,41 +2494,22 @@
             if (!currentApiSUrl || currentApiSUrl.length < 20) {
                 alert("⚠️ Please enter your Google Script API URL in Settings first.");
                 showGlobalProps();
-                if (apiInput) apiInput.style.borderColor = '#ef4444';
                 return;
             }
 
-            const base = getBrandedBase();
-            const viewerPath = base + '/viewer.html';
-            const portalPath = base + '/portal.html';
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            const brandedBase = getBrandedBase();
 
+            const portalSlug = document.getElementById('portalSlug').value.trim();
             const engine = document.getElementById('propStorageEngine').value || formConfig.storageEngine || 'gas';
             const backendParam = `&backend=${engine}`;
-            const portalSlug = document.getElementById('portalSlug').value.trim();
-            const formSlug = document.getElementById('fieldFormSlug').value.trim();
 
-            let code = "";
-            let shareUrl = "";
-            if (currentSidebarTab === 'portal') {
-                if (portalSlug) {
-                    shareUrl = `${portalPath}?p=${portalSlug}`;
-                } else {
-                    shareUrl = `${portalPath}?api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
-                }
-                code = `<!-- MULTI-FORM PORTAL EMBED -->\n<iframe src="${shareUrl}" width="100%" height="800" frameborder="0" style="border:none; width:100%; height:800px;"></iframe>`;
-                if (title) title.innerText = "Share Portal Collection";
-            } else {
-                if (formSlug) {
-                    shareUrl = `${viewerPath}?v=${formSlug}`;
-                } else {
-                    shareUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
-                }
-                code = `<!-- SINGLE FORM EMBED -->\n<iframe src="${shareUrl}" width="100%" height="800" frameborder="0" style="border:none; width:100%; height:800px;"></iframe>`;
-                if (title) title.innerText = "Share Single Form";
-            }
+            let workingLink = `${currentHost}/portal.html?p=${portalSlug || 'none'}&api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
+            let professionalLink = `${brandedBase}/portal.html?p=${portalSlug || 'none'}`;
 
-            area.value = code;
-            directArea.value = shareUrl;
+            directArea.value = professionalLink;
+            area.value = `<!-- MULTI-FORM PORTAL EMBED -->\n<iframe src="${workingLink}" width="100%" height="800" frameborder="0"></iframe>`;
+
             modal.style.display = 'flex';
         }
 
@@ -2646,33 +2641,30 @@
 
             if (!currentApiUrl || currentApiUrl.length < 20) {
                 alert("⚠️ Please enter your Google Script API URL in Settings first!");
-                showGlobalProps(); // Open settings
-                if (apiInput) apiInput.style.borderColor = '#ef4444';
+                showGlobalProps();
                 return;
             }
 
-            // FORCE Persistence
             localStorage.setItem('gasApiUrl', currentApiUrl);
             formConfig.gasApiUrl = currentApiUrl;
 
-            const base = getBrandedBase();
-            const portalUrl = base + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
+            // PREVIEW MODE: Always use current host (github.io)
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            const portalUrl = currentHost + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
 
-            console.log("🚀 Launching Portal:", portalUrl);
+            console.log("🚀 Previewing Portal:", portalUrl);
             window.open(portalUrl, '_blank');
         }
 
         function copyPortalLink() {
             const currentApiUrl = document.getElementById('propApiUrl').value.trim() || formConfig.gasApiUrl;
-            if (!currentApiUrl || currentApiUrl.length < 20) {
-                alert("⚠️ Please enter your Google Script API URL in Settings first.");
-                return;
-            }
-            const base = getBrandedBase();
-            const portalUrl = base + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
+            if (!currentApiUrl) return;
+
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            const portalUrl = currentHost + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
 
             navigator.clipboard.writeText(portalUrl).then(() => {
-                alert("✅ Portal Link copied to clipboard! You can share this link directly.");
+                alert("✅ Preview Link copied! Use this for testing.");
             });
         }
 
