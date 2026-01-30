@@ -1452,7 +1452,7 @@
             slug: '',
             customDomain: localStorage.getItem('customDomain') || '',
             gasApiUrl: localStorage.getItem('gasApiUrl') || '',
-            storageEngine: localStorage.getItem('storageEngine') || 'gas',
+            storageEngine: localStorage.getItem('storageEngine') || 'firebase',
             firebaseConfig: localStorage.getItem('firebaseConfig') || ''
         };
 
@@ -2047,6 +2047,7 @@
             formConfig.languageSecondary = document.getElementById('propLanguageSecondary').value;
 
             // Sync API and Branding
+            formConfig.storageEngine = document.getElementById('propStorageEngine').value;
             formConfig.gasApiUrl = document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : formConfig.gasApiUrl;
             formConfig.customDomain = document.getElementById('propCustomDomain') ? document.getElementById('propCustomDomain').value : formConfig.customDomain;
 
@@ -2062,6 +2063,7 @@
             localStorage.setItem('form_' + formConfig.id, JSON.stringify(localData));
 
             // Persist settings
+            localStorage.setItem('storageEngine', formConfig.storageEngine);
             localStorage.setItem('gasApiUrl', formConfig.gasApiUrl);
             localStorage.setItem('customDomain', formConfig.customDomain);
 

@@ -367,7 +367,7 @@
 
         // GAS API URL detection (can be passed via URL or stored)
         let gasApiUrl = urlParams.get('api') || localStorage.getItem('gasApiUrl') || '';
-        const backend = urlParams.get('backend') || 'gas'; // gas or firebase
+        const backend = urlParams.get('backend') || localStorage.getItem('storageEngine') || 'firebase'; // Default to firebase now
 
         // FIREBASE INITIALIZATION
         const firebaseConfig = {
@@ -637,11 +637,12 @@
                 }
             }
 
-            if (!formId) {
+            if (!formId || formId.trim() === "") {
                 document.getElementById('form-container').innerHTML = '<div style="padding:40px; text-align:center; color:#666;">No Form ID provided.</div>';
                 setLoader(false);
                 return;
             }
+            formId = formId.trim();
 
             setLoader(true, "Loading Form...");
             const res = await callApi('getForm', { formId });

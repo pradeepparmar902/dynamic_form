@@ -448,7 +448,7 @@
         }
 
         let API_URL = getStableApiUrl();
-        let backend = urlParams.get('backend') || 'gas'; // gas or firebase
+        let backend = urlParams.get('backend') || localStorage.getItem('storageEngine') || 'firebase'; // Default to firebase now
 
         // FIREBASE INITIALIZATION
         const firebaseConfig = {
