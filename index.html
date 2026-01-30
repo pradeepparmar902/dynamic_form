@@ -1044,203 +1044,246 @@
                         can be embedded. Empty = All.</small>
                 </div>
 
-                <!-- NEW BRANDING SECTION -->
-                <div class="category-title"
-                    style="margin-top: 1.5rem; color: #1e40af; border-bottom: 2px solid #bfdbfe; padding-bottom: 5px;">
-                    🔗 Branding & Custom URLs
-                </div>
-                <div
-                    style="background: #eff6ff; padding: 1rem; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 1rem;">
-                    <div class="form-group">
-                        <label style="color: #1e40af; font-weight: 700;">Single Form URL Name (Slug)</label>
-                        <input type="text" id="fieldFormSlug" placeholder="e.g. donation-link"
-                            style="border-color: #93c5fd; margin-bottom: 5px;">
-                        <small style="font-size: 0.65rem; color: #3b82f6;">Clean Link:
-                            <b>viewer.html?v=your-name</b></small>
-                    </div>
+            </div>
 
-                    <div class="form-group"
-                        style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
-                        <label style="color: #1e40af; font-weight: 700;">Portal Collection Name (Slug)</label>
-                        <input type="text" id="portalSlug" placeholder="e.g. pradeep-parmar"
-                            style="border-color: #93c5fd;" oninput="syncPortalSlug(this.value, 'sidebarPortalSlug')">
-                        <small style="font-size: 0.65rem; color: #3b82f6;">Clean Link:
-                            <b>portal.html?p=your-name</b></small>
+            <!-- NEW BRANDING SECTION: FORM SPECIFIC -->
+            <div class="category-title"
+                style="margin-top: 1.5rem; color: #7c3aed; border-bottom: 2px solid #ddd6fe; padding-bottom: 5px; display: flex; align-items: center; gap: 8px;">
+                🎨 Form Branding
+            </div>
+            <div
+                style="background: #fdf2f8; padding: 1rem; border-radius: 8px; border: 1px solid #fbcfe8; margin-bottom: 1rem;">
+                <div style="display: flex; gap: 10px;">
+                    <div class="form-group" style="flex: 2;">
+                        <label style="color: #be185d; font-weight: 700;">Form Header Title</label>
+                        <input type="text" id="propHeaderTitle" placeholder="e.g. Data Entry Form"
+                            style="border-color: #f9a8d4;">
                     </div>
-
-                    <div class="form-group"
-                        style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
-                        <label style="color: #1e40af; font-weight: 700;">Branded Base URL (Optional)</label>
-                        <input type="text" id="propCustomDomain" placeholder="https://yourbrand.com"
-                            style="border-color: #93c5fd; margin-bottom: 5px;"
-                            oninput="syncCustomDomain(this.value, 'sidebarCustomDomain')">
-                        <small style="font-size: 0.65rem; color: #3b82f6;">Hides "github.io" in sharing links.</small>
+                    <div class="form-group" style="flex: 1;">
+                        <label style="color: #be185d; font-weight: 700;">Logo/Icon</label>
+                        <input type="text" id="propLogoIcon" placeholder="Emoji or Text" style="border-color: #f9a8d4;">
                     </div>
                 </div>
 
-                <div id="adminSettingsArea" class="hidden"
-                    style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 0.5rem;">
-                    <div class="form-group">
-                        <label>GAS API URL (Required for External Hosting)</label>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" id="propApiUrl" placeholder="https://script.google.com/macros/s/.../exec"
-                                style="flex: 1;">
-                            <button class="btn btn-outline" onclick="testApiConnection()"
-                                style="padding: 0.5rem;">Test</button>
-                        </div>
-                        <small style="font-size: 0.7rem; color: var(--text-light);">Required if hosted on GitHub Pages
-                            or
-                            locally.</small>
-                    </div>
+                <div class="form-group">
+                    <label style="color: #be185d; font-weight: 700;">Logo Image URL (Optional)</label>
+                    <input type="text" id="propLogoUrl" placeholder="https://example.com/logo.png"
+                        style="border-color: #f9a8d4; margin-bottom: 5px;">
+                    <small style="font-size: 0.65rem; color: #db2777;">Leave empty to use icon/emoji above.</small>
+                </div>
 
-                    <div class="category-title" style="margin-top: 1.5rem; color: var(--primary); font-size: 0.8rem;">
-                        Admin: Backend Strategy
-                    </div>
-                    <div class="form-group">
-                        <label>Storage Engine (Performance)</label>
-                        <select id="propStorageEngine" onchange="toggleBackendConfig()">
-                            <option value="gas">Google Apps Script (Standard)</option>
-                            <option value="firebase">Firebase (High Performance)</option>
-                        </select>
-                        <small style="font-size: 0.7rem; color: var(--text-light);">Firebase offers ~10x faster loading
-                            for
-                            clients.</small>
-                    </div>
+                <div class="form-group">
+                    <label style="color: #be185d; font-weight: 700;">Form Description/Instructions</label>
+                    <textarea id="propBrandingDescription" rows="3"
+                        placeholder="Enter short instructions for your users..."
+                        style="border-color: #f9a8d4; border-radius: 6px; padding: 8px; width: 100%; font-size: 0.85rem;"></textarea>
+                    <small style="font-size: 0.65rem; color: #db2777;">Appears below the header.</small>
+                </div>
 
-                    <div id="firebaseConfigArea" class="hidden">
-                        <div class="form-group">
-                            <label>Firebase Config (JSON Object)</label>
-                            <textarea id="propFirebaseConfig" rows="5"
-                                placeholder='{ "apiKey": "...", "projectId": "...", ... }'></textarea>
-                            <small style="font-size: 0.7rem; color: var(--text-light);">Paste the config object from
-                                Firebase Console.</small>
-                        </div>
-                    </div>
-
-                    <button class="btn btn-outline" onclick="lockAdminSettings()"
-                        style="width: 100%; justify-content: center; margin-top: 1rem; font-size: 0.75rem;">
-                        🔒 Lock Settings
-                    </button>
+                <div class="form-group" style="margin-top: 10px; border-top: 1px dashed #f9a8d4; padding-top: 10px;">
+                    <label class="checkbox-container" style="font-size: 0.85rem; color: #be185d; font-weight: 600;">
+                        <input type="checkbox" id="propDisplayMode" value="card">
+                        <span class="checkmark"></span>
+                        Display form in card container (centered, professional)
+                    </label>
+                    <small style="font-size: 0.65rem; color: #db2777; display: block; margin-top: 4px;">Recommended
+                        for standalone pages.</small>
                 </div>
             </div>
 
-            <div id="elementProps" class="props-content hidden">
-                <div class="category-title">Element Properties</div>
+            <div class="category-title"
+                style="margin-top: 1.5rem; color: #1e40af; border-bottom: 2px solid #bfdbfe; padding-bottom: 5px;">
+                🔗 Branding & Custom URLs
+            </div>
+            <div
+                style="background: #eff6ff; padding: 1rem; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 1rem;">
                 <div class="form-group">
-                    <label id="lblPropPrimary">Field Label (Primary)</label>
-                    <input type="text" id="propLabel" oninput="updateSelectedElement()">
-                </div>
-                <div class="form-group">
-                    <label id="lblPropSecondary">Field Label (Secondary)</label>
-                    <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
-                </div>
-                <div class="form-group" id="grpOptions" style="display: none;">
-                    <label>Dropdown Options (Comma separated)</label>
-                    <textarea id="propOptions" placeholder="Option 1, Option 2, Option 3" rows="3"
-                        oninput="updateSelectedElement()"></textarea>
+                    <label style="color: #1e40af; font-weight: 700;">Single Form URL Name (Slug)</label>
+                    <input type="text" id="fieldFormSlug" placeholder="e.g. donation-link"
+                        style="border-color: #93c5fd; margin-bottom: 5px;">
+                    <small style="font-size: 0.65rem; color: #3b82f6;">Clean Link:
+                        <b>viewer.html?v=your-name</b></small>
                 </div>
 
-                <div class="form-group" id="grpPlaceholder">
-                    <label>Placeholder</label>
-                    <input type="text" id="propPlaceholder" placeholder="Enter placeholder..."
-                        oninput="updateSelectedElement()">
-                </div>
-                <div class="form-group">
-                    <label>Field Name (DB Key)</label>
-                    <input type="text" id="propName" oninput="updateSelectedElement()">
+                <div class="form-group" style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
+                    <label style="color: #1e40af; font-weight: 700;">Portal Collection Name (Slug)</label>
+                    <input type="text" id="portalSlug" placeholder="e.g. pradeep-parmar" style="border-color: #93c5fd;"
+                        oninput="syncPortalSlug(this.value, 'sidebarPortalSlug')">
+                    <small style="font-size: 0.65rem; color: #3b82f6;">Clean Link:
+                        <b>portal.html?p=your-name</b></small>
                 </div>
 
-                <!-- Dynamic Options based on type -->
-                <div class="form-group toggle-group">
-                    <label>Required</label>
-                    <input type="checkbox" id="propRequired" onchange="updateSelectedElement()">
-                </div>
-
-                <div class="form-group toggle-group">
-                    <label id="lblPropTranslatable">Enable Translation (English -> Marathi)</label>
-                    <input type="checkbox" id="propTranslatable" onchange="updateSelectedElement()">
-                </div>
-
-                <!-- STYLE PROPERTIES -->
-                <div class="form-group" id="grpHeadingLevel">
-                    <label>Heading Level</label>
-                    <select id="propHeadingLevel" onchange="updateSelectedElement()">
-                        <option value="h1">H1 (Huge)</option>
-                        <option value="h2">H2 (Large)</option>
-                        <option value="h3">H3 (Medium)</option>
-                        <option value="h4">H4 (Small)</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="grpAlign">
-                    <label>Alignment</label>
-                    <select id="propAlign" onchange="updateSelectedElement()">
-                        <option value="left">Left</option>
-                        <option value="center">Center</option>
-                        <option value="right">Right</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="grpFontSize">
-                    <label>Font Size (px)</label>
-                    <input type="number" id="propFontSize" oninput="updateSelectedElement()">
-                </div>
-
-                <div class="form-group toggle-group" id="grpBold">
-                    <label>Bold Text</label>
-                    <input type="checkbox" id="propBold" onchange="updateSelectedElement()">
-                </div>
-
-                <!-- VISUAL STYLE PROPERTIES -->
-                <div class="form-group" id="grpStrokeWidth">
-                    <label>Thickness (px)</label>
-                    <input type="number" id="propStrokeWidth" min="1" max="20" oninput="updateSelectedElement()">
-                </div>
-
-                <div class="form-group" id="grpBorderStyle">
-                    <label>Style</label>
-                    <select id="propBorderStyle" onchange="updateSelectedElement()">
-                        <option value="solid">Solid</option>
-                        <option value="dashed">Dashed</option>
-                        <option value="dotted">Dotted</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="grpBorderRadius">
-                    <label>Corner Radius (px)</label>
-                    <input type="number" id="propBorderRadius" min="0" max="100" oninput="updateSelectedElement()">
-                </div>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-
-                <div class="form-group">
-                    <label>Position X (px)</label>
-                    <input type="number" id="propX" oninput="updatePosFromInputs()">
-                </div>
-                <div class="form-group">
-                    <label>Position Y (px)</label>
-                    <input type="number" id="propY" oninput="updatePosFromInputs()">
-                </div>
-                <div class="form-group">
-                    <button class="btn btn-outline" style="width: 100%; justify-content: center; margin-bottom: 0.5rem;"
-                        onclick="duplicateSelected()">
-                        Duplicate Element
-                    </button>
-                    <button class="btn btn-outline"
-                        style="color: var(--danger); border-color: var(--danger); width: 100%; justify-content: center;"
-                        onclick="deleteSelected()">
-                        Delete Element
-                    </button>
-                </div>
-
-                <div class="form-group">
-                    <button class="btn btn-outline" style="width: 100%; justify-content: center;"
-                        onclick="showGlobalProps()">
-                        &larr; Back to Form Settings
-                    </button>
+                <div class="form-group" style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
+                    <label style="color: #1e40af; font-weight: 700;">Branded Base URL (Optional)</label>
+                    <input type="text" id="propCustomDomain" placeholder="https://yourbrand.com"
+                        style="border-color: #93c5fd; margin-bottom: 5px;"
+                        oninput="syncCustomDomain(this.value, 'sidebarCustomDomain')">
+                    <small style="font-size: 0.65rem; color: #3b82f6;">Hides "github.io" in sharing links.</small>
                 </div>
             </div>
-        </aside>
+
+            <div id="adminSettingsArea" class="hidden"
+                style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 0.5rem;">
+                <div class="form-group">
+                    <label>GAS API URL (Required for External Hosting)</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="propApiUrl" placeholder="https://script.google.com/macros/s/.../exec"
+                            style="flex: 1;">
+                        <button class="btn btn-outline" onclick="testApiConnection()"
+                            style="padding: 0.5rem;">Test</button>
+                    </div>
+                    <small style="font-size: 0.7rem; color: var(--text-light);">Required if hosted on GitHub Pages
+                        or
+                        locally.</small>
+                </div>
+
+                <div class="category-title" style="margin-top: 1.5rem; color: var(--primary); font-size: 0.8rem;">
+                    Admin: Backend Strategy
+                </div>
+                <div class="form-group">
+                    <label>Storage Engine (Performance)</label>
+                    <select id="propStorageEngine" onchange="toggleBackendConfig()">
+                        <option value="gas">Google Apps Script (Standard)</option>
+                        <option value="firebase">Firebase (High Performance)</option>
+                    </select>
+                    <small style="font-size: 0.7rem; color: var(--text-light);">Firebase offers ~10x faster loading
+                        for
+                        clients.</small>
+                </div>
+
+                <div id="firebaseConfigArea" class="hidden">
+                    <div class="form-group">
+                        <label>Firebase Config (JSON Object)</label>
+                        <textarea id="propFirebaseConfig" rows="5"
+                            placeholder='{ "apiKey": "...", "projectId": "...", ... }'></textarea>
+                        <small style="font-size: 0.7rem; color: var(--text-light);">Paste the config object from
+                            Firebase Console.</small>
+                    </div>
+                </div>
+
+                <button class="btn btn-outline" onclick="lockAdminSettings()"
+                    style="width: 100%; justify-content: center; margin-top: 1rem; font-size: 0.75rem;">
+                    🔒 Lock Settings
+                </button>
+            </div>
+    </div>
+
+    <div id="elementProps" class="props-content hidden">
+        <div class="category-title">Element Properties</div>
+        <div class="form-group">
+            <label id="lblPropPrimary">Field Label (Primary)</label>
+            <input type="text" id="propLabel" oninput="updateSelectedElement()">
+        </div>
+        <div class="form-group">
+            <label id="lblPropSecondary">Field Label (Secondary)</label>
+            <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
+        </div>
+        <div class="form-group" id="grpOptions" style="display: none;">
+            <label>Dropdown Options (Comma separated)</label>
+            <textarea id="propOptions" placeholder="Option 1, Option 2, Option 3" rows="3"
+                oninput="updateSelectedElement()"></textarea>
+        </div>
+
+        <div class="form-group" id="grpPlaceholder">
+            <label>Placeholder</label>
+            <input type="text" id="propPlaceholder" placeholder="Enter placeholder..."
+                oninput="updateSelectedElement()">
+        </div>
+        <div class="form-group">
+            <label>Field Name (DB Key)</label>
+            <input type="text" id="propName" oninput="updateSelectedElement()">
+        </div>
+
+        <!-- Dynamic Options based on type -->
+        <div class="form-group toggle-group">
+            <label>Required</label>
+            <input type="checkbox" id="propRequired" onchange="updateSelectedElement()">
+        </div>
+
+        <div class="form-group toggle-group">
+            <label id="lblPropTranslatable">Enable Translation (English -> Marathi)</label>
+            <input type="checkbox" id="propTranslatable" onchange="updateSelectedElement()">
+        </div>
+
+        <!-- STYLE PROPERTIES -->
+        <div class="form-group" id="grpHeadingLevel">
+            <label>Heading Level</label>
+            <select id="propHeadingLevel" onchange="updateSelectedElement()">
+                <option value="h1">H1 (Huge)</option>
+                <option value="h2">H2 (Large)</option>
+                <option value="h3">H3 (Medium)</option>
+                <option value="h4">H4 (Small)</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="grpAlign">
+            <label>Alignment</label>
+            <select id="propAlign" onchange="updateSelectedElement()">
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="grpFontSize">
+            <label>Font Size (px)</label>
+            <input type="number" id="propFontSize" oninput="updateSelectedElement()">
+        </div>
+
+        <div class="form-group toggle-group" id="grpBold">
+            <label>Bold Text</label>
+            <input type="checkbox" id="propBold" onchange="updateSelectedElement()">
+        </div>
+
+        <!-- VISUAL STYLE PROPERTIES -->
+        <div class="form-group" id="grpStrokeWidth">
+            <label>Thickness (px)</label>
+            <input type="number" id="propStrokeWidth" min="1" max="20" oninput="updateSelectedElement()">
+        </div>
+
+        <div class="form-group" id="grpBorderStyle">
+            <label>Style</label>
+            <select id="propBorderStyle" onchange="updateSelectedElement()">
+                <option value="solid">Solid</option>
+                <option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="grpBorderRadius">
+            <label>Corner Radius (px)</label>
+            <input type="number" id="propBorderRadius" min="0" max="100" oninput="updateSelectedElement()">
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
+        <div class="form-group">
+            <label>Position X (px)</label>
+            <input type="number" id="propX" oninput="updatePosFromInputs()">
+        </div>
+        <div class="form-group">
+            <label>Position Y (px)</label>
+            <input type="number" id="propY" oninput="updatePosFromInputs()">
+        </div>
+        <div class="form-group">
+            <button class="btn btn-outline" style="width: 100%; justify-content: center; margin-bottom: 0.5rem;"
+                onclick="duplicateSelected()">
+                Duplicate Element
+            </button>
+            <button class="btn btn-outline"
+                style="color: var(--danger); border-color: var(--danger); width: 100%; justify-content: center;"
+                onclick="deleteSelected()">
+                Delete Element
+            </button>
+        </div>
+
+        <div class="form-group">
+            <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="showGlobalProps()">
+                &larr; Back to Form Settings
+            </button>
+        </div>
+    </div>
+    </aside>
     </div>
 
     <!-- MAIN BUILDER LOGIC -->
@@ -1453,7 +1496,13 @@
             customDomain: localStorage.getItem('customDomain') || '',
             gasApiUrl: localStorage.getItem('gasApiUrl') || '',
             storageEngine: localStorage.getItem('storageEngine') || 'firebase',
-            firebaseConfig: localStorage.getItem('firebaseConfig') || ''
+            firebaseConfig: localStorage.getItem('firebaseConfig') || '',
+            // Branding Fields
+            headerTitle: '',
+            logoIcon: '📝',
+            logoUrl: '',
+            brandingDescription: '',
+            displayMode: 'full' // 'full' or 'card'
         };
 
         // DOM REFERENCES
@@ -1781,6 +1830,13 @@
             renderSelectionState();
             elmPropsPanel.classList.add('hidden');
             globalPropsPanel.classList.remove('hidden');
+
+            // Populate Branding Fields
+            document.getElementById('propHeaderTitle').value = formConfig.headerTitle || '';
+            document.getElementById('propLogoIcon').value = formConfig.logoIcon || '📝';
+            document.getElementById('propLogoUrl').value = formConfig.logoUrl || '';
+            document.getElementById('propBrandingDescription').value = formConfig.brandingDescription || '';
+            document.getElementById('propDisplayMode').checked = (formConfig.displayMode === 'card');
         }
 
         // SINGLE ELEMENT UPDATE (Only when 1 selected)
@@ -2046,10 +2102,18 @@
             formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
             formConfig.languageSecondary = document.getElementById('propLanguageSecondary').value;
 
+            // Sync Branding Fields
+            formConfig.headerTitle = document.getElementById('propHeaderTitle').value;
+            formConfig.logoIcon = document.getElementById('propLogoIcon').value;
+            formConfig.logoUrl = document.getElementById('propLogoUrl').value;
+            formConfig.brandingDescription = document.getElementById('propBrandingDescription').value;
+            formConfig.displayMode = document.getElementById('propDisplayMode').checked ? 'card' : 'full';
+
             // Sync API and Branding
             formConfig.storageEngine = document.getElementById('propStorageEngine').value;
             formConfig.gasApiUrl = document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : formConfig.gasApiUrl;
             formConfig.customDomain = document.getElementById('propCustomDomain') ? document.getElementById('propCustomDomain').value : formConfig.customDomain;
+
 
             const schema = elements;
             const config = formConfig;

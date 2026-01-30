@@ -46,6 +46,7 @@
             gap: 10px;
         }
 
+        /* FORM LAYOUTS */
         #form-container {
             width: 100%;
             max-width: 900px;
@@ -58,6 +59,63 @@
             border-left: 1px solid #e5e7eb;
             border-right: 1px solid #e5e7eb;
         }
+
+        /* CARD MODE */
+        body.mode-card {
+            background-color: #f3f4f6;
+            /* Light gray background */
+            padding: 40px 20px;
+        }
+
+        body.mode-card #form-container {
+            max-width: 700px;
+            min-height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 40px;
+        }
+
+        /* BRANDING HEADER */
+        .branding-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f3f4f6;
+            text-align: center;
+        }
+
+        .branding-logo {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .branding-logo img {
+            max-width: 180px;
+            max-height: 80px;
+            object-fit: contain;
+        }
+
+        .branding-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #111827;
+            margin: 0 0 8px 0;
+            line-height: 1.2;
+        }
+
+        .branding-desc {
+            font-size: 0.95rem;
+            color: #4b5563;
+            margin: 0;
+            line-height: 1.5;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
 
         /* Hide shadow and extra padding if in iframe */
         @media (min-width: 800px) {
@@ -682,7 +740,36 @@
             formSchema = response.schema;
             formConfig = response.config;
             const container = document.getElementById('form-container');
+
+            // Apply Layout Mode
+            if (formConfig.displayMode === 'card') {
+                document.body.classList.add('mode-card');
+            } else {
+                document.body.classList.remove('mode-card');
+            }
+
             container.innerHTML = '';
+
+            // Render Branding Header
+            if (formConfig.headerTitle || formConfig.logoIcon || formConfig.logoUrl || formConfig.brandingDescription) {
+                const bHeader = document.createElement('div');
+                bHeader.className = 'branding-header';
+
+                let logoHtml = '';
+                if (formConfig.logoUrl) {
+                    logoHtml = `<div class="branding-logo"><img src="${formConfig.logoUrl}" alt="Logo"></div>`;
+                } else if (formConfig.logoIcon) {
+                    logoHtml = `<div class="branding-logo">${formConfig.logoIcon}</div>`;
+                }
+
+                bHeader.innerHTML = `
+                    ${logoHtml}
+                    ${formConfig.headerTitle ? `<h1 class="branding-title">${formConfig.headerTitle}</h1>` : ''}
+                    ${formConfig.brandingDescription ? `<p class="branding-desc">${formConfig.brandingDescription.replace(/\n/g, '<br>')}</p>` : ''}
+                `;
+                container.appendChild(bHeader);
+            }
+
 
             const langCodeSecondary = formConfig.languageSecondary || formConfig.language || 'mr';
             const langCodePrimary = formConfig.languagePrimary || 'en';
