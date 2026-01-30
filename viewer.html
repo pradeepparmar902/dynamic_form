@@ -624,6 +624,17 @@
             if (isPortal) {
                 initPortal();
                 return;
+            } else {
+                // CLEAN UP: Remove portal structures in single form mode
+                const portalWrapper = document.getElementById('portal-wrapper');
+                if (portalWrapper) portalWrapper.remove();
+
+                // OPTIONAL: Hide header for a truly independent view
+                if (urlParams.get('view') === 'form') {
+                    const header = document.getElementById('mainHeader');
+                    if (header) header.style.display = 'none';
+                    // Optional: show a small close button or return button?
+                }
             }
 
             if (!formId) {
