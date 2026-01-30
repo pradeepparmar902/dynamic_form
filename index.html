@@ -599,13 +599,21 @@
                 </svg>
                 Portal Designer
             </button>
+            <button class="btn btn-outline" onclick="openPortalPreview()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                Preview Portal
+            </button>
             <button class="btn btn-outline" onclick="openPreview()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
-                Preview
+                Preview Form
             </button>
             <button class="btn" onclick="openPortalWithApi()"
                 style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; border: none; font-weight: 600; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
@@ -928,7 +936,19 @@
                             </div>
                         </div>
 
-                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <div
+                            style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                            <button class="btn btn-outline"
+                                style="width:100%; justify-content:center; border-color: #3b82f6; color: #3b82f6; background: #eff6ff;"
+                                onclick="openPortalPreview()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" style="margin-right: 6px;">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                Preview Portal Preview
+                            </button>
                             <button class="btn btn-primary" id="btnSavePortal"
                                 style="width:100%; justify-content:center;" onclick="savePortalSettings()">
                                 Save Portal Collection
@@ -2018,38 +2038,29 @@
             }
         }
 
-        async function saveForm() {
-            const btn = document.querySelector('.btn-primary');
+        async function saveForm(silent = false) {
+            const btn = document.querySelector('button[onclick="saveForm()"]') || document.querySelector('.header-actions .btn-primary');
             const originalText = btn.innerHTML;
             btn.innerHTML = 'Saving...';
             btn.disabled = true;
 
-            const schema = elements;
-            const config = {
-                formName: formConfig.formName || formConfig.id,
-                targetSheetUrl: formConfig.sheetUrl,
-                targetSheetName: formConfig.sheetName,
-                language: formConfig.language,
-                storageEngine: document.getElementById('propStorageEngine').value,
-                slug: document.getElementById('fieldFormSlug').value.trim(),
-                customDomain: document.getElementById('propCustomDomain').value.trim()
-            };
-            const metadata = {
-                description: formConfig.description,
-                allowedDomains: formConfig.allowedDomains,
-                firebaseConfig: document.getElementById('propFirebaseConfig').value
-            };
+            // Sync model with current UI values
+            formConfig.formName = document.getElementById('propFormName').value;
+            formConfig.id = document.getElementById('propFormId').value;
+            formConfig.description = document.getElementById('propDescription').value;
+            formConfig.sheetUrl = document.getElementById('propSheetUrl').value;
+            formConfig.sheetName = document.getElementById('propSheetName').value;
+            formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
+            formConfig.languageSecondary = document.getElementById('propLanguageSecondary').value;
 
-            // Sync with local model
-            formConfig.storageEngine = config.storageEngine;
-            formConfig.firebaseConfig = metadata.firebaseConfig;
-            formConfig.gasApiUrl = document.getElementById('propApiUrl').value;
-            formConfig.slug = config.slug;
-            formConfig.customDomain = config.customDomain;
+            const schema = elements;
+            const config = formConfig;
+            const metadata = {
+                allowedDomains: document.getElementById('propAllowedDomains').value,
+                formName: formConfig.formName
+            };
 
             // Persist
-            localStorage.setItem('storageEngine', formConfig.storageEngine);
-            localStorage.setItem('firebaseConfig', formConfig.firebaseConfig);
             localStorage.setItem('gasApiUrl', formConfig.gasApiUrl);
             localStorage.setItem('customDomain', formConfig.customDomain);
 
@@ -2058,27 +2069,37 @@
             btn.innerHTML = originalText;
             btn.disabled = false;
             if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
-                alert('Form Saved! (Check Drive/Sheet to confirm if external)');
+                if (!silent) alert('Form Saved! (Check Drive/Sheet to confirm if external)');
             } else {
                 alert('Error: ' + res.message);
             }
         }
 
-        function openPreview() {
-            const apiUrl = formConfig.gasApiUrl;
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run.withSuccessHandler(url => {
-                    const finalUrl = url + '?view=form&id=' + formConfig.id;
-                    window.open(finalUrl, '_blank');
-                }).getScriptUrl();
-                alert("Redirecting to preview... if window doesn't open, use the link from browser address bar with ?view=form&id=" + formConfig.id);
-            } else {
-                let previewUrl = `viewer.html?view=form&id=${formConfig.id}`;
-                if (apiUrl) {
-                    previewUrl += `&api=${encodeURIComponent(apiUrl)}`;
-                }
-                window.open(previewUrl, '_blank');
+        async function openPreview() {
+            // Auto-save before previewing
+            const btn = document.querySelector('button[onclick="saveForm()"]');
+            const originalText = btn ? btn.innerHTML : 'Save';
+            if (btn) btn.innerHTML = '<span class="spinner-sm"></span> Saving...';
+
+            try {
+                await saveForm(true); // Call saveForm with a silent flag if possible
+            } catch (e) {
+                console.error("Auto-save failed:", e);
+                // Continue anyway if user wants to see what's there
+            } finally {
+                if (btn) btn.innerHTML = originalText;
             }
+
+            const apiUrl = formConfig.gasApiUrl;
+            let previewUrl = `viewer.html?view=form&id=${formConfig.id}`;
+            if (apiUrl) {
+                previewUrl += `&api=${encodeURIComponent(apiUrl)}`;
+            }
+            window.open(previewUrl, '_blank');
+        }
+
+        function openPortalPreview() {
+            openPortalWithApi(); // Reuse the same logic which is already host-safe
         }
 
         // --- KEYBOARD SHORTCUTS ---
@@ -2729,16 +2750,7 @@
             alert("New Form Created! You can start adding elements.");
         }
 
-        function openPreview() {
-            const currentApiUrl = (document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : "") || formConfig.gasApiUrl;
-            if (!currentApiUrl) {
-                alert("Please configure 'GAS API URL' in Settings first.");
-                return;
-            }
-            const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
-            const portalUrl = myHost + (myHost.endsWith('/') ? '' : '/') + 'portal.html?api=' + encodeURIComponent(currentApiUrl);
-            window.open(portalUrl, '_blank');
-        }
+
 
         function openPortalWithApi() {
             const apiInput = document.getElementById('propApiUrl');
