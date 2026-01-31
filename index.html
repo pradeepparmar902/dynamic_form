@@ -3727,9 +3727,8 @@
 
             // Only enforce GAS URL if we are actually using GAS engine
             if (currentEngine === 'gas' && (!currentApiSUrl || currentApiSUrl.length < 20)) {
-                alert("⚠️ Please enter your Google Script API URL in Settings first (Required for 'Google Sheets' storage).");
-                showGlobalProps();
-                return;
+                // Warning only - do not block
+                console.warn("⚠️ GAS API URL missing but engine is set to GAS.");
             }
 
             const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
