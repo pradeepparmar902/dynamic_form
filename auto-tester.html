@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Auto-Tester (Dummy User Mode)</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #fff;
+        }
+
+        .box {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #444;
+        }
+
+        h2 {
+            color: #61dafb;
+            margin-top: 0;
+        }
+
+        button {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+        }
+
+        .status {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+
+        .success {
+            background: #064e3b;
+            color: #6ee7b7;
+            border: 1px solid #059669;
+        }
+
+        .error {
+            background: #450a0a;
+            color: #fca5a5;
+            border: 1px solid #dc2626;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            background: #000;
+            padding: 10px;
+            border-radius: 4px;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🤖 Auto-Tester (Simulating "Dummy User")</h1>
+
+    <div class="box">
+        <h2>1. Connection Setup</h2>
+        <p>Paste your Google Apps Script Web App URL below:</p>
+        <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/..." />
+        <button onclick="startTest()">🚀 Start Full Diagnostic Test</button>
+    </div>
+
+    <div id="logs"></div>
+
+    <script>
+        async function startTest() {
+            const url = document.getElementById('apiUrl').value.trim();
+            if (!url) return log('❌ Please enter API URL', 'error');
+
+            clearLogs();
+            log('🔄 Starting Tests...', 'info');
+
+            // TEST 1: PING
+            log('📡 Test 1: Pinging API...', 'info');
+            try {
+                const ping = await fetch(`${url}?action=ping`).then(r => r.json());
+                if (ping.status === 'success') log('✅ API is Online', 'success');
+                else throw new Error(ping.message || 'Unknown Error');
+            } catch (e) {
+                log('❌ API Connection Failed: ' + e.message, 'error');
+                return; // Stop here
+            }
+
+            // TEST 2: LOAD PORTAL CONFIG
+            log('📡 Test 2: Fetching Portal Config...', 'info');
+            let config;
+            try {
+                const res = await fetch(`${url}?action=loadPortal`).then(r => r.json());
+                if (res.status === 'success') {
+                    config = res.config;
+                    log(`✅ Portal Load Success. Contains ${config.forms.length} forms.`, 'success');
+                    log('📄 Config Dump: ' + JSON.stringify(config.forms, null, 2));
+                } else {
+                    throw new Error(res.message);
+                }
+            } catch (e) {
+                log('❌ Portal Load Failed: ' + e.message, 'error');
+                return;
+            }
+
+            // TEST 3: LOAD FIRST FORM
+            if (config && config.forms.length > 0) {
+                const firstFormId = config.forms[0].id;
+                log(`📡 Test 3: Attempting to fetch First Form (${firstFormId})...`, 'info');
+
+                try {
+                    const formRes = await fetch(`${url}?action=getForm&id=${firstFormId}`).then(r => r.json());
+
+                    if (formRes.status === 'success') {
+                        log('✅ Form Data Retrieved Successfully!', 'success');
+                        log(`   - Schema Elements: ${formRes.schema ? formRes.schema.length : 0}`);
+                        log(`   - Source: ${formRes.source || 'Database/Drive'}`);
+                        log('🎉 CONCLUSION: The Backend is working perfectly.', 'success');
+                    } else {
+                        log('❌ Form Fetch Error: ' + (formRes.message || 'Unknown Error'), 'error');
+                        log('� RESPONSE DUMP: ' + JSON.stringify(formRes, null, 2), 'error');
+                        log('�💡 DIAGNOSIS: The form ID exists in config, but the data is missing from Registry/Drive.', 'error');
+                    }
+                } catch (e) {
+                    log('❌ API Error fetching form: ' + e.message, 'error');
+                }
+            } else {
+                log('⚠️ No forms in portal to test.', 'error');
+            }
+        }
+
+        function log(msg, type = 'info') {
+            const div = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `status ${type}`;
+            if (msg.includes('Dump:')) {
+                entry.innerHTML = `<pre>${msg}</pre>`;
+            } else {
+                entry.innerText = msg;
+            }
+            div.appendChild(entry);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+    </script>
+</body>
+
+</html>

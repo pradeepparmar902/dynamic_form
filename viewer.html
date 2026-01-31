@@ -786,9 +786,24 @@
                     ? ` <span class="lang-${langCodeSecondary}" style="font-weight:400; color:#555">/ ${elm.props.labelRegional}</span>`
                     : '';
 
+                // --- APPLY UNIVERSAL STYLING ---
+                if (elm.props.textColor) div.style.color = elm.props.textColor;
+                if (elm.props.backgroundColor && elm.props.backgroundColor !== 'transparent') {
+                    div.style.backgroundColor = elm.props.backgroundColor;
+                }
+                if (elm.props.borderColor) {
+                    div.style.borderColor = elm.props.borderColor;
+                }
+                if (elm.props.opacity !== undefined && elm.props.opacity < 100) {
+                    div.style.opacity = elm.props.opacity / 100;
+                }
+                if (elm.props.padding) div.style.padding = elm.props.padding + 'px';
+                if (elm.props.shadow) {
+                    div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                }
+
                 // Render Input
-                // Render Input
-                if (['text', 'number', 'date', 'file', 'email', 'textarea', 'paragraph', 'dropdown', 'counter', 'image', 'repeater'].includes(elm.type)) {
+                if (['text', 'number', 'date', 'file', 'email', 'textarea', 'paragraph', 'dropdown', 'counter', 'repeater'].includes(elm.type)) {
                     let inputHtml = "";
                     const req = elm.props.required ? 'required' : '';
                     const placeholder = elm.props.placeholder || "";
@@ -815,16 +830,6 @@
                                 <button type="button" class="btn" style="padding:5px 15px; background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1;" onclick="this.previousElementSibling.stepUp()">+</button>
                             </div>
                         `;
-                    } else if (elm.type === 'image') {
-                        inputHtml = `
-                            <div class="image-upload-wrapper" style="border:1px solid #d1d5db; padding:10px; border-radius:4px;">
-                                <input type="file" class="field-input" name="${name}" accept="image/*" ${req} 
-                                       style="border:none; padding:0;" onchange="previewImg(this)">
-                                <div class="img-preview" style="margin-top:10px; display:none;">
-                                    <img src="" style="max-width:100%; max-height:150px; border-radius:4px;">
-                                </div>
-                            </div>
-                        `;
                     } else if (elm.type === 'repeater') {
                         inputHtml = `
                             <div class="repeater-wrapper" id="rep-${elm.id}" data-name="${name}">
@@ -846,7 +851,7 @@
                                    ${req}
                                    placeholder="${placeholder}"
                                    data-translatable="${elm.props.translatable || false}">
-                        `;
+                            `;
                     }
 
                     div.innerHTML = `
@@ -861,6 +866,12 @@
                         input.addEventListener('blur', (e) => handleTranslation(e, elm.id));
                     }
 
+                } else if (elm.type === 'image' || elm.type === 'logo') {
+                    div.style.width = (elm.props.width || 150) + 'px';
+                    div.style.height = (elm.props.height || 100) + 'px';
+                    const url = elm.props.imageUrl || 'https://via.placeholder.com/150?text=Image';
+                    div.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain; border-radius:${elm.props.borderRadius || 0}px; border:${elm.props.strokeWidth || 0}px solid #ccc; display:block;">`;
+
                 } else if (elm.type === 'heading') {
                     div.style.textAlign = elm.props.align || 'left';
                     const tag = elm.props.headingLevel || 'h2';
@@ -873,7 +884,7 @@
                     div.style.borderRadius = (elm.props.borderRadius || 0) + 'px';
                     div.style.pointerEvents = 'none'; // Prevent blocking inputs
                 } else if (elm.type === 'line') {
-                    div.style.width = '200px';
+                    div.style.width = (elm.props.width || 200) + 'px';
                     // Line Implementation: Height = Wrapper, Border = Visual
                     div.style.height = (elm.props.strokeWidth || 2) + 'px';
                     div.style.borderTop = `${elm.props.strokeWidth || 2}px ${elm.props.borderStyle || 'solid'} #000`;

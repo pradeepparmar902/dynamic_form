@@ -96,6 +96,56 @@
             background: var(--surface-alt);
         }
 
+        /* PROPERTIES PANEL TABS */
+        .panel-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: #f8fafc;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: #eff6ff;
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #eff6ff;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
         /* MAIN LAYOUT */
         .workspace {
             display: flex;
@@ -419,6 +469,70 @@
             cursor: move;
         }
 
+        /* RESIZE HANDLES */
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border: 1px solid white;
+            border-radius: 50%;
+            z-index: 11;
+            pointer-events: auto;
+        }
+
+        .handle-nw {
+            top: -4px;
+            left: -4px;
+            cursor: nwse-resize;
+        }
+
+        .handle-n {
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+        }
+
+        .handle-ne {
+            top: -4px;
+            right: -4px;
+            cursor: nesw-resize;
+        }
+
+        .handle-e {
+            top: 50%;
+            right: -4px;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
+
+        .handle-se {
+            bottom: -4px;
+            right: -4px;
+            cursor: nwse-resize;
+        }
+
+        .handle-s {
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+        }
+
+        .handle-sw {
+            bottom: -4px;
+            left: -4px;
+            cursor: nesw-resize;
+        }
+
+        .handle-w {
+            top: 50%;
+            left: -4px;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
+
         /* COMPONENT STYLES PREVIEW */
         .preview-field {
             pointer-events: none;
@@ -613,6 +727,42 @@
             font-size: 0.75rem;
             color: var(--text-light);
         }
+
+        /* Color Controls Section */
+        .color-section {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #bae6fd;
+        }
+
+        .color-section .category-title {
+            color: #0284c7;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+
+        /* Style Controls Section */
+        .style-section {
+            background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #f0abfc;
+        }
+
+        .style-section .category-title {
+            color: #a21caf;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
     </style>
 </head>
 
@@ -653,6 +803,14 @@
                 Form_ID</div>
         </div>
         <div class="header-actions">
+            <button class="btn btn-outline" onclick="goToWorkspace()" style="border-color: transparent;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5" />
+                    <path d="M12 19l-7-7 7-7" />
+                </svg>
+                Back
+            </button>
             <button class="btn btn-outline" onclick="showLoadModal()"
                 style="background: #f8fafc; border-color: #cbd5e1;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -1235,277 +1393,346 @@
 
         <!-- PROPERTIES PANEL -->
         <aside class="properties-panel">
-            <div class="props-header">Configuration</div>
-
-            <div id="globalProps" class="props-content">
-                <div class="category-title" style="display:flex; justify-content:space-between; align-items:center;">
-                    Form Settings
-                    <button class="btn btn-outline" id="adminUnlockArea" onclick="unlockAdminSettings()"
-                        style="font-size: 0.7rem; padding: 4px 8px; border-style: dashed; background: #fffbeb; border-color: #fcd34d; color: #92400e;">
-                        🔐 Unlock Admin
-                    </button>
-                </div>
-                <div class="form-group">
-                    <label>Form Name (Display)</label>
-                    <input type="text" id="propFormName" placeholder="e.g. Donation Form">
-                </div>
-                <div class="form-group">
-                    <label>Form ID (System Key)</label>
-                    <input type="text" id="propFormId" readonly
-                        style="background: var(--surface-alt); color: var(--text-light); border-style: dashed;">
-                </div>
-                <div class="form-group">
-                    <label>Form Description</label>
-                    <textarea id="propDescription" rows="2"
-                        placeholder="Describe the purpose of this form..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Target Sheet URL</label>
-                    <textarea id="propSheetUrl" rows="2"
-                        placeholder="https://docs.google.com/spreadsheets/d/..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Target Sheet Name</label>
-                    <input type="text" id="propSheetName" placeholder="e.g. Data">
-                </div>
-                <div class="form-group">
-                    <label>Primary Language (User Inputs)</label>
-                    <select id="propLanguagePrimary" onchange="updateFormLanguage()">
-                        <option value="en">English (English)</option>
-                        <option value="mr">Marathi (Marathi)</option>
-                        <option value="hi">Hindi (Hindi)</option>
-                        <option value="gu">Gujarati (Gujarati)</option>
-                        <option value="kn">Kannada (Kannada)</option>
-                        <option value="ta">Tamil (Tamil)</option>
-                        <option value="te">Telugu (Telugu)</option>
-                        <option value="bn">Bengali (Bengali)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Secondary Language (Translates To)</label>
-                    <select id="propLanguageSecondary" onchange="updateFormLanguage()">
-                        <option value="mr">Marathi (Marathi)</option>
-                        <option value="en">English (English)</option>
-                        <option value="hi">Hindi (Hindi)</option>
-                        <option value="gu">Gujarati (Gujarati)</option>
-                        <option value="kn">Kannada (Kannada)</option>
-                        <option value="ta">Tamil (Tamil)</option>
-                        <option value="te">Telugu (Telugu)</option>
-                        <option value="bn">Bengali (Bengali)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <button class="btn btn-outline"
-                        style="width: 100%; border-color: var(--primary); color: var(--primary);"
-                        onclick="swapAllLabels()">
-                        Swap L1 ⇄ L2 Labels (Move Text)
-                    </button>
-                    <small style="font-size: 0.7rem; color: #666; margin-top: 4px; display: block;">
-                        * This will move all secondary labels to primary and vice-versa.
-                    </small>
-                </div>
-                <div class="form-group">
-                    <label>Allowed Domains (Security Only)</label>
-                    <input type="text" id="propAllowedDomains" placeholder="google.com, example.org"
-                        oninput="checkDomainWarning(this.value)">
-                    <small id="domainWarning"
-                        style="font-size: 0.7rem; color: #ef4444; display: none; margin-top: 4px; font-weight: 600;">
-                        ⚠️ Warning: Do not put your brand URL here for branding. Use the "Branding" box below.
-                    </small>
-                    <small style="font-size: 0.7rem; color: var(--text-light); display: block;">Limit where this form
-                        can be embedded. Empty = All.</small>
-                </div>
-
-                <!-- Moved Branding to Left Sidebar -->
-
-                <!-- Moved Branding & URLs to Left Sidebar -->
 
 
-                <div id="adminSettingsArea" class="hidden"
-                    style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 0.5rem;">
-                    <div class="form-group">
-                        <label>GAS API URL (Required for External Hosting)</label>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" id="propApiUrl" placeholder="https://script.google.com/macros/s/.../exec"
-                                style="flex: 1;">
-                            <button class="btn btn-outline" onclick="testApiConnection()"
-                                style="padding: 0.5rem;">Test</button>
-                        </div>
-                        <small style="font-size: 0.7rem; color: var(--text-light);">Required if hosted on GitHub Pages
-                            or
-                            locally.</small>
-                    </div>
 
-                    <div class="category-title" style="margin-top: 1.5rem; color: var(--primary); font-size: 0.8rem;">
-                        Admin: Backend Strategy
-                    </div>
-                    <div class="form-group">
-                        <label>Storage Engine (Performance)</label>
-                        <select id="propStorageEngine" onchange="toggleBackendConfig()">
-                            <option value="gas">Google Apps Script (Standard)</option>
-                            <option value="firebase">Firebase (High Performance)</option>
-                        </select>
-                        <small style="font-size: 0.7rem; color: var(--text-light);">Firebase offers ~10x faster loading
-                            for
-                            clients.</small>
-                    </div>
 
-                    <div id="firebaseConfigArea" class="hidden">
+            <!-- TABS -->
+            <div class="panel-tabs"
+                style="display: flex; border-bottom: 1px solid var(--border); background: #f8fafc; position:sticky; top:0; z-index:10;">
+                <button class="tab-btn active" onclick="switchTab('settings')"
+                    style="flex:1; padding:12px; border:none; background:none; cursor:pointer; font-weight:600; color:#64748b; border-bottom:3px solid transparent;">Settings</button>
+                <button class="tab-btn" onclick="switchTab('properties')"
+                    style="flex:1; padding:12px; border:none; background:none; cursor:pointer; font-weight:600; color:#64748b; border-bottom:3px solid transparent;">Properties</button>
+                <button class="tab-btn" onclick="switchTab('design')"
+                    style="flex:1; padding:12px; border:none; background:none; cursor:pointer; font-weight:600; color:#64748b; border-bottom:3px solid transparent;">Design</button>
+            </div>
+
+            <div style="padding: 1rem;">
+                <!-- TAB 1: SETTINGS (GLOBAL) -->
+                <div id="tab-settings" class="tab-content active">
+                    <div id="globalProps">
+                        <h3>📝 Form Settings</h3>
                         <div class="form-group">
-                            <label>Firebase Config (JSON Object)</label>
-                            <textarea id="propFirebaseConfig" rows="5"
-                                placeholder='{ "apiKey": "...", "projectId": "...", ... }'></textarea>
-                            <small style="font-size: 0.7rem; color: var(--text-light);">Paste the config object from
-                                Firebase Console.</small>
+                            <label>Form ID</label>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="text" id="propFormId" readonly style="background: #f3f4f6; color: #666;">
+                                <button class="btn btn-outline" style="padding: 5px 10px;"
+                                    onclick="copyToClipboard(document.getElementById('propFormId').value)">📋</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Form Name</label>
+                            <input type="text" id="propFormName">
+                        </div>
+                        <div class="form-group">
+                            <label>Description (Optional)</label>
+                            <textarea id="propDescription" class="prop-input" rows="3"></textarea>
+                        </div>
+
+                        <div class="prop-group">
+                            <h3>🔐 Access & Security</h3>
+                            <label>Allowed Domains (Comma separated)</label>
+                            <small style="color: #666; font-size: 0.75rem;">Leave empty to allow
+                                all.</small>
+                        </div>
+
+                        <div id="adminUnlockArea" style="margin-top: 20px; text-align: center;">
+                            <button class="btn btn-outline" onclick="unlockAdminSettings()">🔒 Unlock
+                                Advanced Settings</button>
+                        </div>
+
+                        <div id="adminSettingsArea" class="hidden"
+                            style="margin-top: 20px; border: 1px solid #fee2e2; padding: 10px; border-radius: 6px; background: #fff1f2;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <h4 style="margin:0; color:#b91c1c;">Advanced Settings</h4>
+                                <button onclick="lockAdminSettings()"
+                                    style="background:none; border:none; color:#b91c1c; cursor:pointer;">✖
+                                    Lock</button>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Storage Engine</label>
+                                <select id="propStorageEngine" onchange="toggleBackendConfig()">
+                                    <option value="gas">Google Sheets (GAS)</option>
+                                    <option value="firebase">Firebase Firestore</option>
+                                </select>
+                            </div>
+
+                            <div id="firebaseConfigArea" class="form-group hidden">
+                                <label>Firebase Config JSON</label>
+                                <textarea id="propFirebaseConfig" rows="5"
+                                    style="font-family:monospace; font-size:0.8rem;"
+                                    placeholder='{"apiKey": "...", ...}'></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>GAS Script URL</label>
+                                <input type="text" id="propApiUrl">
+                            </div>
+                            <div class="form-group">
+                                <label>Google Sheet URL</label>
+                                <input type="text" id="propSheetUrl">
+                            </div>
+                            <div class="form-group">
+                                <label>Custom Domain (Optional)</label>
+                                <input type="text" id="propCustomDomain" placeholder="https://form.example.com"
+                                    onchange="localStorage.setItem('customDomain', this.value)">
+                            </div>
+                        </div>
+
+                        <!-- BRANDING -->
+                        <div id="brandingSection"
+                            style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                            <h3>✨ Branding</h3>
+                            <!-- Content populated by updateCanvasBranding inputs if needed, usually globalProps contains enough -->
                         </div>
                     </div>
 
-                    <button class="btn btn-outline" onclick="lockAdminSettings()"
-                        style="width: 100%; justify-content: center; margin-top: 1rem; font-size: 0.75rem;">
-                        🔒 Lock Settings
-                    </button>
-                </div>
-            </div>
-
-            <div id="elementProps" class="props-content hidden">
-                <div class="category-title">Element Properties</div>
-                <div class="form-group">
-                    <label id="lblPropPrimary">Field Label (Primary)</label>
-                    <input type="text" id="propLabel" oninput="updateSelectedElement()">
-                </div>
-                <div class="form-group">
-                    <label id="lblPropSecondary">Field Label (Secondary)</label>
-                    <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
-                </div>
-                <div class="form-group" id="grpOptions" style="display: none;">
-                    <label>Dropdown Options (Comma separated)</label>
-                    <textarea id="propOptions" placeholder="Option 1, Option 2, Option 3" rows="3"
-                        oninput="updateSelectedElement()"></textarea>
-                </div>
-
-                <div class="form-group" id="grpPlaceholder">
-                    <label>Placeholder</label>
-                    <input type="text" id="propPlaceholder" placeholder="Enter placeholder..."
-                        oninput="updateSelectedElement()">
-                </div>
-                <div class="form-group">
-                    <label>Field Name (DB Key)</label>
-                    <input type="text" id="propName" oninput="updateSelectedElement()">
-                </div>
-
-                <div class="form-group" id="grpImageUrl" style="display: none;">
-                    <label>Image / Logo URL</label>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="propImageUrl" oninput="updateSelectedElement()" style="flex: 1;">
-                        <button class="btn btn-outline" onclick="triggerFileUpload()" style="padding: 0 10px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="17 8 12 3 7 8" />
-                                <line x1="12" y1="3" x2="12" y2="15" />
-                            </svg>
-                        </button>
+                    <div
+                        style="padding: 20px; text-align: center; color: #64748b; font-style: italic; margin-top:40px;">
+                        <p>Select an element on the canvas to edit its properties.</p>
                     </div>
-                    <input type="file" id="propFileUpload" style="display: none;" accept="image/*"
-                        onchange="handleFileSelection(event)">
                 </div>
 
-                <div class="form-group toggle-group" id="grpSyncConfig" style="display: none;">
-                    <label>Keep Synced with Form Settings</label>
-                    <input type="checkbox" id="propSyncConfig" onchange="updateSelectedElement()">
-                </div>
+                <!-- TAB 2: PROPERTIES (DATA) -->
+                <div id="tab-properties" class="tab-content" style="display:none;">
+                    <div id="elementProps" style="display: none;">
+                        <div class="form-group">
+                            <label>Element ID</label>
+                            <input type="text" id="propId" readonly style="background: #f3f4f6; color: #666;">
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <input type="text" id="propType" readonly
+                                style="background: #f3f4f6; color: #666; text-transform: capitalize;">
+                        </div>
+                        <div class="form-group" id="grpPurpose">
+                            <label>Element Purpose</label>
+                            <select id="propPurpose" onchange="updateSelectedElement()">
+                                <option value="form">Form Field</option>
+                                <option value="branding">Branding Element</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="grpBrandingStyle" style="display: none;">
+                            <label>Branding Style</label>
+                            <select id="propBrandingStyle" onchange="updateSelectedElement()">
+                                <option value="default">Default</option>
+                                <option value="title">Title (Large, Bold)</option>
+                                <option value="subtitle">Subtitle (Italic)</option>
+                                <option value="label">Label</option>
+                                <option value="logo">Logo</option>
+                            </select>
+                        </div>
+                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+                        <div class="form-group">
+                            <label id="lblPropPrimary">Field Label (Primary)</label>
+                            <input type="text" id="propLabel" oninput="updateSelectedElement()">
+                        </div>
+                        <div class="form-group">
+                            <label id="lblPropSecondary">Field Label (Secondary)</label>
+                            <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
+                        </div>
+                        <div class="form-group">
+                            <label>Field Name (DB Key)</label>
+                            <input type="text" id="propName" oninput="updateSelectedElement()">
+                        </div>
+                        <div class="form-group" id="grpPlaceholder">
+                            <label>Placeholder Text</label>
+                            <input type="text" id="propPlaceholder" oninput="updateSelectedElement()">
+                        </div>
+                        <div class="form-group" id="grpOptions" style="display: none;">
+                            <label>Dropdown Options (Comma separated)</label>
+                            <textarea id="propOptions" placeholder="Option 1, Option 2, Option 3" rows="3"
+                                oninput="updateSelectedElement()"></textarea>
+                        </div>
+                        <div class="form-group" id="grpImageUrl" style="display: none;">
+                            <label>Image / Logo URL</label>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="text" id="propImageUrl" oninput="updateSelectedElement()" style="flex: 1;">
+                                <button class="btn btn-outline" onclick="triggerFileUpload()" style="padding: 0 10px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="17 8 12 3 7 8" />
+                                        <line x1="12" y1="3" x2="12" y2="15" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <input type="file" id="propFileUpload" style="display: none;" accept="image/*"
+                                onchange="handleFileSelection(event)">
+                        </div>
+                        <div class="form-group toggle-group" id="grpSyncConfig" style="display: none;">
+                            <label>Keep Synced with Form Settings</label>
+                            <input type="checkbox" id="propSyncConfig" onchange="updateSelectedElement()">
+                        </div>
+                        <div class="form-group toggle-group">
+                            <label>Required</label>
+                            <input type="checkbox" id="propRequired" onchange="updateSelectedElement()">
+                        </div>
+                        <div class="form-group toggle-group">
+                            <label id="lblPropTranslatable">Enable Translation (English -> Marathi)</label>
+                            <input type="checkbox" id="propTranslatable" onchange="updateSelectedElement()">
+                        </div>
 
-                <!-- Dynamic Options based on type -->
-                <div class="form-group toggle-group">
-                    <label>Required</label>
-                    <input type="checkbox" id="propRequired" onchange="updateSelectedElement()">
-                </div>
-
-                <div class="form-group toggle-group">
-                    <label id="lblPropTranslatable">Enable Translation (English -> Marathi)</label>
-                    <input type="checkbox" id="propTranslatable" onchange="updateSelectedElement()">
-                </div>
-
-                <!-- STYLE PROPERTIES -->
-                <div class="form-group" id="grpHeadingLevel">
-                    <label>Heading Level</label>
-                    <select id="propHeadingLevel" onchange="updateSelectedElement()">
-                        <option value="h1">H1 (Huge)</option>
-                        <option value="h2">H2 (Large)</option>
-                        <option value="h3">H3 (Medium)</option>
-                        <option value="h4">H4 (Small)</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="grpAlign">
-                    <label>Alignment</label>
-                    <select id="propAlign" onchange="updateSelectedElement()">
-                        <option value="left">Left</option>
-                        <option value="center">Center</option>
-                        <option value="right">Right</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="grpFontSize">
-                    <label>Font Size (px)</label>
-                    <input type="number" id="propFontSize" oninput="updateSelectedElement()">
-                </div>
-
-                <div class="form-group toggle-group" id="grpBold">
-                    <label>Bold Text</label>
-                    <input type="checkbox" id="propBold" onchange="updateSelectedElement()">
-                </div>
-
-                <!-- VISUAL STYLE PROPERTIES -->
-                <div class="form-group" id="grpStrokeWidth">
-                    <label>Thickness (px)</label>
-                    <input type="number" id="propStrokeWidth" min="1" max="20" oninput="updateSelectedElement()">
-                </div>
-
-                <div class="form-group" id="grpBorderStyle">
-                    <label>Style</label>
-                    <select id="propBorderStyle" onchange="updateSelectedElement()">
-                        <option value="solid">Solid</option>
-                        <option value="dashed">Dashed</option>
-                        <option value="dotted">Dotted</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="grpBorderRadius">
-                    <label>Corner Radius (px)</label>
-                    <input type="number" id="propBorderRadius" min="0" max="100" oninput="updateSelectedElement()">
-                </div>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-
-                <div class="form-group">
-                    <label>Position X (px)</label>
-                    <input type="number" id="propX" oninput="updatePosFromInputs()">
-                </div>
-                <div class="form-group">
-                    <label>Position Y (px)</label>
-                    <input type="number" id="propY" oninput="updatePosFromInputs()">
-                </div>
-                <div class="form-group">
-                    <button class="btn btn-outline" style="width: 100%; justify-content: center; margin-bottom: 0.5rem;"
-                        onclick="duplicateSelected()">
-                        Duplicate Element
-                    </button>
-                    <button class="btn btn-outline"
-                        style="color: var(--danger); border-color: var(--danger); width: 100%; justify-content: center;"
-                        onclick="deleteSelected()">
-                        Delete Element
-                    </button>
-                </div>
-
-                <div class="form-group">
-                    <button class="btn btn-outline" style="width: 100%; justify-content: center;"
-                        onclick="showGlobalProps()">
-                        &larr; Back to Form Settings
-                    </button>
+                        <div class="form-group">
+                            <button class="btn btn-outline"
+                                style="width: 100%; justify-content: center; margin-bottom: 0.5rem;"
+                                onclick="duplicateSelected()">
+                                Duplicate Element
+                            </button>
+                            <button class="btn btn-outline"
+                                style="color: var(--danger); border-color: var(--danger); width: 100%; justify-content: center;"
+                                onclick="deleteSelected()">
+                                Delete Element
+                            </button>
+                        </div>
+                    </div>
+                    <div id="propEmptyState" style="text-align: center; color: #999; padding-top: 50px;">
+                        No element selected
+                    </div>
                 </div>
             </div>
-        </aside>
+
+            <!-- TAB 3: DESIGN (VISUALS) -->
+            <div id="tab-design" class="tab-content" style="display:none;">
+                <div id="designProps" style="display:none;">
+
+                    <!-- DIMENSION CONTROLS -->
+                    <div class="form-group" id="grpWidth">
+                        <label>Width (px)</label>
+                        <input type="number" id="propWidth" min="10" max="2000" oninput="updateDimensionsFromInputs()">
+                    </div>
+                    <div class="form-group" id="grpHeight">
+                        <label>Height (px)</label>
+                        <input type="number" id="propHeight" min="10" max="2000" oninput="updateDimensionsFromInputs()">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <div class="form-group" style="flex:1;">
+                            <label>X (px)</label>
+                            <input type="number" id="propX" oninput="updatePosFromInputs()">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Y (px)</label>
+                            <input type="number" id="propY" oninput="updatePosFromInputs()">
+                        </div>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
+                    <!-- TYPOGRAPHY -->
+                    <div class="form-group" id="grpHeadingLevel">
+                        <label>Heading Level</label>
+                        <select id="propHeadingLevel" onchange="updateSelectedElement()">
+                            <option value="h1">H1 (Huge)</option>
+                            <option value="h2">H2 (Large)</option>
+                            <option value="h3">H3 (Medium)</option>
+                            <option value="h4">H4 (Small)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="grpAlign">
+                        <label>Alignment</label>
+                        <select id="propAlign" onchange="updateSelectedElement()">
+                            <option value="left">Left</option>
+                            <option value="center">Center</option>
+                            <option value="right">Right</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="grpFontSize">
+                        <label>Font Size (px)</label>
+                        <input type="number" id="propFontSize" oninput="updateSelectedElement()">
+                    </div>
+                    <div class="form-group toggle-group" id="grpBold">
+                        <label>Bold Text</label>
+                        <input type="checkbox" id="propBold" onchange="updateSelectedElement()">
+                    </div>
+
+                    <!-- VISUAL STYLE PROPERTIES -->
+                    <div class="form-group" id="grpStrokeWidth">
+                        <label>Thickness (px)</label>
+                        <input type="number" id="propStrokeWidth" min="1" max="20" oninput="updateSelectedElement()">
+                    </div>
+                    <div class="form-group" id="grpBorderStyle">
+                        <label>Style</label>
+                        <select id="propBorderStyle" onchange="updateSelectedElement()">
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="grpBorderRadius">
+                        <label>Corner Radius (px)</label>
+                        <input type="number" id="propBorderRadius" min="0" max="100" oninput="updateSelectedElement()">
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
+                    <!-- COLOR CONTROLS -->
+                    <div class="color-section">
+                        <div class="category-title">🎨 Colors</div>
+                        <div class="form-group" id="grpTextColor">
+                            <label>Text Color</label>
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <input type="color" id="propTextColor" value="#000000" oninput="updateSelectedElement()"
+                                    style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
+                                <input type="text" id="propTextColorHex" value="#000000"
+                                    oninput="syncColorFromHex('text')"
+                                    style="flex: 1; font-family: monospace; font-size: 0.85rem;" placeholder="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group" id="grpBackgroundColor">
+                            <label>Background Color</label>
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <input type="color" id="propBackgroundColor" value="#ffffff"
+                                    oninput="updateSelectedElement()"
+                                    style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
+                                <input type="text" id="propBackgroundColorHex" value="#ffffff"
+                                    oninput="syncColorFromHex('background')"
+                                    style="flex: 1; font-family: monospace; font-size: 0.85rem;" placeholder="#ffffff">
+                            </div>
+                        </div>
+                        <div class="form-group" id="grpBorderColor">
+                            <label>Border Color</label>
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <input type="color" id="propBorderColor" value="#cccccc"
+                                    oninput="updateSelectedElement()"
+                                    style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
+                                <input type="text" id="propBorderColorHex" value="#cccccc"
+                                    oninput="syncColorFromHex('border')"
+                                    style="flex: 1; font-family: monospace; font-size: 0.85rem;" placeholder="#cccccc">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ADVANCED STYLING -->
+                    <div class="style-section">
+                        <div class="category-title">✨ Visual Effects</div>
+                        <div class="form-group" id="grpOpacity">
+                            <label>Opacity <span id="opacityValue"
+                                    style="color: var(--text-light); font-size: 0.85rem;">100%</span></label>
+                            <input type="range" id="propOpacity" min="0" max="100" value="100"
+                                oninput="updateSelectedElement()" style="width: 100%;">
+                        </div>
+                        <div class="form-group" id="grpPadding">
+                            <label>Padding (px)</label>
+                            <input type="number" id="propPadding" min="0" max="50" value="8"
+                                oninput="updateSelectedElement()">
+                        </div>
+                        <div class="form-group" id="grpShadow">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="propShadow" onchange="updateSelectedElement()">
+                                <span>Add Shadow Effect</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div id="designEmptyState" style="text-align: center; color: #999; padding-top: 50px;">
+                    No element selected
+                </div>
+            </div>
+    </div>
+    </aside>
     </div>
 
     <!-- MAIN BUILDER LOGIC -->
@@ -1581,30 +1808,48 @@
             const engine = document.getElementById('propStorageEngine').value || formConfig.storageEngine || 'gas';
 
             if (engine === 'firebase') {
-                await initFirebase();
+                // Firebase is already initialized globally
                 if (!db) return { status: 'error', message: 'Firebase not initialized. Check your console for errors.' };
 
                 try {
                     if (action === 'saveForm') {
                         console.log("📤 Firestore: Saving form...", payload.formId);
-                        await db.collection('forms').doc(payload.formId).set({
-                            id: payload.formId,
-                            schema: payload.schema,
-                            config: payload.config,
-                            metadata: payload.metadata,
-                            lastUpdated: Date.now()
-                        });
 
-                        // Vanity Mapping for Single Forms
-                        if (payload.config.slug) {
-                            console.log("📂 Firestore: Creating form vanity mapping for...", payload.config.slug);
-                            await db.collection('form_slugs').doc(payload.config.slug.toLowerCase()).set({
-                                formId: payload.formId,
-                                apiUrl: payload.config.gasApiUrl || localStorage.getItem('gasApiUrl'),
-                                storageEngine: payload.config.storageEngine || 'firebase',
+                        // Create a timeout promise
+                        const timeout = new Promise((_, reject) =>
+                            setTimeout(() => {
+                                console.error("TIMEOUT REACHED");
+                                reject(new Error("Request timed out (10s) - Firebase is not responding. Check your internet connection."));
+                            }, 10000)
+                        );
+
+                        const saveOp = (async () => {
+                            console.log("🔥 callApi: Starting Firestore Write...");
+                            await db.collection('forms').doc(payload.formId).set({
+                                id: payload.formId,
+                                schema: payload.schema,
+                                config: payload.config,
+                                metadata: payload.metadata,
                                 lastUpdated: Date.now()
                             });
-                        }
+                            console.log("🔥 callApi: Firestore Write 1 Done");
+
+                            // Vanity Mapping for Single Forms
+                            if (payload.config && payload.config.slug) {
+                                console.log("files: Creating form vanity mapping for...", payload.config.slug);
+                                await db.collection('form_slugs').doc(payload.config.slug.toLowerCase()).set({
+                                    formId: payload.formId,
+                                    apiUrl: payload.config.gasApiUrl || localStorage.getItem('gasApiUrl'),
+                                    storageEngine: payload.config.storageEngine || 'firebase',
+                                    lastUpdated: Date.now()
+                                });
+                            }
+                            return true;
+                        })();
+
+                        // Race against timeout
+                        await Promise.race([saveOp, timeout]);
+
                         console.log("✅ Firestore: Save Successful");
                         return { status: 'success' };
                     } else if (action === 'getForm') {
@@ -1721,12 +1966,13 @@
             firebaseConfig: localStorage.getItem('firebaseConfig') || '',
             // Branding Fields
             headerTitle: '',
-            logoIcon: '📝',
+            logoIcon: '',
             logoUrl: '',
             punchline: '',
             brandingDescription: '',
             footerText: '',
-            displayMode: 'full' // 'full' or 'card'
+            displayMode: 'full', // 'full' or 'card'
+            workspaceId: new URLSearchParams(window.location.search).get('workspaceId') || null
         };
 
         // DOM REFERENCES
@@ -1791,20 +2037,29 @@
             if (source !== 'props') document.getElementById('propFormName').value = val;
         }
 
-        document.getElementById('propFormName').addEventListener('input', (e) => syncFormName(e.target.value, 'props'));
-        document.getElementById('headerFormNameInput').addEventListener('input', (e) => syncFormName(e.target.value, 'header'));
+        const safeAddListener = (id, event, handler) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener(event, handler);
+        };
 
-        document.getElementById('propDescription').addEventListener('input', (e) => formConfig.description = e.target.value);
-        document.getElementById('propAllowedDomains').addEventListener('input', (e) => formConfig.allowedDomains = e.target.value);
-        document.getElementById('propSheetUrl').addEventListener('input', (e) => formConfig.sheetUrl = e.target.value);
-        document.getElementById('propSheetName').addEventListener('input', (e) => formConfig.sheetName = e.target.value);
-        document.getElementById('propLanguagePrimary').value = formConfig.languagePrimary;
-        document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary;
-        document.getElementById('propApiUrl').value = formConfig.gasApiUrl;
-        document.getElementById('propApiUrl').addEventListener('input', (e) => {
-            formConfig.gasApiUrl = e.target.value;
-            localStorage.setItem('gasApiUrl', e.target.value);
-        });
+        safeAddListener('propFormName', 'input', (e) => syncFormName(e.target.value, 'props'));
+        safeAddListener('headerFormNameInput', 'input', (e) => syncFormName(e.target.value, 'header'));
+
+        safeAddListener('propDescription', 'input', (e) => formConfig.description = e.target.value);
+        safeAddListener('propAllowedDomains', 'input', (e) => formConfig.allowedDomains = e.target.value);
+
+        safeAddListener('propSheetUrl', 'input', (e) => formConfig.sheetUrl = e.target.value);
+        safeAddListener('propSheetName', 'input', (e) => formConfig.sheetName = e.target.value);
+
+        if (document.getElementById('propLanguagePrimary')) document.getElementById('propLanguagePrimary').value = formConfig.languagePrimary;
+        if (document.getElementById('propLanguageSecondary')) document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary;
+        if (document.getElementById('propApiUrl')) {
+            document.getElementById('propApiUrl').value = formConfig.gasApiUrl;
+            document.getElementById('propApiUrl').addEventListener('input', (e) => {
+                formConfig.gasApiUrl = e.target.value;
+                localStorage.setItem('gasApiUrl', e.target.value);
+            });
+        }
 
         // --- SIDEBAR TABS ---
         function switchSidebarTab(tab) {
@@ -1885,6 +2140,16 @@
             if (type === 'punchline') defaultLabel = 'Your Tagline Here';
             if (type === 'logo') defaultLabel = '';
 
+            // Determine purpose and branding style based on type
+            const isBrandingType = ['form_title', 'punchline', 'logo', 'label'].includes(type);
+            const purpose = isBrandingType ? 'branding' : 'form';
+            let brandingStyle = 'default';
+
+            if (type === 'form_title') brandingStyle = 'title';
+            else if (type === 'punchline') brandingStyle = 'subtitle';
+            else if (type === 'logo') brandingStyle = 'logo';
+            else if (type === 'label') brandingStyle = 'label';
+
             const newElm = {
                 id: id,
                 type: type, // Keep original type for rendering specific logic
@@ -1897,6 +2162,16 @@
                     translatable: type === 'text',
                     width: type === 'logo' ? 100 : (type === 'form_title' ? 400 : (type === 'separator' ? 700 : 200)),
                     height: type === 'logo' ? 100 : 40,
+                    // Color properties for all elements
+                    textColor: '#000000',
+                    backgroundColor: 'transparent',
+                    borderColor: '#cccccc',
+                    opacity: 100,
+                    padding: 8,
+                    shadow: false,
+                    // Purpose and Branding
+                    purpose: purpose,
+                    brandingStyle: brandingStyle,
                     // Cosmetics
                     headingLevel: type === 'form_title' ? 'h1' : 'h2',
                     align: (type === 'form_title' || type === 'punchline' || type === 'logo') ? 'center' : 'left',
@@ -1975,6 +2250,22 @@
 
             div.innerHTML = content;
             div.style.textAlign = elmData.props.align || 'left';
+
+            // ADD RESIZE HANDLES for ALL elements (universal resizing)
+            {
+                const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+                handles.forEach(pos => {
+                    const handle = document.createElement('div');
+                    handle.className = `resize-handle handle-${pos}`;
+                    handle.dataset.handleType = pos;
+                    handle.dataset.elementId = elmData.id;
+                    handle.onmousedown = (e) => {
+                        e.stopPropagation();
+                        handleResizeStart(e, elmData.id, pos);
+                    };
+                    div.appendChild(handle);
+                });
+            }
 
             // ATTACH INTERACTIONS
             div.onmousedown = (e) => {
@@ -2068,65 +2359,169 @@
             });
         }
 
+        // TAB SWITCHING LOGIC
+        function switchTab(tabId) {
+            // Update Buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // Update Content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+                content.classList.remove('active');
+            });
+            const targetContent = document.getElementById('tab-' + tabId);
+            if (targetContent) {
+                targetContent.style.display = 'block'; // Ensure block display
+                targetContent.classList.add('active');
+            }
+        }
+
         function updatePropsPanel() {
+            const elmProps = document.getElementById('elementProps');
+            const designProps = document.getElementById('designProps');
+            const emptyProps = document.getElementById('propEmptyState');
+            const emptyDesign = document.getElementById('designEmptyState');
+
             if (selectedIds.length === 0) {
                 showGlobalProps();
                 return;
             }
 
-            if (selectedIds.length > 1) {
-                // Multi-selection: Show Summary
-                elmPropsPanel.classList.remove('hidden');
-                globalPropsPanel.classList.add('hidden');
-            } else {
-                // Single Selection (or First of Multi)
-                globalPropsPanel.classList.add('hidden');
-                elmPropsPanel.classList.remove('hidden');
-
-                const id = selectedIds[0];
-                const elm = elements.find(e => e.id === id);
-
-                document.getElementById('propLabel').value = elm.props.label || '';
-                document.getElementById('propLabelRegional').value = elm.props.labelRegional || '';
-                document.getElementById('propName').value = elm.props.name || '';
-                document.getElementById('propRequired').checked = elm.props.required;
-                document.getElementById('propTranslatable').checked = elm.props.translatable;
-                document.getElementById('propX').value = elm.x;
-                document.getElementById('propY').value = elm.y;
-
-                // Handle Visibility of Style Props
-                const t = elm.type;
-                const setDisplay = (id, show) => document.getElementById(id).style.display = show ? 'block' : 'none';
-                const setDisplayFlex = (id, show) => document.getElementById(id).style.display = show ? 'flex' : 'none';
-
-                setDisplay('grpHeadingLevel', t === 'heading');
-                setDisplay('grpAlign', ['heading', 'label', 'form_title', 'punchline', 'logo', 'image'].includes(t));
-                setDisplay('grpFontSize', ['label', 'form_title', 'punchline'].includes(t));
-                setDisplayFlex('grpBold', ['label', 'form_title', 'punchline'].includes(t));
-                setDisplay('grpOptions', t === 'dropdown');
-                setDisplay('grpPlaceholder', !['rect', 'line', 'separator', 'repeater', 'logo', 'image', 'form_title', 'punchline'].includes(t));
-                setDisplay('grpImageUrl', t === 'image' || t === 'logo');
-                setDisplay('grpSyncConfig', t === 'form_title' || t === 'punchline' || t === 'logo');
-
-                // Shape Styles Visibility
-                const isShape = t === 'rect' || t === 'line' || t === 'separator';
-                setDisplay('grpStrokeWidth', isShape || t === 'image' || t === 'logo');
-                setDisplay('grpBorderStyle', isShape);
-                setDisplay('grpBorderRadius', t === 'rect' || t === 'image' || t === 'logo');
-
-                // Set Values
-                document.getElementById('propHeadingLevel').value = elm.props.headingLevel || 'h2';
-                document.getElementById('propAlign').value = elm.props.align || 'left';
-                document.getElementById('propFontSize').value = elm.props.fontSize || 14;
-                document.getElementById('propBold').checked = elm.props.isBold || false;
-                document.getElementById('propStrokeWidth').value = elm.props.strokeWidth || 2;
-                document.getElementById('propBorderStyle').value = elm.props.borderStyle || 'solid';
-                document.getElementById('propBorderRadius').value = elm.props.borderRadius || 0;
-                document.getElementById('propOptions').value = elm.props.options || '';
-                document.getElementById('propPlaceholder').value = elm.props.placeholder || '';
-                document.getElementById('propImageUrl').value = elm.props.imageUrl || '';
-                document.getElementById('propSyncConfig').checked = elm.props.syncConfig || false;
+            // Switch to Properties tab by default if we were in Settings
+            // Or keep current if it's Properties or Design
+            const activeTab = document.querySelector('.tab-content.active');
+            if (!activeTab || activeTab.id === 'tab-settings') {
+                switchTab('properties');
             }
+
+            // Show Content Containers
+            elmProps.style.display = 'block';
+            designProps.style.display = 'block';
+            if (emptyProps) emptyProps.style.display = 'none';
+            if (emptyDesign) emptyDesign.style.display = 'none';
+
+            globalPropsPanel.classList.add('hidden'); // Ensure global is hidden safely
+
+            if (selectedIds.length > 1) {
+                // Multi-selection: Show Summary (Feature TODO: Multi-edit)
+                // For now just show "Multi Selection"
+                return;
+            }
+
+            // Single Selection
+            const id = selectedIds[0];
+            const elm = elements.find(e => e.id === id);
+            if (!elm) return;
+
+            // --- TAB: PROPERTIES (DATA) ---
+            document.getElementById('propId').value = elm.id;
+            document.getElementById('propType').value = elm.type;
+
+            document.getElementById('propLabel').value = elm.props.label || '';
+            document.getElementById('propLabelRegional').value = elm.props.labelRegional || '';
+            document.getElementById('propName').value = elm.props.name || '';
+            document.getElementById('propRequired').checked = elm.props.required;
+            document.getElementById('propTranslatable').checked = elm.props.translatable;
+            document.getElementById('propOptions').value = elm.props.options || '';
+            document.getElementById('propPlaceholder').value = elm.props.placeholder || '';
+            document.getElementById('propImageUrl').value = elm.props.imageUrl || '';
+            document.getElementById('propSyncConfig').checked = elm.props.syncConfig || false;
+
+            // Visibility Logic for Data Props
+            const t = elm.type;
+            const setDisplay = (id, show) => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = show ? 'block' : 'none';
+            };
+            const setDisplayFlex = (id, show) => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = show ? 'flex' : 'none';
+            };
+
+            // Purpose & Branding
+            const purpose = elm.props.purpose || (['form_title', 'punchline', 'logo'].includes(t) ? 'branding' : 'form');
+            const brandingStyle = elm.props.brandingStyle || 'default';
+            document.getElementById('propPurpose').value = purpose;
+            document.getElementById('propBrandingStyle').value = brandingStyle;
+
+            setDisplay('grpBrandingStyle', purpose === 'branding');
+
+            const isFormField = purpose === 'form';
+            // Hide/Show functional groups
+            document.getElementById('propRequired').parentElement.style.display = isFormField ? 'flex' : 'none';
+            document.getElementById('propTranslatable').parentElement.style.display = isFormField ? 'flex' : 'none';
+            document.getElementById('propName').parentElement.style.display = isFormField ? 'block' : 'none';
+            document.getElementById('propLabel').parentElement.style.display = 'block'; // Always show label?
+
+            setDisplay('grpOptions', t === 'dropdown');
+            setDisplay('grpPlaceholder', isFormField && !['rect', 'line', 'separator', 'repeater', 'logo', 'image', 'form_title', 'punchline'].includes(t));
+            setDisplay('grpImageUrl', t === 'image' || t === 'logo');
+            setDisplay('grpSyncConfig', t === 'form_title' || t === 'punchline' || t === 'logo');
+
+            // --- TAB: DESIGN (VISUALS) ---
+            document.getElementById('propX').value = elm.x;
+            document.getElementById('propY').value = elm.y;
+
+            // Dimensions
+            const hasSize = true;
+            setDisplay('grpWidth', hasSize);
+            document.getElementById('propWidth').value = elm.props.width || 100;
+
+            setDisplay('grpHeight', hasSize && t !== 'line' && t !== 'separator');
+            if (t !== 'line' && t !== 'separator') {
+                document.getElementById('propHeight').value = elm.props.height || 100;
+            }
+
+            // Typography
+            document.getElementById('propHeadingLevel').value = elm.props.headingLevel || 'h2';
+            document.getElementById('propAlign').value = elm.props.align || 'left';
+            document.getElementById('propFontSize').value = elm.props.fontSize || 14;
+            document.getElementById('propBold').checked = elm.props.isBold || false;
+
+            setDisplay('grpHeadingLevel', t === 'heading');
+            setDisplay('grpAlign', ['heading', 'label', 'form_title', 'punchline', 'logo', 'image', 'paragraph'].includes(t));
+            setDisplay('grpFontSize', ['label', 'form_title', 'punchline', 'paragraph', 'heading'].includes(t));
+            setDisplayFlex('grpBold', ['label', 'form_title', 'punchline', 'paragraph', 'heading'].includes(t));
+
+            // Shapes & Borders
+            const isShape = t === 'rect' || t === 'line' || t === 'separator';
+            document.getElementById('propStrokeWidth').value = elm.props.strokeWidth || 2;
+            document.getElementById('propBorderStyle').value = elm.props.borderStyle || 'solid';
+            document.getElementById('propBorderRadius').value = elm.props.borderRadius || 0;
+
+            setDisplay('grpStrokeWidth', isShape || t === 'image' || t === 'logo' || t === 'rect');
+            setDisplay('grpBorderStyle', isShape || t === 'rect');
+            setDisplay('grpBorderRadius', t === 'rect' || t === 'image' || t === 'logo');
+
+            // Colors (Always visible now)
+            setDisplay('grpTextColor', true);
+            setDisplay('grpBackgroundColor', true);
+            setDisplay('grpBorderColor', true);
+
+            // Advanced Effects (Always visible)
+            setDisplay('grpOpacity', true);
+            setDisplay('grpPadding', true);
+            setDisplay('grpShadow', true);
+
+            // Populate Color Inputs
+            const updateColorInput = (id, val) => {
+                const input = document.getElementById(id);
+                const hexInput = document.getElementById(id + 'Hex');
+                if (input) input.value = val || '#000000';
+                if (hexInput) hexInput.value = val || '#000000';
+            };
+
+            updateColorInput('propTextColor', elm.props.textColor);
+            updateColorInput('propBackgroundColor', elm.props.backgroundColor);
+            updateColorInput('propBorderColor', elm.props.borderColor);
+
+            document.getElementById('propOpacity').value = elm.props.opacity !== undefined ? elm.props.opacity : 100;
+            if (document.getElementById('opacityValue')) document.getElementById('opacityValue').innerText = (elm.props.opacity !== undefined ? elm.props.opacity : 100) + '%';
+
+            document.getElementById('propPadding').value = elm.props.padding || 8;
+            document.getElementById('propShadow').checked = elm.props.shadow || false;
         }
 
         function triggerFileUpload() {
@@ -2148,19 +2543,23 @@
         function showGlobalProps() {
             selectedIds = [];
             renderSelectionState();
-            elmPropsPanel.classList.add('hidden');
-            globalPropsPanel.classList.remove('hidden');
 
-            // Populate Branding Fields
+            // Switch to Settings Tab
+            switchTab('settings');
+            if (globalPropsPanel) globalPropsPanel.classList.remove('hidden');
+
+            // Ensure Global Props is visible (though switchTab handles parent visibility)
+            // We just need to populate data
+
             document.getElementById('propHeaderTitle').value = formConfig.headerTitle || '';
-            document.getElementById('propLogoIcon').value = formConfig.logoIcon || '📝';
+            document.getElementById('propLogoIcon').value = formConfig.logoIcon || ''; // Default empty now
             document.getElementById('propLogoUrl').value = formConfig.logoUrl || '';
             document.getElementById('propPunchline').value = formConfig.punchline || '';
             document.getElementById('propBrandingDescription').value = formConfig.brandingDescription || '';
             document.getElementById('propFooterText').value = formConfig.footerText || '';
             document.getElementById('propDisplayMode').checked = (formConfig.displayMode === 'card');
 
-            updateCanvasBranding(); // Live refresh canvas
+            updateCanvasBranding();
         }
 
         // SINGLE ELEMENT UPDATE (Only when 1 selected)
@@ -2183,12 +2582,67 @@
             elm.props.fontSize = parseInt(document.getElementById('propFontSize').value) || 14;
             elm.props.isBold = document.getElementById('propBold').checked;
 
+            // Purpose and Branding Style
+            const newPurpose = document.getElementById('propPurpose').value;
+            const newBrandingStyle = document.getElementById('propBrandingStyle').value;
+            const oldPurpose = elm.props.purpose;
+
+            elm.props.purpose = newPurpose;
+            elm.props.brandingStyle = newBrandingStyle;
+
+            // Auto-apply styling based on branding style
+            if (newPurpose === 'branding' && newBrandingStyle) {
+                if (newBrandingStyle === 'title') {
+                    elm.props.fontSize = 28;
+                    elm.props.isBold = true;
+                    elm.props.align = 'center';
+                    document.getElementById('propFontSize').value = 28;
+                    document.getElementById('propBold').checked = true;
+                    document.getElementById('propAlign').value = 'center';
+                } else if (newBrandingStyle === 'subtitle') {
+                    elm.props.fontSize = 16;
+                    elm.props.isBold = false;
+                    elm.props.align = 'center';
+                    document.getElementById('propFontSize').value = 16;
+                    document.getElementById('propBold').checked = false;
+                    document.getElementById('propAlign').value = 'center';
+                } else if (newBrandingStyle === 'label') {
+                    elm.props.fontSize = 14;
+                    elm.props.isBold = false;
+                    elm.props.align = 'left';
+                    document.getElementById('propFontSize').value = 14;
+                    document.getElementById('propBold').checked = false;
+                    document.getElementById('propAlign').value = 'left';
+                }
+            }
+
+            // If purpose changed, refresh properties panel visibility
+            if (oldPurpose !== newPurpose) {
+                updatePropsPanel();
+            }
+
             // Shape & Branding Props
             elm.props.strokeWidth = parseInt(document.getElementById('propStrokeWidth').value) || 0;
             elm.props.borderStyle = document.getElementById('propBorderStyle').value;
             elm.props.borderRadius = parseInt(document.getElementById('propBorderRadius').value) || 0;
             elm.props.imageUrl = document.getElementById('propImageUrl').value;
             elm.props.syncConfig = document.getElementById('propSyncConfig').checked;
+
+            // Universal Styling Props
+            elm.props.textColor = document.getElementById('propTextColor').value;
+            elm.props.backgroundColor = document.getElementById('propBackgroundColor').value;
+            elm.props.borderColor = document.getElementById('propBorderColor').value;
+            elm.props.opacity = parseInt(document.getElementById('propOpacity').value) || 100;
+            elm.props.padding = parseInt(document.getElementById('propPadding').value) || 0;
+            elm.props.shadow = document.getElementById('propShadow').checked;
+
+            // Update Label for Opacity
+            document.getElementById('opacityValue').innerText = elm.props.opacity + '%';
+
+            // Sync Hex Inputs
+            document.getElementById('propTextColorHex').value = elm.props.textColor;
+            document.getElementById('propBackgroundColorHex').value = elm.props.backgroundColor;
+            document.getElementById('propBorderColorHex').value = elm.props.borderColor;
 
             // Sync Logic
             if (elm.props.syncConfig) {
@@ -2215,6 +2669,29 @@
 
             // Update Base Styles
             dom.style.textAlign = p.align || 'left';
+
+            // Apply universal styling
+            if (p.textColor) dom.style.color = p.textColor;
+            if (p.backgroundColor && p.backgroundColor !== 'transparent') {
+                dom.style.backgroundColor = p.backgroundColor;
+            } else {
+                dom.style.backgroundColor = ''; // Clear if transparent
+            }
+            if (p.borderColor) {
+                dom.style.borderColor = p.borderColor;
+            }
+            if (p.opacity !== undefined && p.opacity < 100) {
+                dom.style.opacity = p.opacity / 100;
+            } else {
+                dom.style.opacity = 1;
+            }
+            if (p.padding) dom.style.padding = p.padding + 'px';
+
+            if (p.shadow) {
+                dom.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            } else {
+                dom.style.boxShadow = 'none';
+            }
 
             // Re-render based on type
             if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'logo', 'repeater'].includes(t)) {
@@ -2318,6 +2795,39 @@
             showGlobalProps();
         }
 
+        // --- RESIZE LOGIC ---
+        let activeResize = null;
+
+        function handleResizeStart(e, elementId, handleType) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const elm = elements.find(el => el.id === elementId);
+            if (!elm) return;
+
+            const dom = document.getElementById(elementId);
+            if (!dom) return;
+
+            const rect = dom.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+
+            activeResize = {
+                elementId: elementId,
+                handleType: handleType,
+                startX: e.clientX,
+                startY: e.clientY,
+                startWidth: elm.props.width || rect.width,
+                startHeight: elm.props.height || rect.height,
+                startPosX: elm.x,
+                startPosY: elm.y,
+                canvasX: canvasRect.left,
+                canvasY: canvasRect.top
+            };
+
+            // Set cursor on body to maintain during drag
+            document.body.style.cursor = dom.querySelector(`.handle-${handleType}`).style.cursor;
+        }
+
         // --- ELEMENT DRAGGING LOGIC ---
         let activeDrag = null;
 
@@ -2408,6 +2918,68 @@
                     if (py && elm) py.value = elm.y;
                 }
             }
+
+            // HANDLE RESIZE
+            if (activeResize) {
+                const elm = elements.find(el => el.id === activeResize.elementId);
+                if (!elm) return;
+
+                const dom = document.getElementById(activeResize.elementId);
+                if (!dom) return;
+
+                const deltaX = e.clientX - activeResize.startX;
+                const deltaY = e.clientY - activeResize.startY;
+
+                let newWidth = activeResize.startWidth;
+                let newHeight = activeResize.startHeight;
+                let newX = activeResize.startPosX;
+                let newY = activeResize.startPosY;
+
+                const h = activeResize.handleType;
+
+                // Calculate new dimensions based on handle direction
+                if (h.includes('e')) newWidth = activeResize.startWidth + deltaX;
+                if (h.includes('w')) {
+                    newWidth = activeResize.startWidth - deltaX;
+                    newX = activeResize.startPosX + deltaX;
+                }
+                if (h.includes('s')) newHeight = activeResize.startHeight + deltaY;
+                if (h.includes('n')) {
+                    newHeight = activeResize.startHeight - deltaY;
+                    newY = activeResize.startPosY + deltaY;
+                }
+
+                // Enforce minimum size
+                newWidth = Math.max(20, newWidth);
+                newHeight = Math.max(20, newHeight);
+
+                // Update model
+                elm.props.width = Math.round(newWidth);
+                elm.props.height = Math.round(newHeight);
+                elm.x = Math.round(newX);
+                elm.y = Math.round(newY);
+
+                // Update DOM
+                dom.style.width = elm.props.width + 'px';
+                dom.style.height = elm.props.height + 'px';
+                dom.style.left = elm.x + 'px';
+                dom.style.top = elm.y + 'px';
+
+                // Update properties panel
+                if (selectedIds.includes(activeResize.elementId)) {
+                    const wInput = document.getElementById('propWidth');
+                    const hInput = document.getElementById('propHeight');
+                    const xInput = document.getElementById('propX');
+                    const yInput = document.getElementById('propY');
+                    if (wInput) wInput.value = elm.props.width;
+                    if (hInput) hInput.value = elm.props.height;
+                    if (xInput) xInput.value = elm.x;
+                    if (yInput) yInput.value = elm.y;
+                }
+
+                // Re-render visual
+                renderElementVisual(elm, dom);
+            }
         });
 
         window.addEventListener('mouseup', () => {
@@ -2417,6 +2989,10 @@
                     if (elDOM) elDOM.style.cursor = ''; // Revert
                 });
                 activeDrag = null;
+            }
+            if (activeResize) {
+                document.body.style.cursor = '';
+                activeResize = null;
             }
         });
 
@@ -2441,6 +3017,31 @@
         }
 
 
+        // Manual Dimension Update from Inputs
+        function updateDimensionsFromInputs() {
+            if (selectedIds.length !== 1) return;
+            const id = selectedIds[0];
+            const elm = elements.find(e => e.id === id);
+            if (!elm) return;
+
+            const width = parseInt(document.getElementById('propWidth').value) || 100;
+            const height = parseInt(document.getElementById('propHeight').value) || 100;
+
+            elm.props.width = width;
+            elm.props.height = height;
+
+            const dom = document.getElementById(id);
+            if (dom) {
+                dom.style.width = width + 'px';
+                if (elm.type !== 'line' && elm.type !== 'separator') {
+                    dom.style.height = height + 'px';
+                }
+                // Re-render visual to update image size
+                renderElementVisual(elm, dom);
+            }
+        }
+
+
         // --- API HELPER ---
 
         async function testApiConnection() {
@@ -2459,41 +3060,49 @@
             }
         }
 
+        // Helper to safely get value from potentially missing element
+        function safeGetValue(id, fallback = '') {
+            const el = document.getElementById(id);
+            return el ? el.value : fallback;
+        }
+
         async function saveForm(silent = false) {
             const btn = document.querySelector('button[onclick="saveForm()"]') || document.querySelector('.header-actions .btn-primary');
             const originalText = btn.innerHTML;
             btn.innerHTML = 'Saving...';
             btn.disabled = true;
 
-            // Sync model with current UI values
-            formConfig.formName = document.getElementById('propFormName').value;
-            formConfig.id = document.getElementById('propFormId').value;
-            formConfig.description = document.getElementById('propDescription').value;
-            formConfig.sheetUrl = document.getElementById('propSheetUrl').value;
-            formConfig.sheetName = document.getElementById('propSheetName').value;
-            formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
-            formConfig.languageSecondary = document.getElementById('propLanguageSecondary').value;
+            // Sync model with current UI values - ROBUSTLY
+            formConfig.formName = safeGetValue('propFormName', formConfig.formName);
+            formConfig.id = safeGetValue('propFormId', formConfig.id);
+            formConfig.description = safeGetValue('propDescription', formConfig.description);
+            formConfig.sheetUrl = safeGetValue('propSheetUrl', formConfig.sheetUrl);
+            formConfig.sheetName = safeGetValue('propSheetName', formConfig.sheetName);
+            formConfig.languagePrimary = safeGetValue('propLanguagePrimary', formConfig.languagePrimary);
+            formConfig.languageSecondary = safeGetValue('propLanguageSecondary', formConfig.languageSecondary);
 
             // Sync Branding Fields
-            formConfig.headerTitle = document.getElementById('propHeaderTitle').value;
-            formConfig.logoIcon = document.getElementById('propLogoIcon').value;
-            formConfig.logoUrl = document.getElementById('propLogoUrl').value;
-            formConfig.punchline = document.getElementById('propPunchline').value;
-            formConfig.brandingDescription = document.getElementById('propBrandingDescription').value;
-            formConfig.footerText = document.getElementById('propFooterText').value;
-            formConfig.displayMode = document.getElementById('propDisplayMode').checked ? 'card' : 'full';
+            formConfig.headerTitle = safeGetValue('propHeaderTitle', formConfig.headerTitle);
+            formConfig.logoIcon = safeGetValue('propLogoIcon', formConfig.logoIcon);
+            formConfig.logoUrl = safeGetValue('propLogoUrl', formConfig.logoUrl);
+            formConfig.punchline = safeGetValue('propPunchline', formConfig.punchline);
+            formConfig.brandingDescription = safeGetValue('propBrandingDescription', formConfig.brandingDescription);
+            formConfig.footerText = safeGetValue('propFooterText', formConfig.footerText);
+
+            const displayModeEl = document.getElementById('propDisplayMode');
+            if (displayModeEl) formConfig.displayMode = displayModeEl.checked ? 'card' : 'full';
 
             // Sync API and Branding
-            formConfig.storageEngine = document.getElementById('propStorageEngine').value;
-            formConfig.gasApiUrl = document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : formConfig.gasApiUrl;
-            formConfig.customDomain = document.getElementById('propCustomDomain') ? document.getElementById('propCustomDomain').value : formConfig.customDomain;
-
+            formConfig.storageEngine = safeGetValue('propStorageEngine', formConfig.storageEngine);
+            formConfig.gasApiUrl = safeGetValue('propApiUrl', formConfig.gasApiUrl);
+            formConfig.customDomain = safeGetValue('propCustomDomain', formConfig.customDomain);
 
             const schema = elements;
             const config = formConfig;
             const metadata = {
-                allowedDomains: document.getElementById('propAllowedDomains').value,
-                formName: formConfig.formName
+                allowedDomains: safeGetValue('propAllowedDomains', ''),
+                formName: formConfig.formName,
+                workspaceId: formConfig.workspaceId
             };
 
             // Local Fallback for Preview (Instant)
@@ -2505,15 +3114,23 @@
             localStorage.setItem('gasApiUrl', formConfig.gasApiUrl);
             localStorage.setItem('customDomain', formConfig.customDomain);
 
-            const res = await callApi('saveForm', { formId: formConfig.id, schema, config, metadata });
+            try {
+                // Diagnostic Step 1
+                console.log("Step 1: Calling API");
+                const res = await callApi('saveForm', { formId: formConfig.id, schema, config, metadata });
+                console.log("Step 2: API Finished", res);
 
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-
-            if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
-                if (!silent) alert('Form Saved! (Check Drive/Sheet to confirm if external)');
-            } else {
-                alert('Error: ' + res.message);
+                if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
+                    if (!silent) alert('Form Saved! (Check Drive/Sheet to confirm if external)');
+                } else {
+                    alert('Error: ' + res.message);
+                }
+            } catch (err) {
+                console.error("Save Form Error:", err);
+                alert("Save Failed (Exception): " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 
@@ -3180,7 +3797,9 @@
                 language: 'mr',
                 languagePrimary: 'en',
                 languageSecondary: 'mr',
-                gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl
+                languageSecondary: 'mr',
+                gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl,
+                workspaceId: formConfig.workspaceId // Preserve Workspace Context
             };
 
             // Reset Elements
@@ -3238,6 +3857,16 @@
             navigator.clipboard.writeText(portalUrl).then(() => {
                 alert("✅ Preview Link copied! Use this for testing.");
             });
+        }
+
+
+
+        function goToWorkspace() {
+            if (formConfig.workspaceId) {
+                window.location.href = `workspace.html?id=${formConfig.workspaceId}`;
+            } else {
+                window.location.href = `dashboard.html`;
+            }
         }
 
         initRulers();
