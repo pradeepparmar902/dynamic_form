@@ -243,7 +243,7 @@
         /* CANVAS BRANDING ZONES */
         .canvas-branding-zone {
             width: 100%;
-            padding: 20px;
+            padding: 30px 20px;
             box-sizing: border-box;
             pointer-events: none;
             /* Don't interfere with drag/drop */
@@ -251,16 +251,19 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            background: rgba(255, 255, 255, 0.5);
-            border-bottom: 1px dashed #ddd;
-            z-index: 1;
+            background: #fff;
+            border-bottom: 2px solid #f3f4f6;
+            z-index: 5;
+            min-height: 50px;
+            position: relative;
         }
 
         .canvas-branding-zone.footer {
-            position: absolute;
-            bottom: 0;
+            margin-top: 50px;
             border-bottom: none;
-            border-top: 1px dashed #ddd;
+            border-top: 2px solid #f3f4f6;
+            padding: 20px;
+            min-height: 40px;
         }
 
         .canvas-branding-logo {
@@ -283,8 +286,17 @@
 
         .canvas-branding-punchline {
             font-size: 0.9rem;
+            color: #616161;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .canvas-branding-desc {
+            font-size: 0.85rem;
             color: #6b7280;
-            font-style: italic;
+            max-width: 80%;
+            margin-top: 8px;
+            line-height: 1.4;
         }
 
         .canvas-branding-footer-text {
@@ -778,6 +790,7 @@
             <div class="sidebar-tabs">
                 <div class="sidebar-tab active" onclick="switchSidebarTab('elements')">Elements</div>
                 <div class="sidebar-tab" onclick="switchSidebarTab('portal')">Portal View</div>
+                <div class="sidebar-tab" onclick="switchSidebarTab('branding')">🎨 Branding</div>
             </div>
 
             <div class="sidebar-content">
@@ -1031,7 +1044,109 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- BRANDING TAB PANEL -->
+                <div id="panelBranding" class="tab-panel">
+                    <div style="padding: 1rem;">
+                        <div class="category-title"
+                            style="color: #7c3aed; border-bottom: 2px solid #ddd6fe; padding-bottom: 5px; margin-bottom: 1rem;">
+                            🎨 Form Visual Branding
+                        </div>
+
+                        <div
+                            style="background: #fdf2f8; padding: 1.25rem; border-radius: 12px; border: 1px solid #fbcfe8; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                                <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                                    <label style="color: #be185d; font-weight: 700;">Form Header Title</label>
+                                    <input type="text" id="propHeaderTitle" placeholder="e.g. Data Entry Form"
+                                        style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
+                                </div>
+                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                    <label style="color: #be185d; font-weight: 700;">Logo/Icon</label>
+                                    <input type="text" id="propLogoIcon" placeholder="Emoji or Text"
+                                        style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color: #be185d; font-weight: 700;">Punch Line / Subtitle</label>
+                                <input type="text" id="propPunchline" placeholder="e.g. Your tagline here"
+                                    style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color: #be185d; font-weight: 700;">Logo Image URL (Optional)</label>
+                                <input type="text" id="propLogoUrl" placeholder="https://example.com/logo.png"
+                                    style="border-color: #f9a8d4; margin-bottom: 5px;" oninput="updateCanvasBranding()">
+                                <small style="font-size: 0.65rem; color: #db2777;">Paste a direct image link
+                                    here.</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color: #be185d; font-weight: 700;">Form Description/Instructions</label>
+                                <textarea id="propBrandingDescription" rows="3"
+                                    placeholder="Enter short instructions..."
+                                    style="border-color: #f9a8d4; border-radius: 6px; padding: 8px; width: 100%; font-size: 0.85rem;"
+                                    oninput="updateCanvasBranding()"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color: #be185d; font-weight: 700;">Footer Text / Credits</label>
+                                <input type="text" id="propFooterText" placeholder="e.g. © 2024 Your Brand"
+                                    style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
+                            </div>
+
+                            <div class="form-group"
+                                style="margin-top: 10px; border-top: 1px dashed #f9a8d4; padding-top: 15px;">
+                                <label class="checkbox-container"
+                                    style="font-size: 0.85rem; color: #be185d; font-weight: 600;">
+                                    <input type="checkbox" id="propDisplayMode" value="card"
+                                        onchange="updateCanvasBranding()">
+                                    <span class="checkmark"></span>
+                                    Display in Card Layout
+                                </label>
+                                <small
+                                    style="font-size: 0.65rem; color: #db2777; display: block; margin-top: 4px;">Recommended
+                                    for professional look.</small>
+                            </div>
+                        </div>
+
+                        <div class="category-title"
+                            style="color: #1e40af; border-bottom: 2px solid #bfdbfe; padding-bottom: 5px; margin-bottom: 1rem;">
+                            🔗 Custom URLs & Links
+                        </div>
+                        <div
+                            style="background: #eff6ff; padding: 1.25rem; border-radius: 12px; border: 1px solid #bfdbfe; margin-bottom: 1rem;">
+                            <div class="form-group">
+                                <label style="color: #1e40af; font-weight: 700;">Form Link Name (Slug)</label>
+                                <input type="text" id="fieldFormSlug" placeholder="e.g. donation-link"
+                                    style="border-color: #93c5fd; margin-bottom: 5px;">
+                                <small style="font-size: 0.65rem; color: #3b82f6;">Creates:
+                                    <b>viewer.html?v=name</b></small>
+                            </div>
+
+                            <div class="form-group"
+                                style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 15px;">
+                                <label style="color: #1e40af; font-weight: 700;">Portal Link Name (Slug)</label>
+                                <input type="text" id="portalSlug" placeholder="e.g. organization"
+                                    style="border-color: #93c5fd;"
+                                    oninput="syncPortalSlug(this.value, 'sidebarPortalSlug')">
+                                <small style="font-size: 0.65rem; color: #3b82f6;">Creates:
+                                    <b>portal.html?p=name</b></small>
+                            </div>
+
+                            <div class="form-group"
+                                style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 15px;">
+                                <label style="color: #1e40af; font-weight: 700;">Branded Domain (Optional)</label>
+                                <input type="text" id="propCustomDomain" placeholder="https://yourbrand.com"
+                                    style="border-color: #93c5fd; margin-bottom: 5px;"
+                                    oninput="syncCustomDomain(this.value, 'sidebarCustomDomain')">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </aside>
 
         <!-- CANVAS -->
@@ -1045,6 +1160,7 @@
                     <div class="canvas-branding-logo"></div>
                     <div class="canvas-branding-title"></div>
                     <div class="canvas-branding-punchline"></div>
+                    <div class="canvas-branding-desc"></div>
                 </div>
 
                 <div id="canvasBrandingFooter" class="canvas-branding-zone footer">
@@ -1138,99 +1254,10 @@
                         can be embedded. Empty = All.</small>
                 </div>
 
-                <!-- NEW BRANDING SECTION: FORM SPECIFIC -->
-                <div class="category-title"
-                    style="margin-top: 1.5rem; color: #7c3aed; border-bottom: 2px solid #ddd6fe; padding-bottom: 5px; display: flex; align-items: center; gap: 8px;">
-                    🎨 Form Branding
-                </div>
-                <div
-                    style="background: #fdf2f8; padding: 1rem; border-radius: 8px; border: 1px solid #fbcfe8; margin-bottom: 1rem;">
-                    <div style="display: flex; gap: 10px;">
-                        <div class="form-group" style="flex: 2;">
-                            <label style="color: #be185d; font-weight: 700;">Form Header Title</label>
-                            <input type="text" id="propHeaderTitle" placeholder="e.g. Data Entry Form"
-                                style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label style="color: #be185d; font-weight: 700;">Logo/Icon</label>
-                            <input type="text" id="propLogoIcon" placeholder="Emoji or Text"
-                                style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
-                        </div>
-                    </div>
+                <!-- Moved Branding to Left Sidebar -->
 
-                    <div class="form-group">
-                        <label style="color: #be185d; font-weight: 700;">Punch Line / Subtitle</label>
-                        <input type="text" id="propPunchline" placeholder="e.g. Your tagline here"
-                            style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
-                    </div>
+                <!-- Moved Branding & URLs to Left Sidebar -->
 
-                    <div class="form-group">
-                        <label style="color: #be185d; font-weight: 700;">Logo Image URL (Optional)</label>
-                        <input type="text" id="propLogoUrl" placeholder="https://example.com/logo.png"
-                            style="border-color: #f9a8d4; margin-bottom: 5px;" oninput="updateCanvasBranding()">
-                        <small style="font-size: 0.65rem; color: #db2777;">Leave empty to use icon/emoji above.</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label style="color: #be185d; font-weight: 700;">Form Description/Instructions</label>
-                        <textarea id="propBrandingDescription" rows="3"
-                            placeholder="Enter short instructions for your users..."
-                            style="border-color: #f9a8d4; border-radius: 6px; padding: 8px; width: 100%; font-size: 0.85rem;"
-                            oninput="updateCanvasBranding()"></textarea>
-                        <small style="font-size: 0.65rem; color: #db2777;">Appears below the header.</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label style="color: #be185d; font-weight: 700;">Footer Text / Credits</label>
-                        <input type="text" id="propFooterText" placeholder="e.g. © 2024 Your Brand"
-                            style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
-                    </div>
-
-                    <div class="form-group"
-                        style="margin-top: 10px; border-top: 1px dashed #f9a8d4; padding-top: 10px;">
-                        <label class="checkbox-container" style="font-size: 0.85rem; color: #be185d; font-weight: 600;">
-                            <input type="checkbox" id="propDisplayMode" value="card" onchange="updateCanvasBranding()">
-                            <span class="checkmark"></span>
-                            Display form in card container (centered, professional)
-                        </label>
-                        <small style="font-size: 0.65rem; color: #db2777; display: block; margin-top: 4px;">Recommended
-                            for standalone pages.</small>
-                    </div>
-
-                </div>
-
-                <div class="category-title"
-                    style="margin-top: 1.5rem; color: #1e40af; border-bottom: 2px solid #bfdbfe; padding-bottom: 5px;">
-                    🔗 Branding & Custom URLs
-                </div>
-                <div
-                    style="background: #eff6ff; padding: 1rem; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 1rem;">
-                    <div class="form-group">
-                        <label style="color: #1e40af; font-weight: 700;">Single Form URL Name (Slug)</label>
-                        <input type="text" id="fieldFormSlug" placeholder="e.g. donation-link"
-                            style="border-color: #93c5fd; margin-bottom: 5px;">
-                        <small style="font-size: 0.65rem; color: #3b82f6;">Clean Link:
-                            <b>viewer.html?v=your-name</b></small>
-                    </div>
-
-                    <div class="form-group"
-                        style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
-                        <label style="color: #1e40af; font-weight: 700;">Portal Collection Name (Slug)</label>
-                        <input type="text" id="portalSlug" placeholder="e.g. pradeep-parmar"
-                            style="border-color: #93c5fd;" oninput="syncPortalSlug(this.value, 'sidebarPortalSlug')">
-                        <small style="font-size: 0.65rem; color: #3b82f6;">Clean Link:
-                            <b>portal.html?p=your-name</b></small>
-                    </div>
-
-                    <div class="form-group"
-                        style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 10px;">
-                        <label style="color: #1e40af; font-weight: 700;">Branded Base URL (Optional)</label>
-                        <input type="text" id="propCustomDomain" placeholder="https://yourbrand.com"
-                            style="border-color: #93c5fd; margin-bottom: 5px;"
-                            oninput="syncCustomDomain(this.value, 'sidebarCustomDomain')">
-                        <small style="font-size: 0.65rem; color: #3b82f6;">Hides "github.io" in sharing links.</small>
-                    </div>
-                </div>
 
                 <div id="adminSettingsArea" class="hidden"
                     style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 0.5rem;">
@@ -1704,10 +1731,14 @@
             if (tab === 'elements') {
                 document.querySelector('.sidebar-tab:nth-child(1)').classList.add('active');
                 document.getElementById('panelElements').classList.add('active');
-            } else {
+            } else if (tab === 'portal') {
                 document.querySelector('.sidebar-tab:nth-child(2)').classList.add('active');
                 document.getElementById('panelPortal').classList.add('active');
                 refreshPortalList();
+            } else if (tab === 'branding') {
+                document.querySelector('.sidebar-tab:nth-child(3)').classList.add('active');
+                document.getElementById('panelBranding').classList.add('active');
+                updateCanvasBranding(); // Ensure canvas matches sidebar
             }
         }
 
@@ -1878,6 +1909,7 @@
 
                 headerZone.querySelector('.canvas-branding-title').innerText = hTitle;
                 headerZone.querySelector('.canvas-branding-punchline').innerText = punch;
+                headerZone.querySelector('.canvas-branding-desc').innerText = desc;
             }
 
             // 2. Footer Logic
@@ -2592,6 +2624,17 @@
             document.getElementById('propFirebaseConfig').value = formConfig.firebaseConfig;
             document.getElementById('fieldFormSlug').value = formConfig.slug;
             document.getElementById('propCustomDomain').value = formConfig.customDomain || "";
+
+            // Branding Fields Population
+            document.getElementById('propHeaderTitle').value = formConfig.headerTitle || '';
+            document.getElementById('propLogoIcon').value = formConfig.logoIcon || '📝';
+            document.getElementById('propLogoUrl').value = formConfig.logoUrl || '';
+            document.getElementById('propPunchline').value = formConfig.punchline || '';
+            document.getElementById('propBrandingDescription').value = formConfig.brandingDescription || '';
+            document.getElementById('propFooterText').value = formConfig.footerText || '';
+            document.getElementById('propDisplayMode').checked = (formConfig.displayMode === 'card');
+
+            updateCanvasBranding(); // Ensure canvas is updated
             if (document.getElementById('sidebarCustomDomain')) document.getElementById('sidebarCustomDomain').value = formConfig.customDomain || "";
             document.getElementById('portalSlug').value = portalConfig.slug || "";
             if (document.getElementById('sidebarPortalSlug')) document.getElementById('sidebarPortalSlug').value = portalConfig.slug || "";
