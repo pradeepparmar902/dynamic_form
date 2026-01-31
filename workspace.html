@@ -189,99 +189,174 @@
                 <button class="btn" onclick="createPortal()">Create Portal</button>
             </div>
         </div>
-    </div>
+        <!-- SHARE PORTAL MODAL -->
+        <div id="shareModal"
+            style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:100;">
+            <div
+                style="background:white; padding:2rem; border-radius:1rem; width:550px; max-width:90%; max-height:90vh; overflow-y:auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                    <h3 style="margin:0;">Share & Configure Portal</h3>
+                    <span onclick="document.getElementById('shareModal').style.display='none'"
+                        style="font-size:1.5rem; cursor:pointer; line-height:1;">&times;</span>
+                </div>
 
-    <script>
-        // FIREBASE
-        const firebaseConfig = {
-            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
-            authDomain: "buildform-e7d3b.firebaseapp.com",
-            projectId: "buildform-e7d3b",
-            storageBucket: "buildform-e7d3b.firebasestorage.app",
-            messagingSenderId: "1010258612784",
-            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
-            measurementId: "G-L217Q3WM0G"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+                <!-- TAB HEADERS -->
+                <div style="display:flex; border-bottom:1px solid var(--border); margin-bottom:1.5rem;">
+                    <button class="tab-btn active" onclick="switchShareTab('link')" id="tabLink"
+                        style="padding:10px 20px; background:none; border:none; border-bottom:2px solid var(--primary); font-weight:600; cursor:pointer;">Share</button>
+                    <button class="tab-btn" onclick="switchShareTab('config')" id="tabConfig"
+                        style="padding:10px 20px; background:none; border:none; border-bottom:2px solid transparent; color:#64748b; font-weight:600; cursor:pointer;">Configuration</button>
+                </div>
 
-        // PARAMS
-        const urlParams = new URLSearchParams(window.location.search);
-        const workspaceId = urlParams.get('id');
+                <!-- TAB 1: LINKS -->
+                <div id="share-link-content">
+                    <div style="margin-bottom:1.5rem;">
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.9rem;">Option 1:
+                            Direct Link</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="shareDirectLink" readonly
+                                style="flex:1; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; background:#f8fafc; color:#475569;">
+                            <button class="btn" onclick="copyToClipboard('shareDirectLink')"
+                                style="padding:0 1rem;">Copy</button>
+                        </div>
+                    </div>
 
-        if (!workspaceId) {
-            alert("No Workspace ID provided!");
-            window.location.href = 'dashboard.html';
-        }
+                    <div style="margin-bottom:1.5rem;">
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.9rem;">Option 2:
+                            Website Embed Code (Iframe)</label>
+                        <textarea id="shareEmbedCode" readonly rows="4"
+                            style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; background:#f8fafc; font-family:monospace; color:#475569; resize:vertical;"></textarea>
+                        <button class="btn" onclick="copyToClipboard('shareEmbedCode')"
+                            style="width:100%; margin-top:0.5rem; background:#fff; color:var(--text-main); border:1px solid var(--border);">Copy
+                            HTML Code</button>
+                    </div>
+                </div>
 
-        // SETUP
-        document.getElementById('btnNewForm').href = `index.html?workspaceId=${workspaceId}`;
+                <!-- TAB 2: CONFIG -->
+                <div id="share-config-content" class="hidden">
+                    <p style="font-size:0.85rem; color:#64748b; margin-bottom:1rem;">These settings apply to the newly
+                        collected data from this portal.</p>
 
-        // LOAD DATA
-        async function init() {
-            // 1. Get Workspace Details
-            try {
-                const wsDoc = await db.collection('workspaces').doc(workspaceId).get();
-                if (wsDoc.exists) {
-                    document.getElementById('wsTitle').innerText = wsDoc.data().name;
-                } else {
-                    document.getElementById('wsTitle').innerText = "Workspace Not Found";
-                }
+                    <div style="margin-bottom:1rem;">
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Google
+                            Sheet URL (Client Response Sheet)</label>
+                        <input type="text" id="confSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..."
+                            style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                    </div>
 
-                loadForms();
-                loadPortals();
+                    <div style="margin-bottom:1rem;">
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Google
+                            Script API URL</label>
+                        <input type="text" id="confGasUrl" placeholder="https://script.google.com/macros/s/..."
+                            style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                    </div>
 
-            } catch (err) {
-                console.error("Error loading workspace data:", err);
-                document.getElementById('formsList').innerHTML = `<div style="color:red; padding:1rem;">Error: ${err.message}</div>`;
+                    <div style="margin-bottom:1rem;">
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Custom
+                            Domain (Optional)</label>
+                        <input type="text" id="confCustomDomain" placeholder="https://portal.mycompany.com"
+                            style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                    </div>
+
+                    <div style="text-align:right; margin-top:2rem;">
+                        <button id="btnSaveConfig" class="btn" onclick="savePortalConfig()">Save Changes</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <script>
+            // FIREBASE
+            const firebaseConfig = {
+                apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+                authDomain: "buildform-e7d3b.firebaseapp.com",
+                projectId: "buildform-e7d3b",
+                storageBucket: "buildform-e7d3b.firebasestorage.app",
+                messagingSenderId: "1010258612784",
+                appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+                measurementId: "G-L217Q3WM0G"
+            };
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+
+            // PARAMS
+            const urlParams = new URLSearchParams(window.location.search);
+            const workspaceId = urlParams.get('id');
+
+            if (!workspaceId) {
+                alert("No Workspace ID provided!");
+                window.location.href = 'dashboard.html';
             }
-        }
 
-        async function loadForms() {
-            // 2. Get Forms
-            document.getElementById('formsList').innerHTML = '<div style="padding:2rem; text-align:center; color:#999;">Loading forms...</div>';
+            // SETUP
+            document.getElementById('btnNewForm').href = `index.html?workspaceId=${workspaceId}`;
 
-            // Fallback: Fetch all and filter client-side if index is missing
-            const snapshot = await db.collection('forms').orderBy('lastUpdated', 'desc').get();
+            // LOAD DATA
+            async function init() {
+                // 1. Get Workspace Details
+                try {
+                    const wsDoc = await db.collection('workspaces').doc(workspaceId).get();
+                    if (wsDoc.exists) {
+                        document.getElementById('wsTitle').innerText = wsDoc.data().name;
+                    } else {
+                        document.getElementById('wsTitle').innerText = "Workspace Not Found";
+                    }
 
-            const forms = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const meta = data.metadata || {};
-                if (meta.workspaceId === workspaceId) {
-                    forms.push({ id: doc.id, ...data });
+                    loadForms();
+                    loadPortals();
+
+                } catch (err) {
+                    console.error("Error loading workspace data:", err);
+                    document.getElementById('formsList').innerHTML = `<div style="color:red; padding:1rem;">Error: ${err.message}</div>`;
                 }
-            });
-            renderForms(forms);
-        }
-
-        async function loadPortals() {
-            const list = document.getElementById('portalsList');
-            // Fetch portals for this workspace
-            // We use 'config' collection 'portal' doc for global, but now we need proper multiple portals
-            // We'll use a new 'portals' collection for metadata, and keep the config payload inside or separate
-            // For Phase 1 we defined 'portals' collection.
-
-            const snapshot = await db.collection('portals').where('workspaceId', '==', workspaceId).get().catch(e => {
-                console.warn("Index needed for portals query, fetching all for now");
-                return db.collection('portals').get();
-            });
-
-            const portals = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                // Manual filter if index failed
-                if (data.workspaceId === workspaceId) {
-                    portals.push({ id: doc.id, ...data });
-                }
-            });
-
-            if (portals.length === 0) {
-                list.innerHTML = `<div style="text-align:center; padding: 2rem; color: #999;">No portals yet. Create one to share your forms.</div>`;
-                return;
             }
 
-            list.innerHTML = portals.map(p => `
+            async function loadForms() {
+                // 2. Get Forms
+                document.getElementById('formsList').innerHTML = '<div style="padding:2rem; text-align:center; color:#999;">Loading forms...</div>';
+
+                // Fallback: Fetch all and filter client-side if index is missing
+                const snapshot = await db.collection('forms').orderBy('lastUpdated', 'desc').get();
+
+                const forms = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const meta = data.metadata || {};
+                    if (meta.workspaceId === workspaceId) {
+                        forms.push({ id: doc.id, ...data });
+                    }
+                });
+                renderForms(forms);
+            }
+
+            async function loadPortals() {
+                const list = document.getElementById('portalsList');
+                // Fetch portals for this workspace
+                // We use 'config' collection 'portal' doc for global, but now we need proper multiple portals
+                // We'll use a new 'portals' collection for metadata, and keep the config payload inside or separate
+                // For Phase 1 we defined 'portals' collection.
+
+                const snapshot = await db.collection('portals').where('workspaceId', '==', workspaceId).get().catch(e => {
+                    console.warn("Index needed for portals query, fetching all for now");
+                    return db.collection('portals').get();
+                });
+
+                const portals = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Manual filter if index failed
+                    if (data.workspaceId === workspaceId) {
+                        portals.push({ id: doc.id, ...data });
+                    }
+                });
+
+                if (portals.length === 0) {
+                    list.innerHTML = `<div style="text-align:center; padding: 2rem; color: #999;">No portals yet. Create one to share your forms.</div>`;
+                    return;
+                }
+
+                list.innerHTML = portals.map(p => `
                 <div class="list-item">
                      <div>
                         <h4>${p.name}</h4>
@@ -289,20 +364,21 @@
                     </div>
                     <div>
                          <a href="portal-designer.html?id=${p.id}&workspaceId=${workspaceId}" class="btn" style="background:var(--surface-alt); color:var(--text-main); border:1px solid var(--border);">Design</a>
+                         <button onclick="openShareModal('${p.id}', '${p.slug}')" class="btn" style="background:var(--surface-alt); color:var(--text-main); border:1px solid var(--border);">Share / Embed</button>
                          <a href="portal.html?p=${p.slug}" target="_blank" class="btn" style="background:#fff; color:var(--primary); border:1px solid var(--border);">Visit</a>
                     </div>
                 </div>
             `).join('');
-        }
-
-        function renderForms(forms) {
-            const list = document.getElementById('formsList');
-            if (forms.length === 0) {
-                list.innerHTML = `<div style="text-align:center; padding: 2rem; color: #999;">No forms in this workspace. <br><a href="index.html?workspaceId=${workspaceId}" style="color:var(--primary);">Create one now</a></div>`;
-                return;
             }
 
-            list.innerHTML = forms.map(f => `
+            function renderForms(forms) {
+                const list = document.getElementById('formsList');
+                if (forms.length === 0) {
+                    list.innerHTML = `<div style="text-align:center; padding: 2rem; color: #999;">No forms in this workspace. <br><a href="index.html?workspaceId=${workspaceId}" style="color:var(--primary);">Create one now</a></div>`;
+                    return;
+                }
+
+                list.innerHTML = forms.map(f => `
                 <div class="list-item">
                     <div>
                         <h4>${f.config?.formName || f.id}</h4>
@@ -315,64 +391,154 @@
                     </div>
                 </div>
             `).join('');
-        }
-
-        async function disconnectForm(formId) {
-            if (!confirm("Remove this form from workspace? Data will not be deleted, just unlinked.")) return;
-            try {
-                await db.collection('forms').doc(formId).update({
-                    'metadata.workspaceId': null
-                });
-                loadForms();
-            } catch (e) {
-                alert("Error: " + e.message);
             }
-        }
 
-        function openPortalModal() {
-            document.getElementById('portalModal').style.display = 'flex';
-        }
-
-        async function createPortal() {
-            const name = document.getElementById('portalNameParams').value;
-            const slug = document.getElementById('portalSlugParams').value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-
-            if (!name || !slug) return alert("Please fill all fields");
-
-            try {
-                // Check slug uniqueness (basic check)
-                const check = await db.collection('portals').where('slug', '==', slug).get();
-                if (!check.empty) {
-                    return alert("This URL slug is already taken. Please choose another.");
+            async function disconnectForm(formId) {
+                if (!confirm("Remove this form from workspace? Data will not be deleted, just unlinked.")) return;
+                try {
+                    await db.collection('forms').doc(formId).update({
+                        'metadata.workspaceId': null
+                    });
+                    loadForms();
+                } catch (e) {
+                    alert("Error: " + e.message);
                 }
-
-                await db.collection('portals').add({
-                    name: name,
-                    slug: slug,
-                    workspaceId: workspaceId,
-                    createdAt: Date.now(),
-                    attachedForms: []
-                });
-
-                document.getElementById('portalModal').style.display = 'none';
-                loadPortals();
-            } catch (e) {
-                alert("Error creating portal: " + e.message);
             }
-        }
 
-        function switchView(view) {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            document.querySelector(`.nav-item[onclick="switchView('${view}')"]`).classList.add('active');
+            function openPortalModal() {
+                document.getElementById('portalModal').style.display = 'flex';
+            }
 
-            document.getElementById('view-forms').classList.add('hidden');
-            document.getElementById('view-portals').classList.add('hidden');
+            async function createPortal() {
+                const name = document.getElementById('portalNameParams').value;
+                const slug = document.getElementById('portalSlugParams').value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
-            document.getElementById('view-' + view).classList.remove('hidden');
-        }
+                if (!name || !slug) return alert("Please fill all fields");
 
-        init();
-    </script>
+                try {
+                    // Check slug uniqueness (basic check)
+                    const check = await db.collection('portals').where('slug', '==', slug).get();
+                    if (!check.empty) {
+                        return alert("This URL slug is already taken. Please choose another.");
+                    }
+
+                    await db.collection('portals').add({
+                        name: name,
+                        slug: slug,
+                        workspaceId: workspaceId,
+                        createdAt: Date.now(),
+                        attachedForms: []
+                    });
+
+                    document.getElementById('portalModal').style.display = 'none';
+                    loadPortals();
+                } catch (e) {
+                    alert("Error creating portal: " + e.message);
+                }
+            }
+
+            function switchView(view) {
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                document.querySelector(`.nav-item[onclick="switchView('${view}')"]`).classList.add('active');
+
+                document.getElementById('view-forms').classList.add('hidden');
+                document.getElementById('view-portals').classList.add('hidden');
+
+                document.getElementById('view-' + view).classList.remove('hidden');
+            }
+
+            // --- SHARE MODAL LOGIC ---
+            let currentPortalIdForConfig = null;
+
+            async function openShareModal(portalId, slug) {
+                currentPortalIdForConfig = portalId;
+                const modal = document.getElementById('shareModal');
+                const linkInput = document.getElementById('shareDirectLink');
+                const embedInput = document.getElementById('shareEmbedCode');
+
+                // 1. Generate URLs
+                const baseUrl = window.location.href.split('?')[0].replace('workspace.html', 'portal.html').replace(/\/$/, '');
+                const fullLink = `${baseUrl}?p=${slug}`;
+
+                linkInput.value = fullLink;
+                embedInput.value = `<iframe src="${fullLink}" width="100%" height="800" frameborder="0"></iframe>`;
+
+                // 2. Load Existing Config
+                document.getElementById('confSheetUrl').value = 'Loading...';
+                document.getElementById('confGasUrl').value = 'Loading...';
+
+                modal.style.display = 'flex';
+
+                try {
+                    const doc = await db.collection('portals').doc(portalId).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        const cfg = data.config || {};
+                        document.getElementById('confSheetUrl').value = cfg.sheetUrl || '';
+                        document.getElementById('confGasUrl').value = cfg.gasApiUrl || '';
+                        document.getElementById('confCustomDomain').value = cfg.customDomain || '';
+                    }
+                } catch (e) {
+                    console.error("Failed to load config", e);
+                    document.getElementById('confSheetUrl').value = '';
+                }
+            }
+
+            async function savePortalConfig() {
+                if (!currentPortalIdForConfig) return;
+                const btn = document.getElementById('btnSaveConfig');
+                btn.innerText = "Saving...";
+
+                try {
+                    await db.collection('portals').doc(currentPortalIdForConfig).set({
+                        config: {
+                            sheetUrl: document.getElementById('confSheetUrl').value.trim(),
+                            gasApiUrl: document.getElementById('confGasUrl').value.trim(),
+                            customDomain: document.getElementById('confCustomDomain').value.trim(),
+                            storageEngine: 'gas' // Ensure it knows we want GAS
+                        }
+                    }, { merge: true });
+                    alert("Configuration Saved!");
+                } catch (e) {
+                    alert("Error saving: " + e.message);
+                } finally {
+                    btn.innerText = "Save Changes";
+                }
+            }
+
+            function switchShareTab(tab) {
+                const tabLink = document.getElementById('tabLink');
+                const tabConfig = document.getElementById('tabConfig');
+                const contentLink = document.getElementById('share-link-content');
+                const contentConfig = document.getElementById('share-config-content');
+
+                if (tab === 'link') {
+                    tabLink.style.borderBottomColor = 'var(--primary)';
+                    tabLink.style.color = 'var(--text-main)';
+                    tabConfig.style.borderBottomColor = 'transparent';
+                    tabConfig.style.color = '#64748b';
+                    contentLink.classList.remove('hidden');
+                    contentConfig.classList.add('hidden');
+                } else {
+                    tabConfig.style.borderBottomColor = 'var(--primary)';
+                    tabConfig.style.color = 'var(--text-main)';
+                    tabLink.style.borderBottomColor = 'transparent';
+                    tabLink.style.color = '#64748b';
+                    contentLink.classList.add('hidden');
+                    contentConfig.classList.remove('hidden');
+                }
+            }
+
+            function copyToClipboard(elementId) {
+                const copyText = document.getElementById(elementId);
+                copyText.select();
+                copyText.setSelectionRange(0, 99999);
+                navigator.clipboard.writeText(copyText.value);
+                alert("Copied to clipboard!");
+            }
+
+            init();
+        </script>
 </body>
 
 </html>
