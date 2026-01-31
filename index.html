@@ -677,6 +677,42 @@
             font-size: 0.75rem;
             color: var(--text-light);
         }
+
+        /* Color Controls Section */
+        .color-section {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #bae6fd;
+        }
+
+        .color-section .category-title {
+            color: #0284c7;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+
+        /* Style Controls Section */
+        .style-section {
+            background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #f0abfc;
+        }
+
+        .style-section .category-title {
+            color: #a21caf;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
     </style>
 </head>
 
@@ -1433,6 +1469,30 @@
 
             <div id="elementProps" class="props-content hidden">
                 <div class="category-title">Element Properties</div>
+
+                <!-- ELEMENT PURPOSE -->
+                <div class="form-group" id="grpPurpose">
+                    <label>Element Purpose</label>
+                    <select id="propPurpose" onchange="updateSelectedElement()">
+                        <option value="form">Form Field</option>
+                        <option value="branding">Branding Element</option>
+                    </select>
+                </div>
+
+                <!-- BRANDING STYLE (visible only when purpose = branding) -->
+                <div class="form-group" id="grpBrandingStyle" style="display: none;">
+                    <label>Branding Style</label>
+                    <select id="propBrandingStyle" onchange="updateSelectedElement()">
+                        <option value="default">Default</option>
+                        <option value="title">Title (Large, Bold)</option>
+                        <option value="subtitle">Subtitle (Italic)</option>
+                        <option value="label">Label</option>
+                        <option value="logo">Logo</option>
+                    </select>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
                 <div class="form-group">
                     <label id="lblPropPrimary">Field Label (Primary)</label>
                     <input type="text" id="propLabel" oninput="updateSelectedElement()">
@@ -1558,6 +1618,72 @@
                     <label>Position X (px)</label>
                     <input type="number" id="propX" oninput="updatePosFromInputs()">
                 </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
+                <!-- COLOR CONTROLS -->
+                <div class="color-section">
+                    <div class="category-title">🎨 Colors</div>
+                    <div class="form-group" id="grpTextColor" style="display: none;">
+                        <label>Text Color</label>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <input type="color" id="propTextColor" value="#000000" oninput="updateSelectedElement()"
+                                style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
+                            <input type="text" id="propTextColorHex" value="#000000" oninput="syncColorFromHex('text')"
+                                style="flex: 1; font-family: monospace; font-size: 0.85rem;" placeholder="#000000">
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="grpBackgroundColor" style="display: none;">
+                        <label>Background Color</label>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <input type="color" id="propBackgroundColor" value="#ffffff"
+                                oninput="updateSelectedElement()"
+                                style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
+                            <input type="text" id="propBackgroundColorHex" value="#ffffff"
+                                oninput="syncColorFromHex('background')"
+                                style="flex: 1; font-family: monospace; font-size: 0.85rem;" placeholder="#ffffff">
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="grpBorderColor" style="display: none;">
+                        <label>Border Color</label>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <input type="color" id="propBorderColor" value="#cccccc" oninput="updateSelectedElement()"
+                                style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
+                            <input type="text" id="propBorderColorHex" value="#cccccc"
+                                oninput="syncColorFromHex('border')"
+                                style="flex: 1; font-family: monospace; font-size: 0.85rem;" placeholder="#cccccc">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADVANCED STYLING -->
+                <div class="style-section">
+                    <div class="category-title">✨ Visual Effects</div>
+                    <div class="form-group" id="grpOpacity" style="display: none;">
+                        <label>Opacity <span id="opacityValue"
+                                style="color: var(--text-light); font-size: 0.85rem;">100%</span></label>
+                        <input type="range" id="propOpacity" min="0" max="100" value="100"
+                            oninput="updateSelectedElement()" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group" id="grpPadding" style="display: none;">
+                        <label>Padding (px)</label>
+                        <input type="number" id="propPadding" min="0" max="50" value="8"
+                            oninput="updateSelectedElement()">
+                    </div>
+
+                    <div class="form-group" id="grpShadow" style="display: none;">
+                        <label style="display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" id="propShadow" onchange="updateSelectedElement()">
+                            <span>Add Shadow Effect</span>
+                        </label>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
                 <div class="form-group">
                     <label>Position Y (px)</label>
                     <input type="number" id="propY" oninput="updatePosFromInputs()">
@@ -1961,6 +2087,16 @@
             if (type === 'punchline') defaultLabel = 'Your Tagline Here';
             if (type === 'logo') defaultLabel = '';
 
+            // Determine purpose and branding style based on type
+            const isBrandingType = ['form_title', 'punchline', 'logo', 'label'].includes(type);
+            const purpose = isBrandingType ? 'branding' : 'form';
+            let brandingStyle = 'default';
+
+            if (type === 'form_title') brandingStyle = 'title';
+            else if (type === 'punchline') brandingStyle = 'subtitle';
+            else if (type === 'logo') brandingStyle = 'logo';
+            else if (type === 'label') brandingStyle = 'label';
+
             const newElm = {
                 id: id,
                 type: type, // Keep original type for rendering specific logic
@@ -1973,6 +2109,16 @@
                     translatable: type === 'text',
                     width: type === 'logo' ? 100 : (type === 'form_title' ? 400 : (type === 'separator' ? 700 : 200)),
                     height: type === 'logo' ? 100 : 40,
+                    // Color properties for all elements
+                    textColor: '#000000',
+                    backgroundColor: 'transparent',
+                    borderColor: '#cccccc',
+                    opacity: 100,
+                    padding: 8,
+                    shadow: false,
+                    // Purpose and Branding
+                    purpose: purpose,
+                    brandingStyle: brandingStyle,
                     // Cosmetics
                     headingLevel: type === 'form_title' ? 'h1' : 'h2',
                     align: (type === 'form_title' || type === 'punchline' || type === 'logo') ? 'center' : 'left',
@@ -2052,8 +2198,8 @@
             div.innerHTML = content;
             div.style.textAlign = elmData.props.align || 'left';
 
-            // ADD RESIZE HANDLES for images and logos
-            if (elmData.type === 'image' || elmData.type === 'logo') {
+            // ADD RESIZE HANDLES for ALL elements (universal resizing)
+            {
                 const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
                 handles.forEach(pos => {
                     const handle = document.createElement('div');
@@ -2200,14 +2346,36 @@
                 setDisplay('grpImageUrl', t === 'image' || t === 'logo');
                 setDisplay('grpSyncConfig', t === 'form_title' || t === 'punchline' || t === 'logo');
 
+                // Always visible styling controls
+                setDisplay('grpTextColor', true);
+                setDisplay('grpBackgroundColor', true);
+                setDisplay('grpBorderColor', true);
+                setDisplay('grpOpacity', true);
+                setDisplay('grpPadding', true);
+                setDisplay('grpShadow', true);
+
                 // Shape Styles Visibility
                 const isShape = t === 'rect' || t === 'line' || t === 'separator';
                 setDisplay('grpStrokeWidth', isShape || t === 'image' || t === 'logo');
                 setDisplay('grpBorderStyle', isShape);
                 setDisplay('grpBorderRadius', t === 'rect' || t === 'image' || t === 'logo');
 
+                // Purpose and Branding Style
+                const purpose = elm.props.purpose || (t === 'form_title' || t === 'punchline' || t === 'logo' ? 'branding' : 'form');
+                const brandingStyle = elm.props.brandingStyle || 'default';
+                document.getElementById('propPurpose').value = purpose;
+                document.getElementById('propBrandingStyle').value = brandingStyle;
+                setDisplay('grpBrandingStyle', purpose === 'branding' && (t === 'text' || t === 'label' || t === 'form_title' || t === 'punchline' || t === 'image' || t === 'logo'));
+
+                // Form-specific fields visibility (hide when purpose = branding)
+                const isFormField = purpose === 'form';
+                setDisplay('grpPlaceholder', isFormField && !['rect', 'line', 'separator', 'repeater', 'logo', 'image', 'form_title', 'punchline'].includes(t));
+                document.getElementById('propRequired').parentElement.style.display = isFormField ? 'flex' : 'none';
+                document.getElementById('propTranslatable').parentElement.style.display = isFormField ? 'flex' : 'none';
+                document.getElementById('propName').parentElement.style.display = isFormField ? 'block' : 'none';
+
                 // Dimension Controls Visibility
-                const hasSize = ['image', 'logo', 'rect', 'line', 'separator'].includes(t);
+                const hasSize = true; // All elements now have size controls
                 setDisplay('grpWidth', hasSize);
                 setDisplay('grpHeight', hasSize && t !== 'line' && t !== 'separator');
 
@@ -2288,12 +2456,67 @@
             elm.props.fontSize = parseInt(document.getElementById('propFontSize').value) || 14;
             elm.props.isBold = document.getElementById('propBold').checked;
 
+            // Purpose and Branding Style
+            const newPurpose = document.getElementById('propPurpose').value;
+            const newBrandingStyle = document.getElementById('propBrandingStyle').value;
+            const oldPurpose = elm.props.purpose;
+
+            elm.props.purpose = newPurpose;
+            elm.props.brandingStyle = newBrandingStyle;
+
+            // Auto-apply styling based on branding style
+            if (newPurpose === 'branding' && newBrandingStyle) {
+                if (newBrandingStyle === 'title') {
+                    elm.props.fontSize = 28;
+                    elm.props.isBold = true;
+                    elm.props.align = 'center';
+                    document.getElementById('propFontSize').value = 28;
+                    document.getElementById('propBold').checked = true;
+                    document.getElementById('propAlign').value = 'center';
+                } else if (newBrandingStyle === 'subtitle') {
+                    elm.props.fontSize = 16;
+                    elm.props.isBold = false;
+                    elm.props.align = 'center';
+                    document.getElementById('propFontSize').value = 16;
+                    document.getElementById('propBold').checked = false;
+                    document.getElementById('propAlign').value = 'center';
+                } else if (newBrandingStyle === 'label') {
+                    elm.props.fontSize = 14;
+                    elm.props.isBold = false;
+                    elm.props.align = 'left';
+                    document.getElementById('propFontSize').value = 14;
+                    document.getElementById('propBold').checked = false;
+                    document.getElementById('propAlign').value = 'left';
+                }
+            }
+
+            // If purpose changed, refresh properties panel visibility
+            if (oldPurpose !== newPurpose) {
+                updatePropsPanel();
+            }
+
             // Shape & Branding Props
             elm.props.strokeWidth = parseInt(document.getElementById('propStrokeWidth').value) || 0;
             elm.props.borderStyle = document.getElementById('propBorderStyle').value;
             elm.props.borderRadius = parseInt(document.getElementById('propBorderRadius').value) || 0;
             elm.props.imageUrl = document.getElementById('propImageUrl').value;
             elm.props.syncConfig = document.getElementById('propSyncConfig').checked;
+
+            // Universal Styling Props
+            elm.props.textColor = document.getElementById('propTextColor').value;
+            elm.props.backgroundColor = document.getElementById('propBackgroundColor').value;
+            elm.props.borderColor = document.getElementById('propBorderColor').value;
+            elm.props.opacity = parseInt(document.getElementById('propOpacity').value) || 100;
+            elm.props.padding = parseInt(document.getElementById('propPadding').value) || 0;
+            elm.props.shadow = document.getElementById('propShadow').checked;
+
+            // Update Label for Opacity
+            document.getElementById('opacityValue').innerText = elm.props.opacity + '%';
+
+            // Sync Hex Inputs
+            document.getElementById('propTextColorHex').value = elm.props.textColor;
+            document.getElementById('propBackgroundColorHex').value = elm.props.backgroundColor;
+            document.getElementById('propBorderColorHex').value = elm.props.borderColor;
 
             // Sync Logic
             if (elm.props.syncConfig) {
@@ -2320,6 +2543,29 @@
 
             // Update Base Styles
             dom.style.textAlign = p.align || 'left';
+
+            // Apply universal styling
+            if (p.textColor) dom.style.color = p.textColor;
+            if (p.backgroundColor && p.backgroundColor !== 'transparent') {
+                dom.style.backgroundColor = p.backgroundColor;
+            } else {
+                dom.style.backgroundColor = ''; // Clear if transparent
+            }
+            if (p.borderColor) {
+                dom.style.borderColor = p.borderColor;
+            }
+            if (p.opacity !== undefined && p.opacity < 100) {
+                dom.style.opacity = p.opacity / 100;
+            } else {
+                dom.style.opacity = 1;
+            }
+            if (p.padding) dom.style.padding = p.padding + 'px';
+
+            if (p.shadow) {
+                dom.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            } else {
+                dom.style.boxShadow = 'none';
+            }
 
             // Re-render based on type
             if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'logo', 'repeater'].includes(t)) {
