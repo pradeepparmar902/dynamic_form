@@ -975,6 +975,40 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="tool-category">
+                        <div class="category-title" style="color: #c026d3;">✨ Branding & Title</div>
+                        <div class="tool-grid">
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="logo">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c026d3"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                                    <line x1="9" y1="9" x2="9.01" y2="9" />
+                                    <line x1="15" y1="9" x2="15.01" y2="9" />
+                                </svg>
+                                <span>Logo</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="form_title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c026d3"
+                                    stroke-width="2">
+                                    <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+                                </svg>
+                                <span>Form Title</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="punchline">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c026d3"
+                                    stroke-width="2">
+                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                                </svg>
+                                <span>Punchline</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- PORTAL DESIGNER TAB -->
@@ -1155,17 +1189,7 @@
                 <div class="ruler-h" id="rulerTop"></div>
                 <div class="ruler-v" id="rulerLeft"></div>
 
-                <!-- Live Branding Zones -->
-                <div id="canvasBrandingHeader" class="canvas-branding-zone header">
-                    <div class="canvas-branding-logo"></div>
-                    <div class="canvas-branding-title"></div>
-                    <div class="canvas-branding-punchline"></div>
-                    <div class="canvas-branding-desc"></div>
-                </div>
-
-                <div id="canvasBrandingFooter" class="canvas-branding-zone footer">
-                    <div class="canvas-branding-footer-text"></div>
-                </div>
+                <!-- Elements will be dropped here -->
 
                 <!-- Elements will be dropped here -->
             </div>
@@ -1329,6 +1353,28 @@
                 <div class="form-group">
                     <label>Field Name (DB Key)</label>
                     <input type="text" id="propName" oninput="updateSelectedElement()">
+                </div>
+
+                <div class="form-group" id="grpImageUrl" style="display: none;">
+                    <label>Image / Logo URL</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="propImageUrl" oninput="updateSelectedElement()" style="flex: 1;">
+                        <button class="btn btn-outline" onclick="triggerFileUpload()" style="padding: 0 10px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                        </button>
+                    </div>
+                    <input type="file" id="propFileUpload" style="display: none;" accept="image/*"
+                        onchange="handleFileSelection(event)">
+                </div>
+
+                <div class="form-group toggle-group" id="grpSyncConfig" style="display: none;">
+                    <label>Keep Synced with Form Settings</label>
+                    <input type="checkbox" id="propSyncConfig" onchange="updateSelectedElement()">
                 </div>
 
                 <!-- Dynamic Options based on type -->
@@ -1791,28 +1837,37 @@
         // --- CORE LOGIC ---
         function addElement(type, x, y) {
             const id = 'elm_' + Date.now();
-            const actualType = type === 'separator' ? 'line' : type;
+            const actualType = (type === 'separator' || type === 'form_title' || type === 'punchline') ? 'cosmetic' : (type === 'logo' ? 'image' : type);
+
+            // Branding defaults
+            let defaultLabel = 'New ' + actualType;
+            if (type === 'form_title') defaultLabel = formConfig.formName || 'Form Title';
+            if (type === 'punchline') defaultLabel = 'Your Tagline Here';
+            if (type === 'logo') defaultLabel = '';
+
             const newElm = {
                 id: id,
-                type: actualType,
+                type: type, // Keep original type for rendering specific logic
                 x: x,
                 y: y,
                 props: {
-                    label: (actualType === 'rect' || actualType === 'line') ? '' : 'New ' + actualType,
-                    name: actualType + '_' + Math.floor(Math.random() * 1000),
+                    label: defaultLabel,
+                    name: type + '_' + Math.floor(Math.random() * 1000),
                     required: false,
-                    translatable: actualType === 'text',
-                    width: type === 'separator' ? 700 : 200,
-                    height: actualType === 'rect' ? 100 : 40,
+                    translatable: type === 'text',
+                    width: type === 'logo' ? 100 : (type === 'form_title' ? 400 : (type === 'separator' ? 700 : 200)),
+                    height: type === 'logo' ? 100 : 40,
                     // Cosmetics
-                    headingLevel: 'h2',
-                    align: 'left',
-                    fontSize: 14,
-                    isBold: false,
+                    headingLevel: type === 'form_title' ? 'h1' : 'h2',
+                    align: (type === 'form_title' || type === 'punchline' || type === 'logo') ? 'center' : 'left',
+                    fontSize: type === 'form_title' ? 28 : (type === 'punchline' ? 16 : 14),
+                    isBold: type === 'form_title' || type === 'logo' ? true : false,
+                    // Image specific
+                    imageUrl: type === 'logo' ? 'https://via.placeholder.com/150?text=Logo' : '',
                     // Shape Styles
-                    strokeWidth: (actualType === 'line' || actualType === 'rect') ? 2 : 0,
+                    strokeWidth: (type === 'line' || type === 'rect') ? 2 : 0,
                     borderStyle: 'solid',
-                    borderRadius: 0,
+                    borderRadius: (type === 'logo') ? 8 : 0,
                     // Grouping
                     groupId: null
                 }
@@ -1831,44 +1886,51 @@
 
             // Content based on type
             let content = '';
-            if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'repeater'].includes(elmData.type)) {
+            if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'logo', 'repeater'].includes(elmData.type)) {
                 let inputHtml = "";
                 if (elmData.type === 'dropdown') {
                     inputHtml = `<div class="preview-input" style="height:30px; background:#eee; display:flex; align-items:center; padding:0 10px; font-size:12px; font-weight:700;">Select Option <svg width="12" height="12" style="margin-left:auto"><polyline points="3 4 6 7 9 4" fill="none" stroke="black"/></svg></div>`;
                 } else if (elmData.type === 'repeater') {
                     inputHtml = `<div class="preview-input" style="height:35px; border:1px dashed #2563eb; background:#eff6ff; display:flex; align-items:center; justify-content:center; color:#2563eb; font-weight:700; font-size:12px;">+ Add New Item</div>`;
-                } else if (elmData.type === 'image') {
-                    inputHtml = `<div class="preview-input" style="height:80px; border:1px dashed #94a3b8; background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#64748b; font-size:10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Upload Image</div>`;
+                } else if (elmData.type === 'image' || elmData.type === 'logo') {
+                    const url = elmData.props.imageUrl || 'https://via.placeholder.com/150?text=Upload+Image';
+                    div.style.width = (elmData.props.width || 150) + 'px';
+                    div.style.height = (elmData.props.height || 100) + 'px';
+                    inputHtml = `<img src="${url}" style="width:100%; height:100%; object-fit:contain; border-radius:${elmData.props.borderRadius || 0}px; border:${elmData.props.strokeWidth || 0}px solid #ccc;">`;
                 } else if (elmData.type === 'textarea' || elmData.type === 'paragraph') {
                     inputHtml = `<div class="preview-input" style="height:${elmData.type === 'paragraph' ? '60px' : '40px'}; background:#eee;"></div>`;
                 } else {
                     inputHtml = `<div class="preview-input" style="height: 30px; background: #eee;"></div>`;
                 }
 
-                content = `
-                    <label class="preview-label">${elmData.props.label}${elmData.props.required ? '*' : ''}</label>
-                    ${inputHtml}
-                `;
-            } else if (elmData.type === 'heading') {
-                div.style.width = '300px';
-                // Dynamic Heading Tag
-                const tag = elmData.props.headingLevel || 'h2';
-                content = `<${tag} style="margin:0; border-bottom: 2px solid #333;">${elmData.props.label || 'Section Heading'}</${tag}>`;
+                if (elmData.type === 'logo' || elmData.type === 'image') {
+                    content = inputHtml;
+                } else {
+                    content = `
+                        <label class="preview-label" style="font-weight:${elmData.props.isBold ? 'bold' : 'normal'}; font-size:${elmData.props.fontSize || 12}px">${elmData.props.label}${elmData.props.required ? '*' : ''}</label>
+                        ${inputHtml}
+                    `;
+                }
+            } else if (elmData.type === 'heading' || elmData.type === 'form_title') {
+                div.style.width = (elmData.props.width || 300) + 'px';
+                const tag = elmData.type === 'form_title' ? 'h1' : (elmData.props.headingLevel || 'h2');
+                const border = elmData.type === 'form_title' ? 'none' : '2px solid #333';
+                content = `<${tag} style="margin:0; border-bottom: ${border}; font-size:${elmData.props.fontSize || (elmData.type === 'form_title' ? 28 : 20)}px; font-weight:${elmData.props.isBold ? '700' : '400'};">${elmData.props.label || 'Section Heading'}</${tag}>`;
             } else if (elmData.type === 'rect') {
                 div.style.width = elmData.props.width + 'px';
                 div.style.height = elmData.props.height + 'px';
-                // Apply Styles
                 div.style.border = `${elmData.props.strokeWidth || 2}px ${elmData.props.borderStyle || 'solid'} #000`;
                 div.style.borderRadius = (elmData.props.borderRadius || 0) + 'px';
                 div.style.background = 'transparent';
-            } else if (elmData.type === 'line') {
-                div.style.width = '200px';
-                // Line Implementation: Height = Clickable Area, Visual = Border Top
-                div.style.height = (elmData.props.strokeWidth || 2) + 10 + 'px'; // Add padding for easier click
+            } else if (elmData.type === 'line' || elmData.type === 'separator') {
+                div.style.width = (elmData.props.width || 200) + 'px';
+                div.style.height = (elmData.props.strokeWidth || 2) + 10 + 'px';
                 div.style.borderTop = `${elmData.props.strokeWidth || 2}px ${elmData.props.borderStyle || 'solid'} #000`;
                 div.style.background = 'transparent';
-            } else if (elmData.type === 'label') {
-                content = `<span style="font-weight:${elmData.props.isBold ? 'bold' : 'normal'}; font-size:${elmData.props.fontSize || 14}px">${elmData.props.label || 'Label Text'}</span>`;
+            } else if (elmData.type === 'label' || elmData.type === 'punchline') {
+                const color = elmData.type === 'punchline' ? '#666' : 'inherit';
+                const style = elmData.type === 'punchline' ? 'italic' : 'normal';
+                content = `<span style="font-weight:${elmData.props.isBold ? 'bold' : 'normal'}; font-size:${elmData.props.fontSize || 14}px; color:${color}; font-style:${style}">${elmData.props.label || 'Label Text'}</span>`;
             }
 
             div.innerHTML = content;
@@ -1992,30 +2054,49 @@
                 const setDisplayFlex = (id, show) => document.getElementById(id).style.display = show ? 'flex' : 'none';
 
                 setDisplay('grpHeadingLevel', t === 'heading');
-                setDisplay('grpAlign', t === 'heading' || t === 'label');
-                setDisplay('grpFontSize', t === 'label');
-                setDisplayFlex('grpBold', t === 'label');
+                setDisplay('grpAlign', ['heading', 'label', 'form_title', 'punchline', 'logo', 'image'].includes(t));
+                setDisplay('grpFontSize', ['label', 'form_title', 'punchline'].includes(t));
+                setDisplayFlex('grpBold', ['label', 'form_title', 'punchline'].includes(t));
                 setDisplay('grpOptions', t === 'dropdown');
-                setDisplay('grpPlaceholder', !['rect', 'line', 'repeater'].includes(t));
+                setDisplay('grpPlaceholder', !['rect', 'line', 'separator', 'repeater', 'logo', 'image', 'form_title', 'punchline'].includes(t));
+                setDisplay('grpImageUrl', t === 'image' || t === 'logo');
+                setDisplay('grpSyncConfig', t === 'form_title' || t === 'punchline' || t === 'logo');
 
                 // Shape Styles Visibility
-                const isShape = t === 'rect' || t === 'line';
-                setDisplay('grpStrokeWidth', isShape);
+                const isShape = t === 'rect' || t === 'line' || t === 'separator';
+                setDisplay('grpStrokeWidth', isShape || t === 'image' || t === 'logo');
                 setDisplay('grpBorderStyle', isShape);
-                setDisplay('grpBorderRadius', t === 'rect');
+                setDisplay('grpBorderRadius', t === 'rect' || t === 'image' || t === 'logo');
 
                 // Set Values
                 document.getElementById('propHeadingLevel').value = elm.props.headingLevel || 'h2';
                 document.getElementById('propAlign').value = elm.props.align || 'left';
                 document.getElementById('propFontSize').value = elm.props.fontSize || 14;
                 document.getElementById('propBold').checked = elm.props.isBold || false;
-
                 document.getElementById('propStrokeWidth').value = elm.props.strokeWidth || 2;
                 document.getElementById('propBorderStyle').value = elm.props.borderStyle || 'solid';
                 document.getElementById('propBorderRadius').value = elm.props.borderRadius || 0;
                 document.getElementById('propOptions').value = elm.props.options || '';
                 document.getElementById('propPlaceholder').value = elm.props.placeholder || '';
+                document.getElementById('propImageUrl').value = elm.props.imageUrl || '';
+                document.getElementById('propSyncConfig').checked = elm.props.syncConfig || false;
             }
+        }
+
+        function triggerFileUpload() {
+            document.getElementById('propFileUpload').click();
+        }
+
+        function handleFileSelection(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('propImageUrl').value = e.target.result;
+                updateSelectedElement();
+            };
+            reader.readAsDataURL(file);
         }
 
         function showGlobalProps() {
@@ -2053,45 +2134,93 @@
             // Style Props
             elm.props.headingLevel = document.getElementById('propHeadingLevel').value;
             elm.props.align = document.getElementById('propAlign').value;
-            elm.props.fontSize = document.getElementById('propFontSize').value;
+            elm.props.fontSize = parseInt(document.getElementById('propFontSize').value) || 14;
             elm.props.isBold = document.getElementById('propBold').checked;
 
-            // Shape Props
-            elm.props.strokeWidth = parseInt(document.getElementById('propStrokeWidth').value) || 2;
+            // Shape & Branding Props
+            elm.props.strokeWidth = parseInt(document.getElementById('propStrokeWidth').value) || 0;
             elm.props.borderStyle = document.getElementById('propBorderStyle').value;
             elm.props.borderRadius = parseInt(document.getElementById('propBorderRadius').value) || 0;
+            elm.props.imageUrl = document.getElementById('propImageUrl').value;
+            elm.props.syncConfig = document.getElementById('propSyncConfig').checked;
 
-            // Re-render visual content roughly
+            // Sync Logic
+            if (elm.props.syncConfig) {
+                if (elm.type === 'form_title') formConfig.formName = elm.props.label;
+                if (elm.type === 'punchline') formConfig.punchline = elm.props.label;
+                if (elm.type === 'logo') formConfig.logoUrl = elm.props.imageUrl;
+                // Update Sidebar Branding Panel UI if open
+                if (currentSidebarTab === 'branding') showGlobalProps();
+            }
+
+            // Re-render visual content
             const dom = document.getElementById(selectedId);
             if (dom) renderElementVisual(elm, dom);
         }
 
         function renderElementVisual(elm, dom) {
-            const separator = (elm.props.label && elm.props.labelRegional) ? ' / ' : '';
-            const regLabel = elm.props.labelRegional ? separator + elm.props.labelRegional : '';
+            if (!dom) return;
+            const t = elm.type;
+            const p = elm.props;
+
+            const separator = (p.label && p.labelRegional) ? ' / ' : '';
+            const regLabel = p.labelRegional ? separator + p.labelRegional : '';
+            const fullLabel = (p.label || '') + regLabel;
 
             // Update Base Styles
-            dom.style.textAlign = elm.props.align || 'left';
+            dom.style.textAlign = p.align || 'left';
 
-            if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'repeater'].includes(elm.type)) {
-                const labelEl = dom.querySelector('.preview-label');
-                if (labelEl) labelEl.innerHTML = elm.props.label + regLabel + (elm.props.required ? '*' : '');
-            } else if (elm.type === 'heading') {
-                const hTag = document.createElement(elm.props.headingLevel || 'h2');
-                hTag.style.margin = '0';
-                hTag.style.borderBottom = '2px solid #333';
-                hTag.innerText = elm.props.label + regLabel;
-                dom.innerHTML = '';
-                dom.appendChild(hTag);
-            } else if (elm.type === 'label') {
-                const fSize = elm.props.fontSize || 14;
-                dom.innerHTML = `<span style="font-weight:${elm.props.isBold ? 'bold' : 'normal'}; font-size: ${fSize}px">${elm.props.label}${regLabel}</span>`;
-            } else if (elm.type === 'rect') {
-                dom.style.border = `${elm.props.strokeWidth}px ${elm.props.borderStyle} #000`;
-                dom.style.borderRadius = `${elm.props.borderRadius}px`;
-            } else if (elm.type === 'line') {
-                dom.style.borderTop = `${elm.props.strokeWidth}px ${elm.props.borderStyle} #000`;
-                dom.style.height = (elm.props.strokeWidth + 10) + 'px'; // Update click area
+            // Re-render based on type
+            if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'logo', 'repeater'].includes(t)) {
+                if (t === 'logo' || t === 'image') {
+                    const img = dom.querySelector('img');
+                    if (img) {
+                        img.src = p.imageUrl || 'https://via.placeholder.com/150?text=Upload+Image';
+                        img.style.borderRadius = (p.borderRadius || 0) + 'px';
+                        img.style.border = `${p.strokeWidth || 0}px solid #ccc`;
+                    }
+                    dom.style.width = (p.width || (t === 'logo' ? 100 : 150)) + 'px';
+                    dom.style.height = (p.height || (t === 'logo' ? 100 : 100)) + 'px';
+                } else {
+                    const labelEl = dom.querySelector('.preview-label');
+                    if (labelEl) {
+                        labelEl.innerHTML = fullLabel + (p.required ? '*' : '');
+                        labelEl.style.fontWeight = p.isBold ? 'bold' : 'normal';
+                        labelEl.style.fontSize = (p.fontSize || 12) + 'px';
+                    }
+                }
+            } else if (t === 'heading' || t === 'form_title') {
+                const tag = t === 'form_title' ? 'h1' : (p.headingLevel || 'h2');
+                let head = dom.querySelector('h1, h2, h3, h4');
+
+                // If tag changed, we might need to recreate it but for simplicity, just update content/style
+                if (head) {
+                    head.innerText = fullLabel || (t === 'form_title' ? 'Form Title' : 'Section Heading');
+                    head.style.fontSize = (p.fontSize || (t === 'form_title' ? 28 : 20)) + 'px';
+                    head.style.fontWeight = p.isBold ? '700' : '400';
+                    head.style.borderBottom = t === 'form_title' ? 'none' : '2px solid #333';
+                }
+                dom.style.width = (p.width || 300) + 'px';
+            } else if (t === 'rect') {
+                dom.style.width = p.width + 'px';
+                dom.style.height = p.height + 'px';
+                dom.style.border = `${p.strokeWidth || 2}px ${p.borderStyle || 'solid'} #000`;
+                dom.style.borderRadius = (p.borderRadius || 0) + 'px';
+            } else if (t === 'line' || t === 'separator') {
+                dom.style.width = (p.width || 200) + 'px';
+                dom.style.height = (p.strokeWidth || 2) + 10 + 'px';
+                dom.style.borderTop = `${p.strokeWidth || 2}px ${p.borderStyle || 'solid'} #000`;
+            } else if (t === 'label' || t === 'punchline') {
+                const span = dom.querySelector('span');
+                if (span) {
+                    span.innerText = fullLabel || (t === 'punchline' ? 'Your Tagline Here' : 'Label Text');
+                    span.style.fontWeight = p.isBold ? 'bold' : 'normal';
+                    span.style.fontSize = (p.fontSize || 14) + 'px';
+                    if (t === 'punchline') {
+                        span.style.color = '#666';
+                        span.style.fontStyle = 'italic';
+                    }
+                }
             }
         }
 
