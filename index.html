@@ -3723,9 +3723,11 @@
 
             const apiInput = document.getElementById('propApiUrl');
             const currentApiSUrl = (apiInput ? apiInput.value.trim() : "") || formConfig.gasApiUrl;
+            const currentEngine = document.getElementById('propStorageEngine') ? document.getElementById('propStorageEngine').value : (formConfig.storageEngine || 'firebase');
 
-            if (!currentApiSUrl || currentApiSUrl.length < 20) {
-                alert("⚠️ Please enter your Google Script API URL in Settings first.");
+            // Only enforce GAS URL if we are actually using GAS engine
+            if (currentEngine === 'gas' && (!currentApiSUrl || currentApiSUrl.length < 20)) {
+                alert("⚠️ Please enter your Google Script API URL in Settings first (Required for 'Google Sheets' storage).");
                 showGlobalProps();
                 return;
             }
@@ -3835,28 +3837,30 @@
                 languageSecondary: 'mr',
                 languageSecondary: 'mr',
                 gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl,
-                workspaceId: formConfig.workspaceId // Preserve Workspace Context
+                workspaceId: formConfig.workspaceId, // Preserve Workspace Context
+                storageEngine: 'firebase' // Default to Firebase for Templates (System DB)
             };
+        };
 
-            // Reset Elements
-            elements = [];
-            canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
+        // Reset Elements
+        elements = [];
+        canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
 
-            // Reset UI
-            document.getElementById('propFormId').value = formConfig.id;
-            document.getElementById('propFormName').value = formConfig.formName;
-            document.getElementById('headerFormNameInput').value = formConfig.formName;
-            document.getElementById('propDescription').value = '';
-            document.getElementById('propAllowedDomains').value = '';
-            document.getElementById('propSheetUrl').value = '';
-            document.getElementById('propSheetName').value = 'Form Responses';
-            document.getElementById('headerFormId').innerText = formConfig.id;
+        // Reset UI
+        document.getElementById('propFormId').value = formConfig.id;
+        document.getElementById('propFormName').value = formConfig.formName;
+        document.getElementById('headerFormNameInput').value = formConfig.formName;
+        document.getElementById('propDescription').value = '';
+        document.getElementById('propAllowedDomains').value = '';
+        document.getElementById('propSheetUrl').value = '';
+        document.getElementById('propSheetName').value = 'Form Responses';
+        document.getElementById('headerFormId').innerText = formConfig.id;
 
-            renderSelectionState();
-            showGlobalProps();
-            updateFormLanguage();
+        renderSelectionState();
+        showGlobalProps();
+        updateFormLanguage();
 
-            alert("New Form Created! You can start adding elements.");
+        alert("New Form Created! You can start adding elements.");
         }
 
 
