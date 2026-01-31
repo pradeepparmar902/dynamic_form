@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Dynamic Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-light: #64748b;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--surface-alt);
+            color: var(--text-main);
+        }
+
+        /* HEADER */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* CONTAINER */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        /* BUTTONS */
+        .btn {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        /* WORKSPACE GRID */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: #eff6ff;
+            color: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .card h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+        }
+
+        .card-meta {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 400px;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            Dynamic Builder
+        </div>
+        <div>
+            <!-- User Profile (Placeholder) -->
+            <div style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%;"></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="section-header">
+            <div>
+                <h2>Your Workspaces</h2>
+                <p style="color: var(--text-light); margin-top: 5px;">Manage your clients and projects.</p>
+            </div>
+            <button class="btn" onclick="openModal()">
+                + Create Workspace
+            </button>
+        </div>
+
+        <div id="workspaceGrid" class="grid">
+            <!-- Loading State -->
+            <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text-light);">
+                Loading workspaces...
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATE MODAL -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top: 0;">New Workspace</h3>
+            <div class="form-group">
+                <label>Workspace Name</label>
+                <input type="text" id="wsNameInput" placeholder="e.g. Acme Corp">
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn" style="background: transparent; color: var(--text-main);"
+                    onclick="closeModal()">Cancel</button>
+                <button class="btn" onclick="createWorkspace()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // FIREBASE CONFIG (Copied from index.html)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+            authDomain: "buildform-e7d3b.firebaseapp.com",
+            projectId: "buildform-e7d3b",
+            storageBucket: "buildform-e7d3b.firebasestorage.app",
+            messagingSenderId: "1010258612784",
+            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+            measurementId: "G-L217Q3WM0G"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // RENDER
+        async function loadWorkspaces() {
+            const grid = document.getElementById('workspaceGrid');
+            try {
+                // Fetch workspaces (simple query for now, no auth filter yet)
+                const snapshot = await db.collection('workspaces').orderBy('createdAt', 'desc').get();
+
+                if (snapshot.empty) {
+                    grid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 4rem; background: white; border-radius: 1rem; border: 1px dashed var(--border);">
+                            <h3>No workspaces yet</h3>
+                            <button class="btn" onclick="openModal()" style="margin-top: 1rem;">Create your first one</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                grid.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const card = document.createElement('a'); // Link to workspace
+                    card.className = 'card';
+                    card.href = `workspace.html?id=${doc.id}`; // We will create this next
+                    card.innerHTML = `
+                        <div class="card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 21h18M5 21V7l8-4 8 4v14M8 21v-9h8v9" />
+                            </svg>
+                        </div>
+                        <h3>${data.name}</h3>
+                        <div class="card-meta">
+                            <span>0 Portals</span>
+                            <span>•</span>
+                            <span>0 Forms</span>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error("Error loading workspaces:", error);
+                grid.innerHTML = `<div style="color: red;">Error loading data. Check console.</div>`;
+            }
+        }
+
+        // ACTIONS
+        async function createWorkspace() {
+            const nameInput = document.getElementById('wsNameInput');
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            try {
+                await db.collection('workspaces').add({
+                    name: name,
+                    createdAt: new Date().toISOString(),
+                    ownerId: 'default_user' // Placeholder
+                });
+                closeModal();
+                nameInput.value = '';
+                loadWorkspaces();
+            } catch (error) {
+                alert("Error creating workspace: " + error.message);
+            }
+        }
+
+        function openModal() {
+            document.getElementById('createModal').classList.add('active');
+            document.getElementById('wsNameInput').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('createModal').classList.remove('active');
+        }
+
+        // INIT
+        loadWorkspaces();
+    </script>
+</body>
+
+</html>

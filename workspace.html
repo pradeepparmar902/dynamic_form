@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace - Dynamic Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --surface: #ffffff;
+            --surface-alt: #f1f5f9;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--surface-alt);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+        }
+
+        /* SIDEBAR */
+        aside {
+            width: 260px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .workspace-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            color: #64748b;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background: #f8fafc;
+        }
+
+        .nav-item.active {
+            background: #eff6ff;
+            color: var(--primary);
+        }
+
+        /* MAIN CONTENT */
+        main {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        /* LISTS */
+        .list-item {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item h4 {
+            margin: 0 0 5px 0;
+        }
+
+        .list-item p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside>
+        <div class="workspace-title" id="wsTitle">Loading...</div>
+
+        <div class="nav-item active" onclick="switchView('forms')">
+            📝 Forms
+        </div>
+        <div class="nav-item" onclick="switchView('portals')">
+            🌐 Portals
+        </div>
+
+        <div style="margin-top: auto;">
+            <a href="dashboard.html" class="nav-item">← Back to Dashboard</a>
+        </div>
+    </aside>
+
+    <main>
+
+        <!-- FORMS VIEW -->
+        <div id="view-forms">
+            <div class="header">
+                <h2>Forms Library</h2>
+                <a href="#" id="btnNewForm" class="btn">+ Create Form</a>
+            </div>
+            <div id="formsList">
+                <div style="text-align:center; padding: 2rem; color: #999;">No forms yet.</div>
+            </div>
+        </div>
+
+        <!-- PORTALS VIEW -->
+        <div id="view-portals" class="hidden">
+            <div class="header">
+                <h2>Portals</h2>
+                <button class="btn" style="background: #10b981;" onclick="openPortalModal()">+ New Portal</button>
+            </div>
+            <div id="portalsList">
+                <div style="text-align:center; padding: 2rem; color: #999;">Loading portals...</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- CREATE PORTAL MODAL -->
+    <div id="portalModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+        <div style="background:white; padding:2rem; border-radius:1rem; width:400px;">
+            <h3 style="margin-top:0;">Create New Portal</h3>
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Portal Name</label>
+                <input type="text" id="portalNameParams" placeholder="e.g. Client Feedback"
+                    style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; margin-bottom:0.5rem; font-weight:500;">URL Slug</label>
+                <input type="text" id="portalSlugParams" placeholder="e.g. client-feedback"
+                    style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; box-sizing:border-box;">
+                <p style="font-size:0.8rem; color:#666; margin-top:0.25rem;">Will be available at: /portal.html?p=slug
+                </p>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn" style="background: transparent; color: var(--text-main);"
+                    onclick="document.getElementById('portalModal').style.display='none'">Cancel</button>
+                <button class="btn" onclick="createPortal()">Create Portal</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+            authDomain: "buildform-e7d3b.firebaseapp.com",
+            projectId: "buildform-e7d3b",
+            storageBucket: "buildform-e7d3b.firebasestorage.app",
+            messagingSenderId: "1010258612784",
+            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+            measurementId: "G-L217Q3WM0G"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // PARAMS
+        const urlParams = new URLSearchParams(window.location.search);
+        const workspaceId = urlParams.get('id');
+
+        if (!workspaceId) {
+            alert("No Workspace ID provided!");
+            window.location.href = 'dashboard.html';
+        }
+
+        // SETUP
+        document.getElementById('btnNewForm').href = `index.html?workspaceId=${workspaceId}`;
+
+        // LOAD DATA
+        async function init() {
+            // 1. Get Workspace Details
+            try {
+                const wsDoc = await db.collection('workspaces').doc(workspaceId).get();
+                if (wsDoc.exists) {
+                    document.getElementById('wsTitle').innerText = wsDoc.data().name;
+                } else {
+                    document.getElementById('wsTitle').innerText = "Workspace Not Found";
+                }
+
+                loadForms();
+                loadPortals();
+
+            } catch (err) {
+                console.error("Error loading workspace data:", err);
+                document.getElementById('formsList').innerHTML = `<div style="color:red; padding:1rem;">Error: ${err.message}</div>`;
+            }
+        }
+
+        async function loadForms() {
+            // 2. Get Forms
+            document.getElementById('formsList').innerHTML = '<div style="padding:2rem; text-align:center; color:#999;">Loading forms...</div>';
+
+            // Fallback: Fetch all and filter client-side if index is missing
+            const snapshot = await db.collection('forms').orderBy('lastUpdated', 'desc').get();
+
+            const forms = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const meta = data.metadata || {};
+                if (meta.workspaceId === workspaceId) {
+                    forms.push({ id: doc.id, ...data });
+                }
+            });
+            renderForms(forms);
+        }
+
+        async function loadPortals() {
+            const list = document.getElementById('portalsList');
+            // Fetch portals for this workspace
+            // We use 'config' collection 'portal' doc for global, but now we need proper multiple portals
+            // We'll use a new 'portals' collection for metadata, and keep the config payload inside or separate
+            // For Phase 1 we defined 'portals' collection.
+
+            const snapshot = await db.collection('portals').where('workspaceId', '==', workspaceId).get().catch(e => {
+                console.warn("Index needed for portals query, fetching all for now");
+                return db.collection('portals').get();
+            });
+
+            const portals = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                // Manual filter if index failed
+                if (data.workspaceId === workspaceId) {
+                    portals.push({ id: doc.id, ...data });
+                }
+            });
+
+            if (portals.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding: 2rem; color: #999;">No portals yet. Create one to share your forms.</div>`;
+                return;
+            }
+
+            list.innerHTML = portals.map(p => `
+                <div class="list-item">
+                     <div>
+                        <h4>${p.name}</h4>
+                        <p>Slug: <a href="portal.html?p=${p.slug}" target="_blank">${p.slug}</a> • Forms: ${(p.attachedForms || []).length}</p>
+                    </div>
+                    <div>
+                         <a href="portal-designer.html?id=${p.id}&workspaceId=${workspaceId}" class="btn" style="background:var(--surface-alt); color:var(--text-main); border:1px solid var(--border);">Design</a>
+                         <a href="portal.html?p=${p.slug}" target="_blank" class="btn" style="background:#fff; color:var(--primary); border:1px solid var(--border);">Visit</a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderForms(forms) {
+            const list = document.getElementById('formsList');
+            if (forms.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding: 2rem; color: #999;">No forms in this workspace. <br><a href="index.html?workspaceId=${workspaceId}" style="color:var(--primary);">Create one now</a></div>`;
+                return;
+            }
+
+            list.innerHTML = forms.map(f => `
+                <div class="list-item">
+                    <div>
+                        <h4>${f.config?.formName || f.id}</h4>
+                        <p>ID: ${f.id} • Updated: ${new Date(f.lastUpdated || 0).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                        <a href="index.html?id=${f.id}&workspaceId=${workspaceId}" class="btn" style="background:var(--surface-alt); color:var(--text-main); border:1px solid var(--border);">Edit</a>
+                        <a href="viewer.html?view=form&id=${f.id}" target="_blank" class="btn" style="background:#fff; color:var(--primary); border:1px solid var(--border);">Preview</a>
+                        <button onclick="disconnectForm('${f.id}')" class="btn" style="background:#fee2e2; color:#ef4444; border:none;">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function disconnectForm(formId) {
+            if (!confirm("Remove this form from workspace? Data will not be deleted, just unlinked.")) return;
+            try {
+                await db.collection('forms').doc(formId).update({
+                    'metadata.workspaceId': null
+                });
+                loadForms();
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+        function openPortalModal() {
+            document.getElementById('portalModal').style.display = 'flex';
+        }
+
+        async function createPortal() {
+            const name = document.getElementById('portalNameParams').value;
+            const slug = document.getElementById('portalSlugParams').value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+            if (!name || !slug) return alert("Please fill all fields");
+
+            try {
+                // Check slug uniqueness (basic check)
+                const check = await db.collection('portals').where('slug', '==', slug).get();
+                if (!check.empty) {
+                    return alert("This URL slug is already taken. Please choose another.");
+                }
+
+                await db.collection('portals').add({
+                    name: name,
+                    slug: slug,
+                    workspaceId: workspaceId,
+                    createdAt: Date.now(),
+                    attachedForms: []
+                });
+
+                document.getElementById('portalModal').style.display = 'none';
+                loadPortals();
+            } catch (e) {
+                alert("Error creating portal: " + e.message);
+            }
+        }
+
+        function switchView(view) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.nav-item[onclick="switchView('${view}')"]`).classList.add('active');
+
+            document.getElementById('view-forms').classList.add('hidden');
+            document.getElementById('view-portals').classList.add('hidden');
+
+            document.getElementById('view-' + view).classList.remove('hidden');
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
