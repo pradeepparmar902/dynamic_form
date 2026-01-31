@@ -917,9 +917,48 @@
                 </div>
             </div>
 
+            <!-- OPTION 2: IFRAME EMBED -->
+            <div
+                style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border);">
+                <h4
+                    style="margin: 0 0 12px 0; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    Configuration
+                </h4>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label
+                        style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-light);">Google
+                        Sheet URL (Optional)</label>
+                    <input type="text" id="propSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..."
+                        style="width: 100%; padding: 8px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label
+                        style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-light);">Sheet
+                        Name</label>
+                    <input type="text" id="propSheetName" placeholder="Form Responses"
+                        style="width: 100%; padding: 8px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+
+                <div class="form-group">
+                    <label
+                        style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-light);">Custom
+                        Domain (Optional)</label>
+                    <input type="text" id="propCustomDomain" placeholder="https://form.example.com"
+                        onchange="localStorage.setItem('customDomain', this.value)"
+                        style="width: 100%; padding: 8px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+            </div>
+
             <div style="height: 1px; background: var(--border); margin-bottom: 1.5rem;"></div>
 
-            <!-- OPTION 2: IFRAME EMBED -->
+            <!-- EMBED CODE WRAPPER -->
             <div>
                 <div
                     style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; color: var(--primary);">
@@ -1471,15 +1510,7 @@
                                 <label>GAS Script URL</label>
                                 <input type="text" id="propApiUrl">
                             </div>
-                            <div class="form-group">
-                                <label>Google Sheet URL</label>
-                                <input type="text" id="propSheetUrl">
-                            </div>
-                            <div class="form-group">
-                                <label>Custom Domain (Optional)</label>
-                                <input type="text" id="propCustomDomain" placeholder="https://form.example.com"
-                                    onchange="localStorage.setItem('customDomain', this.value)">
-                            </div>
+                            <!-- MOVED TO EMBED MODAL -->
                         </div>
 
                         <!-- BRANDING -->
@@ -3684,6 +3715,11 @@
             const area = document.getElementById('embedCodeArea');
             const directArea = document.getElementById('directLinkArea');
             if (!modal || !area || !directArea) return;
+
+            // Populate Configuration Fields located in this modal
+            if (document.getElementById('propSheetUrl')) document.getElementById('propSheetUrl').value = formConfig.sheetUrl || "";
+            if (document.getElementById('propSheetName')) document.getElementById('propSheetName').value = formConfig.sheetName || "Form Responses";
+            if (document.getElementById('propCustomDomain')) document.getElementById('propCustomDomain').value = formConfig.customDomain || "";
 
             const apiInput = document.getElementById('propApiUrl');
             const currentApiSUrl = (apiInput ? apiInput.value.trim() : "") || formConfig.gasApiUrl;
