@@ -419,6 +419,70 @@
             cursor: move;
         }
 
+        /* RESIZE HANDLES */
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border: 1px solid white;
+            border-radius: 50%;
+            z-index: 11;
+            pointer-events: auto;
+        }
+
+        .handle-nw {
+            top: -4px;
+            left: -4px;
+            cursor: nwse-resize;
+        }
+
+        .handle-n {
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+        }
+
+        .handle-ne {
+            top: -4px;
+            right: -4px;
+            cursor: nesw-resize;
+        }
+
+        .handle-e {
+            top: 50%;
+            right: -4px;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
+
+        .handle-se {
+            bottom: -4px;
+            right: -4px;
+            cursor: nwse-resize;
+        }
+
+        .handle-s {
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+        }
+
+        .handle-sw {
+            bottom: -4px;
+            left: -4px;
+            cursor: nesw-resize;
+        }
+
+        .handle-w {
+            top: 50%;
+            left: -4px;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
+
         /* COMPONENT STYLES PREVIEW */
         .preview-field {
             pointer-events: none;
@@ -1478,6 +1542,18 @@
 
                 <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
 
+                <!-- DIMENSION CONTROLS -->
+                <div class="form-group" id="grpWidth" style="display: none;">
+                    <label>Width (px)</label>
+                    <input type="number" id="propWidth" min="10" max="2000" oninput="updateDimensionsFromInputs()">
+                </div>
+                <div class="form-group" id="grpHeight" style="display: none;">
+                    <label>Height (px)</label>
+                    <input type="number" id="propHeight" min="10" max="2000" oninput="updateDimensionsFromInputs()">
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+
                 <div class="form-group">
                     <label>Position X (px)</label>
                     <input type="number" id="propX" oninput="updatePosFromInputs()">
@@ -1976,6 +2052,22 @@
             div.innerHTML = content;
             div.style.textAlign = elmData.props.align || 'left';
 
+            // ADD RESIZE HANDLES for images and logos
+            if (elmData.type === 'image' || elmData.type === 'logo') {
+                const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+                handles.forEach(pos => {
+                    const handle = document.createElement('div');
+                    handle.className = `resize-handle handle-${pos}`;
+                    handle.dataset.handleType = pos;
+                    handle.dataset.elementId = elmData.id;
+                    handle.onmousedown = (e) => {
+                        e.stopPropagation();
+                        handleResizeStart(e, elmData.id, pos);
+                    };
+                    div.appendChild(handle);
+                });
+            }
+
             // ATTACH INTERACTIONS
             div.onmousedown = (e) => {
                 // If we're not already dragging, and it's a left click
@@ -2114,6 +2206,11 @@
                 setDisplay('grpBorderStyle', isShape);
                 setDisplay('grpBorderRadius', t === 'rect' || t === 'image' || t === 'logo');
 
+                // Dimension Controls Visibility
+                const hasSize = ['image', 'logo', 'rect', 'line', 'separator'].includes(t);
+                setDisplay('grpWidth', hasSize);
+                setDisplay('grpHeight', hasSize && t !== 'line' && t !== 'separator');
+
                 // Set Values
                 document.getElementById('propHeadingLevel').value = elm.props.headingLevel || 'h2';
                 document.getElementById('propAlign').value = elm.props.align || 'left';
@@ -2126,6 +2223,14 @@
                 document.getElementById('propPlaceholder').value = elm.props.placeholder || '';
                 document.getElementById('propImageUrl').value = elm.props.imageUrl || '';
                 document.getElementById('propSyncConfig').checked = elm.props.syncConfig || false;
+
+                // Set Dimension Values
+                if (hasSize) {
+                    document.getElementById('propWidth').value = elm.props.width || 100;
+                    if (t !== 'line' && t !== 'separator') {
+                        document.getElementById('propHeight').value = elm.props.height || 100;
+                    }
+                }
             }
         }
 
@@ -2318,6 +2423,39 @@
             showGlobalProps();
         }
 
+        // --- RESIZE LOGIC ---
+        let activeResize = null;
+
+        function handleResizeStart(e, elementId, handleType) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const elm = elements.find(el => el.id === elementId);
+            if (!elm) return;
+
+            const dom = document.getElementById(elementId);
+            if (!dom) return;
+
+            const rect = dom.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+
+            activeResize = {
+                elementId: elementId,
+                handleType: handleType,
+                startX: e.clientX,
+                startY: e.clientY,
+                startWidth: elm.props.width || rect.width,
+                startHeight: elm.props.height || rect.height,
+                startPosX: elm.x,
+                startPosY: elm.y,
+                canvasX: canvasRect.left,
+                canvasY: canvasRect.top
+            };
+
+            // Set cursor on body to maintain during drag
+            document.body.style.cursor = dom.querySelector(`.handle-${handleType}`).style.cursor;
+        }
+
         // --- ELEMENT DRAGGING LOGIC ---
         let activeDrag = null;
 
@@ -2408,6 +2546,68 @@
                     if (py && elm) py.value = elm.y;
                 }
             }
+
+            // HANDLE RESIZE
+            if (activeResize) {
+                const elm = elements.find(el => el.id === activeResize.elementId);
+                if (!elm) return;
+
+                const dom = document.getElementById(activeResize.elementId);
+                if (!dom) return;
+
+                const deltaX = e.clientX - activeResize.startX;
+                const deltaY = e.clientY - activeResize.startY;
+
+                let newWidth = activeResize.startWidth;
+                let newHeight = activeResize.startHeight;
+                let newX = activeResize.startPosX;
+                let newY = activeResize.startPosY;
+
+                const h = activeResize.handleType;
+
+                // Calculate new dimensions based on handle direction
+                if (h.includes('e')) newWidth = activeResize.startWidth + deltaX;
+                if (h.includes('w')) {
+                    newWidth = activeResize.startWidth - deltaX;
+                    newX = activeResize.startPosX + deltaX;
+                }
+                if (h.includes('s')) newHeight = activeResize.startHeight + deltaY;
+                if (h.includes('n')) {
+                    newHeight = activeResize.startHeight - deltaY;
+                    newY = activeResize.startPosY + deltaY;
+                }
+
+                // Enforce minimum size
+                newWidth = Math.max(20, newWidth);
+                newHeight = Math.max(20, newHeight);
+
+                // Update model
+                elm.props.width = Math.round(newWidth);
+                elm.props.height = Math.round(newHeight);
+                elm.x = Math.round(newX);
+                elm.y = Math.round(newY);
+
+                // Update DOM
+                dom.style.width = elm.props.width + 'px';
+                dom.style.height = elm.props.height + 'px';
+                dom.style.left = elm.x + 'px';
+                dom.style.top = elm.y + 'px';
+
+                // Update properties panel
+                if (selectedIds.includes(activeResize.elementId)) {
+                    const wInput = document.getElementById('propWidth');
+                    const hInput = document.getElementById('propHeight');
+                    const xInput = document.getElementById('propX');
+                    const yInput = document.getElementById('propY');
+                    if (wInput) wInput.value = elm.props.width;
+                    if (hInput) hInput.value = elm.props.height;
+                    if (xInput) xInput.value = elm.x;
+                    if (yInput) yInput.value = elm.y;
+                }
+
+                // Re-render visual
+                renderElementVisual(elm, dom);
+            }
         });
 
         window.addEventListener('mouseup', () => {
@@ -2417,6 +2617,10 @@
                     if (elDOM) elDOM.style.cursor = ''; // Revert
                 });
                 activeDrag = null;
+            }
+            if (activeResize) {
+                document.body.style.cursor = '';
+                activeResize = null;
             }
         });
 
@@ -2437,6 +2641,31 @@
                     dom.style.left = x + 'px';
                     dom.style.top = y + 'px';
                 }
+            }
+        }
+
+
+        // Manual Dimension Update from Inputs
+        function updateDimensionsFromInputs() {
+            if (selectedIds.length !== 1) return;
+            const id = selectedIds[0];
+            const elm = elements.find(e => e.id === id);
+            if (!elm) return;
+
+            const width = parseInt(document.getElementById('propWidth').value) || 100;
+            const height = parseInt(document.getElementById('propHeight').value) || 100;
+
+            elm.props.width = width;
+            elm.props.height = height;
+
+            const dom = document.getElementById(id);
+            if (dom) {
+                dom.style.width = width + 'px';
+                if (elm.type !== 'line' && elm.type !== 'separator') {
+                    dom.style.height = height + 'px';
+                }
+                // Re-render visual to update image size
+                renderElementVisual(elm, dom);
             }
         }
 
