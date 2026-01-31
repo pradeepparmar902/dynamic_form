@@ -487,7 +487,7 @@
             const portalSlug = urlParams.get('p');
 
             // --- VANITY URL RESOLUTION ---
-            if (portalSlug) {
+            if (portalSlug && portalSlug !== 'none') {
                 console.log(`🌐 Branding: Resolving vanity slug "${portalSlug}"...`);
                 try {
                     // Initialize Firebase first to do the lookup
@@ -519,22 +519,32 @@
                             console.log("📋 Portal: Found attached forms configuration");
                             currentState.portalForms = data.attachedForms;
 
-                            // Update Portal Title if available
+                            // Update Portal Title If available
                             if (data.name) {
                                 document.getElementById('portalTitle').innerText = data.name;
                                 document.title = data.name + " - Portal";
                             }
                         }
-
-                        // We continue as "firebase" backend to fetch the individual forms if needed
-                        // but individual forms could still be GAS if that's what's saved
-                        console.log("🔗 Mapping: Redirecting to correct backend/API");
                     } else {
-                        console.warn("⚠️ Branding: Slug not found, falling back to URL params.");
+                        console.error("❌ Branding: Slug not found in database.");
+                        document.getElementById('loader').innerHTML = `
+                            <div style="text-align:center; padding:20px; color:#64748b;">
+                                <h3>Portal Not Found</h3>
+                                <p>The portal link you used is invalid or has expired.</p>
+                                <p style="font-size:0.8rem; margin-top:10px; opacity:0.7;">(Slug: ${portalSlug})</p>
+                            </div>
+                        `;
+                        return; // STOP execution
                     }
                 } catch (err) {
                     console.error("❌ Branding Resolution failed:", err);
+                    // Continue to fallback or show error?
+                    // Better to stop if checking slug failed
                 }
+            } else if (portalSlug === 'none') {
+                console.warn("⚠️ Url parameter p=none detected.");
+                // We will attempt to load the default/generic portal config below,
+                // BUT if that fails (e.g. no forms created), we should handle it.
             }
 
             if (!API_URL && backend !== 'firebase') {
