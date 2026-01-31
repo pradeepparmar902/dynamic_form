@@ -1936,8 +1936,14 @@
             div.innerHTML = content;
             div.style.textAlign = elmData.props.align || 'left';
 
-            // Mouse Interaction handled globally
-            // div.onmousedown = (e) => startDragElement(e, elmData.id);
+            // ATTACH INTERACTIONS
+            div.onmousedown = (e) => {
+                // If we're not already dragging, and it's a left click
+                if (e.button === 0) {
+                    // Selection logic is handled globally via window.mousedown, 
+                    // but we need to ensure this element is recognized as .canvas-element
+                }
+            };
 
             canvas.appendChild(div);
         }
