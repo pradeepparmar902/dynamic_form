@@ -1087,6 +1087,44 @@
                             🎨 Form Visual Branding
                         </div>
 
+                        <!-- Draggable Branding Tools for better discoverability -->
+                        <div
+                            style="background: #f5f3ff; padding: 1rem; border-radius: 12px; border: 1px solid #ddd6fe; margin-bottom: 1rem;">
+                            <label
+                                style="color: #7c3aed; font-weight: 700; font-size: 0.75rem; display: block; margin-bottom: 10px; text-transform: uppercase;">Drag
+                                & Drop Brand Tools</label>
+                            <div class="tool-grid" style="grid-template-columns: repeat(3, 1fr);">
+                                <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                    data-type="logo" style="padding: 0.5rem; background: white;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                                        <line x1="9" y1="9" x2="9.01" y2="9" />
+                                        <line x1="15" y1="9" x2="15.01" y2="9" />
+                                    </svg>
+                                    <span style="font-size: 0.65rem;">Logo</span>
+                                </div>
+                                <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                    data-type="form_title" style="padding: 0.5rem; background: white;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
+                                        stroke-width="2">
+                                        <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+                                    </svg>
+                                    <span style="font-size: 0.65rem;">Title</span>
+                                </div>
+                                <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                    data-type="punchline" style="padding: 0.5rem; background: white;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
+                                        stroke-width="2">
+                                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                                    </svg>
+                                    <span style="font-size: 0.65rem;">Slogan</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div
                             style="background: #fdf2f8; padding: 1.25rem; border-radius: 12px; border: 1px solid #fbcfe8; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                             <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
@@ -1811,7 +1849,9 @@
 
         // --- DRAG AND DROP (SIDEBAR TO CANVAS) ---
         function handleDragStart(e) {
-            e.dataTransfer.setData("type", e.target.dataset.type);
+            // Use currentTarget to ensure we get the div with data-type, even if icon/text was clicked
+            e.dataTransfer.setData("type", e.currentTarget.dataset.type);
+            e.dataTransfer.effectAllowed = "copy";
         }
 
         function allowDrop(e) {
