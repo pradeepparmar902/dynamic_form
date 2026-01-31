@@ -786,6 +786,22 @@
                     ? ` <span class="lang-${langCodeSecondary}" style="font-weight:400; color:#555">/ ${elm.props.labelRegional}</span>`
                     : '';
 
+                // --- APPLY UNIVERSAL STYLING ---
+                if (elm.props.textColor) div.style.color = elm.props.textColor;
+                if (elm.props.backgroundColor && elm.props.backgroundColor !== 'transparent') {
+                    div.style.backgroundColor = elm.props.backgroundColor;
+                }
+                if (elm.props.borderColor) {
+                    div.style.borderColor = elm.props.borderColor;
+                }
+                if (elm.props.opacity !== undefined && elm.props.opacity < 100) {
+                    div.style.opacity = elm.props.opacity / 100;
+                }
+                if (elm.props.padding) div.style.padding = elm.props.padding + 'px';
+                if (elm.props.shadow) {
+                    div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                }
+
                 // Render Input
                 // Render Input
                 if (['text', 'number', 'date', 'file', 'email', 'textarea', 'paragraph', 'dropdown', 'counter', 'image', 'repeater'].includes(elm.type)) {
