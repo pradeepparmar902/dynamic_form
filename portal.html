@@ -514,6 +514,18 @@
 
                         currentState.config = cfg;
 
+                        // Capture attached forms from Portal Designer
+                        if (data.attachedForms && Array.isArray(data.attachedForms)) {
+                            console.log("📋 Portal: Found attached forms configuration");
+                            currentState.portalForms = data.attachedForms;
+
+                            // Update Portal Title if available
+                            if (data.name) {
+                                document.getElementById('portalTitle').innerText = data.name;
+                                document.title = data.name + " - Portal";
+                            }
+                        }
+
                         // We continue as "firebase" backend to fetch the individual forms if needed
                         // but individual forms could still be GAS if that's what's saved
                         console.log("🔗 Mapping: Redirecting to correct backend/API");
@@ -564,22 +576,19 @@
 
                 if (res.status !== 'success') throw new Error(res.message || "Failed to load portal configuration");
 
-                currentState.config = res.config;
-                renderSidebar(res.config.forms);
+                currentState.config = res.config || {};
+
+                // CRITICAL: If we have explicit forms from the portal document (slug resolution), use them
+                // Otherwise fallback to the 'forms' array in the generic config
+                let formsToRender = currentState.portalForms || res.config.forms || [];
+
+                renderSidebar(formsToRender);
 
                 // Auto Load First Form
-                if (res.config.forms && res.config.forms.length > 0) {
-                    const firstId = res.config.forms[0].id;
-                    if (res.initialForm && res.initialForm.status === 'success') {
-                        const loadedId = res.initialForm.formId || res.initialForm.id;
-                        if (String(loadedId) === String(firstId)) {
-                            renderForm(firstId, res.initialForm);
-                        } else {
-                            fetchForm(firstId);
-                        }
-                    } else {
-                        fetchForm(firstId);
-                    }
+                if (formsToRender.length > 0) {
+                    // Support both formats
+                    const firstId = formsToRender[0].formId || formsToRender[0].id;
+                    fetchForm(firstId);
                 } else {
                     document.getElementById('nav-list').innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-size:0.9rem;">No forms available</div>';
                     document.getElementById('loader').style.display = 'none';
@@ -599,12 +608,20 @@
         // SIDEBAR
         function renderSidebar(forms) {
             const list = document.getElementById('nav-list');
-            list.innerHTML = forms.map((f) => `
-                <li class="nav-item" id="nav-${f.id}" onclick="fetchForm('${f.id}')">
-                    <span>${f.name}</span>
+            if (!forms || forms.length === 0) {
+                list.innerHTML = '<li style="padding:16px; color:#999; font-size:0.85rem; text-align:center;">No forms found</li>';
+                return;
+            }
+            list.innerHTML = forms.map((f) => {
+                // Support both new Portal Designer format and legacy format
+                const id = f.formId || f.id;
+                const name = f.label || f.name || f.formName || 'Untitled Form';
+                return `
+                <li class="nav-item" id="nav-${id}" onclick="fetchForm('${id}')">
+                    <span>${name}</span>
                     <span class="arrow-icon">→</span>
                 </li>
-            `).join('');
+            `}).join('');
         }
 
         // FETCH SINGLE
