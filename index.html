@@ -96,6 +96,56 @@
             background: var(--surface-alt);
         }
 
+        /* PROPERTIES PANEL TABS */
+        .panel-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: #f8fafc;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: #eff6ff;
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #eff6ff;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
         /* MAIN LAYOUT */
         .workspace {
             display: flex;
@@ -1431,282 +1481,358 @@
                             <button class="btn btn-outline" onclick="testApiConnection()"
                                 style="padding: 0.5rem;">Test</button>
                         </div>
-                        <small style="font-size: 0.7rem; color: var(--text-light);">Required if hosted on GitHub Pages
-                            or
-                            locally.</small>
-                    </div>
-
-                    <div class="category-title" style="margin-top: 1.5rem; color: var(--primary); font-size: 0.8rem;">
-                        Admin: Backend Strategy
-                    </div>
-                    <div class="form-group">
-                        <label>Storage Engine (Performance)</label>
-                        <select id="propStorageEngine" onchange="toggleBackendConfig()">
-                            <option value="gas">Google Apps Script (Standard)</option>
-                            <option value="firebase">Firebase (High Performance)</option>
-                        </select>
-                        <small style="font-size: 0.7rem; color: var(--text-light);">Firebase offers ~10x faster loading
-                            for
-                            clients.</small>
-                    </div>
-
-                    <div id="firebaseConfigArea" class="hidden">
-                        <div class="form-group">
-                            <label>Firebase Config (JSON Object)</label>
-                            <textarea id="propFirebaseConfig" rows="5"
-                                placeholder='{ "apiKey": "...", "projectId": "...", ... }'></textarea>
-                            <small style="font-size: 0.7rem; color: var(--text-light);">Paste the config object from
-                                Firebase Console.</small>
+                        <!-- TABS -->
+                        <div class="panel-tabs"
+                            style="display: flex; border-bottom: 1px solid var(--border); background: #f8fafc; position:sticky; top:0; z-index:10;">
+                            <button class="tab-btn active" onclick="switchTab('settings')"
+                                style="flex:1; padding:12px; border:none; background:none; cursor:pointer; font-weight:600; color:#64748b; border-bottom:3px solid transparent;">Settings</button>
+                            <button class="tab-btn" onclick="switchTab('properties')"
+                                style="flex:1; padding:12px; border:none; background:none; cursor:pointer; font-weight:600; color:#64748b; border-bottom:3px solid transparent;">Properties</button>
+                            <button class="tab-btn" onclick="switchTab('design')"
+                                style="flex:1; padding:12px; border:none; background:none; cursor:pointer; font-weight:600; color:#64748b; border-bottom:3px solid transparent;">Design</button>
                         </div>
-                    </div>
 
-                    <button class="btn btn-outline" onclick="lockAdminSettings()"
-                        style="width: 100%; justify-content: center; margin-top: 1rem; font-size: 0.75rem;">
-                        🔒 Lock Settings
-                    </button>
-                </div>
-            </div>
+                        <div style="padding: 1rem;">
+                            <!-- TAB 1: SETTINGS (GLOBAL) -->
+                            <div id="tab-settings" class="tab-content active">
+                                <div id="globalProps">
+                                    <h3>📝 Form Settings</h3>
+                                    <div class="form-group">
+                                        <label>Form ID</label>
+                                        <div style="display: flex; gap: 5px;">
+                                            <input type="text" id="propFormId" readonly
+                                                style="background: #f3f4f6; color: #666;">
+                                            <button class="btn btn-outline" style="padding: 5px 10px;"
+                                                onclick="copyToClipboard(document.getElementById('propFormId').value)">📋</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Form Name</label>
+                                        <input type="text" id="propFormName">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Description (Optional)</label>
+                                        <textarea id="propDescription" rows="3"></textarea>
+                                    </div>
 
-            <div id="elementProps" class="props-content hidden">
-                <div class="category-title">Element Properties</div>
+                                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
 
-                <!-- ELEMENT PURPOSE -->
-                <div class="form-group" id="grpPurpose">
-                    <label>Element Purpose</label>
-                    <select id="propPurpose" onchange="updateSelectedElement()">
-                        <option value="form">Form Field</option>
-                        <option value="branding">Branding Element</option>
-                    </select>
-                </div>
+                                    <h3>🔐 Access & Security</h3>
+                                    <div class="form-group">
+                                        <label>Allowed Domains (Comma separated)</label>
+                                        <input type="text" id="propAllowedDomains"
+                                            placeholder="example.com, mysite.org">
+                                        <small style="color: #666; font-size: 0.75rem;">Leave empty to allow
+                                            all.</small>
+                                    </div>
 
-                <!-- BRANDING STYLE (visible only when purpose = branding) -->
-                <div class="form-group" id="grpBrandingStyle" style="display: none;">
-                    <label>Branding Style</label>
-                    <select id="propBrandingStyle" onchange="updateSelectedElement()">
-                        <option value="default">Default</option>
-                        <option value="title">Title (Large, Bold)</option>
-                        <option value="subtitle">Subtitle (Italic)</option>
-                        <option value="label">Label</option>
-                        <option value="logo">Logo</option>
-                    </select>
-                </div>
+                                    <div id="adminUnlockArea" style="margin-top: 20px; text-align: center;">
+                                        <button class="btn btn-outline" onclick="unlockAdminSettings()">🔒 Unlock
+                                            Advanced Settings</button>
+                                    </div>
 
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+                                    <div id="adminSettingsArea" class="hidden"
+                                        style="margin-top: 20px; border: 1px solid #fee2e2; padding: 10px; border-radius: 6px; background: #fff1f2;">
+                                        <div
+                                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                            <h4 style="margin:0; color:#b91c1c;">Advanced Settings</h4>
+                                            <button onclick="lockAdminSettings()"
+                                                style="background:none; border:none; color:#b91c1c; cursor:pointer;">✖
+                                                Lock</button>
+                                        </div>
 
-                <div class="form-group">
-                    <label id="lblPropPrimary">Field Label (Primary)</label>
-                    <input type="text" id="propLabel" oninput="updateSelectedElement()">
-                </div>
-                <div class="form-group">
-                    <label id="lblPropSecondary">Field Label (Secondary)</label>
-                    <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
-                </div>
-                <div class="form-group" id="grpOptions" style="display: none;">
-                    <label>Dropdown Options (Comma separated)</label>
-                    <textarea id="propOptions" placeholder="Option 1, Option 2, Option 3" rows="3"
-                        oninput="updateSelectedElement()"></textarea>
-                </div>
+                                        <div class="form-group">
+                                            <label>Storage Engine</label>
+                                            <select id="propStorageEngine" onchange="toggleBackendConfig()">
+                                                <option value="gas">Google Sheets (GAS)</option>
+                                                <option value="firebase">Firebase Firestore</option>
+                                            </select>
+                                        </div>
 
-                <div class="form-group" id="grpPlaceholder">
-                    <label>Placeholder</label>
-                    <input type="text" id="propPlaceholder" placeholder="Enter placeholder..."
-                        oninput="updateSelectedElement()">
-                </div>
-                <div class="form-group">
-                    <label>Field Name (DB Key)</label>
-                    <input type="text" id="propName" oninput="updateSelectedElement()">
-                </div>
+                                        <div id="firebaseConfigArea" class="form-group hidden">
+                                            <label>Firebase Config JSON</label>
+                                            <textarea id="propFirebaseConfig" rows="5"
+                                                style="font-family:monospace; font-size:0.8rem;"
+                                                placeholder='{"apiKey": "...", ...}'></textarea>
+                                        </div>
 
-                <div class="form-group" id="grpImageUrl" style="display: none;">
-                    <label>Image / Logo URL</label>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="propImageUrl" oninput="updateSelectedElement()" style="flex: 1;">
-                        <button class="btn btn-outline" onclick="triggerFileUpload()" style="padding: 0 10px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="17 8 12 3 7 8" />
-                                <line x1="12" y1="3" x2="12" y2="15" />
-                            </svg>
-                        </button>
-                    </div>
-                    <input type="file" id="propFileUpload" style="display: none;" accept="image/*"
-                        onchange="handleFileSelection(event)">
-                </div>
+                                        <div class="form-group">
+                                            <label>GAS Script URL</label>
+                                            <input type="text" id="propApiUrl">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Google Sheet URL</label>
+                                            <input type="text" id="propSheetUrl">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Custom Domain (Optional)</label>
+                                            <input type="text" id="propCustomDomain"
+                                                placeholder="https://form.example.com"
+                                                onchange="localStorage.setItem('customDomain', this.value)">
+                                        </div>
+                                    </div>
 
-                <div class="form-group toggle-group" id="grpSyncConfig" style="display: none;">
-                    <label>Keep Synced with Form Settings</label>
-                    <input type="checkbox" id="propSyncConfig" onchange="updateSelectedElement()">
-                </div>
+                                    <!-- BRANDING -->
+                                    <div id="brandingSection"
+                                        style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                                        <h3>✨ Branding</h3>
+                                        <!-- Content populated by updateCanvasBranding inputs if needed, usually globalProps contains enough -->
+                                    </div>
+                                </div>
 
-                <!-- Dynamic Options based on type -->
-                <div class="form-group toggle-group">
-                    <label>Required</label>
-                    <input type="checkbox" id="propRequired" onchange="updateSelectedElement()">
-                </div>
+                                <div
+                                    style="padding: 20px; text-align: center; color: #64748b; font-style: italic; margin-top:40px;">
+                                    <p>Select an element on the canvas to edit its properties.</p>
+                                </div>
+                            </div>
 
-                <div class="form-group toggle-group">
-                    <label id="lblPropTranslatable">Enable Translation (English -> Marathi)</label>
-                    <input type="checkbox" id="propTranslatable" onchange="updateSelectedElement()">
-                </div>
+                            <!-- TAB 2: PROPERTIES (DATA) -->
+                            <div id="tab-properties" class="tab-content" style="display:none;">
+                                <div id="elementProps" style="display: none;">
+                                    <div class="form-group">
+                                        <label>Element ID</label>
+                                        <input type="text" id="propId" readonly
+                                            style="background: #f3f4f6; color: #666;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Type</label>
+                                        <input type="text" id="propType" readonly
+                                            style="background: #f3f4f6; color: #666; text-transform: capitalize;">
+                                    </div>
+                                    <div class="form-group" id="grpPurpose">
+                                        <label>Element Purpose</label>
+                                        <select id="propPurpose" onchange="updateSelectedElement()">
+                                            <option value="form">Form Field</option>
+                                            <option value="branding">Branding Element</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" id="grpBrandingStyle" style="display: none;">
+                                        <label>Branding Style</label>
+                                        <select id="propBrandingStyle" onchange="updateSelectedElement()">
+                                            <option value="default">Default</option>
+                                            <option value="title">Title (Large, Bold)</option>
+                                            <option value="subtitle">Subtitle (Italic)</option>
+                                            <option value="label">Label</option>
+                                            <option value="logo">Logo</option>
+                                        </select>
+                                    </div>
+                                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+                                    <div class="form-group">
+                                        <label id="lblPropPrimary">Field Label (Primary)</label>
+                                        <input type="text" id="propLabel" oninput="updateSelectedElement()">
+                                    </div>
+                                    <div class="form-group">
+                                        <label id="lblPropSecondary">Field Label (Secondary)</label>
+                                        <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Field Name (DB Key)</label>
+                                        <input type="text" id="propName" oninput="updateSelectedElement()">
+                                    </div>
+                                    <div class="form-group" id="grpPlaceholder">
+                                        <label>Placeholder Text</label>
+                                        <input type="text" id="propPlaceholder" oninput="updateSelectedElement()">
+                                    </div>
+                                    <div class="form-group" id="grpOptions" style="display: none;">
+                                        <label>Dropdown Options (Comma separated)</label>
+                                        <textarea id="propOptions" placeholder="Option 1, Option 2, Option 3" rows="3"
+                                            oninput="updateSelectedElement()"></textarea>
+                                    </div>
+                                    <div class="form-group" id="grpImageUrl" style="display: none;">
+                                        <label>Image / Logo URL</label>
+                                        <div style="display: flex; gap: 5px;">
+                                            <input type="text" id="propImageUrl" oninput="updateSelectedElement()"
+                                                style="flex: 1;">
+                                            <button class="btn btn-outline" onclick="triggerFileUpload()"
+                                                style="padding: 0 10px;">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2">
+                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                    <polyline points="17 8 12 3 7 8" />
+                                                    <line x1="12" y1="3" x2="12" y2="15" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <input type="file" id="propFileUpload" style="display: none;" accept="image/*"
+                                            onchange="handleFileSelection(event)">
+                                    </div>
+                                    <div class="form-group toggle-group" id="grpSyncConfig" style="display: none;">
+                                        <label>Keep Synced with Form Settings</label>
+                                        <input type="checkbox" id="propSyncConfig" onchange="updateSelectedElement()">
+                                    </div>
+                                    <div class="form-group toggle-group">
+                                        <label>Required</label>
+                                        <input type="checkbox" id="propRequired" onchange="updateSelectedElement()">
+                                    </div>
+                                    <div class="form-group toggle-group">
+                                        <label id="lblPropTranslatable">Enable Translation (English -> Marathi)</label>
+                                        <input type="checkbox" id="propTranslatable" onchange="updateSelectedElement()">
+                                    </div>
 
-                <!-- STYLE PROPERTIES -->
-                <div class="form-group" id="grpHeadingLevel">
-                    <label>Heading Level</label>
-                    <select id="propHeadingLevel" onchange="updateSelectedElement()">
-                        <option value="h1">H1 (Huge)</option>
-                        <option value="h2">H2 (Large)</option>
-                        <option value="h3">H3 (Medium)</option>
-                        <option value="h4">H4 (Small)</option>
-                    </select>
-                </div>
+                                    <div class="form-group">
+                                        <button class="btn btn-outline"
+                                            style="width: 100%; justify-content: center; margin-bottom: 0.5rem;"
+                                            onclick="duplicateSelected()">
+                                            Duplicate Element
+                                        </button>
+                                        <button class="btn btn-outline"
+                                            style="color: var(--danger); border-color: var(--danger); width: 100%; justify-content: center;"
+                                            onclick="deleteSelected()">
+                                            Delete Element
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="propEmptyState" style="text-align: center; color: #999; padding-top: 50px;">
+                                    No element selected
+                                </div>
+                            </div>
 
-                <div class="form-group" id="grpAlign">
-                    <label>Alignment</label>
-                    <select id="propAlign" onchange="updateSelectedElement()">
-                        <option value="left">Left</option>
-                        <option value="center">Center</option>
-                        <option value="right">Right</option>
-                    </select>
-                </div>
+                            <!-- TAB 3: DESIGN (VISUALS) -->
+                            <div id="tab-design" class="tab-content" style="display:none;">
+                                <div id="designProps" style="display:none;">
 
-                <div class="form-group" id="grpFontSize">
-                    <label>Font Size (px)</label>
-                    <input type="number" id="propFontSize" oninput="updateSelectedElement()">
-                </div>
+                                    <!-- DIMENSION CONTROLS -->
+                                    <div class="form-group" id="grpWidth">
+                                        <label>Width (px)</label>
+                                        <input type="number" id="propWidth" min="10" max="2000"
+                                            oninput="updateDimensionsFromInputs()">
+                                    </div>
+                                    <div class="form-group" id="grpHeight">
+                                        <label>Height (px)</label>
+                                        <input type="number" id="propHeight" min="10" max="2000"
+                                            oninput="updateDimensionsFromInputs()">
+                                    </div>
+                                    <div style="display:flex; gap:10px;">
+                                        <div class="form-group" style="flex:1;">
+                                            <label>X (px)</label>
+                                            <input type="number" id="propX" oninput="updatePosFromInputs()">
+                                        </div>
+                                        <div class="form-group" style="flex:1;">
+                                            <label>Y (px)</label>
+                                            <input type="number" id="propY" oninput="updatePosFromInputs()">
+                                        </div>
+                                    </div>
 
-                <div class="form-group toggle-group" id="grpBold">
-                    <label>Bold Text</label>
-                    <input type="checkbox" id="propBold" onchange="updateSelectedElement()">
-                </div>
+                                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
 
-                <!-- VISUAL STYLE PROPERTIES -->
-                <div class="form-group" id="grpStrokeWidth">
-                    <label>Thickness (px)</label>
-                    <input type="number" id="propStrokeWidth" min="1" max="20" oninput="updateSelectedElement()">
-                </div>
+                                    <!-- TYPOGRAPHY -->
+                                    <div class="form-group" id="grpHeadingLevel">
+                                        <label>Heading Level</label>
+                                        <select id="propHeadingLevel" onchange="updateSelectedElement()">
+                                            <option value="h1">H1 (Huge)</option>
+                                            <option value="h2">H2 (Large)</option>
+                                            <option value="h3">H3 (Medium)</option>
+                                            <option value="h4">H4 (Small)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" id="grpAlign">
+                                        <label>Alignment</label>
+                                        <select id="propAlign" onchange="updateSelectedElement()">
+                                            <option value="left">Left</option>
+                                            <option value="center">Center</option>
+                                            <option value="right">Right</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" id="grpFontSize">
+                                        <label>Font Size (px)</label>
+                                        <input type="number" id="propFontSize" oninput="updateSelectedElement()">
+                                    </div>
+                                    <div class="form-group toggle-group" id="grpBold">
+                                        <label>Bold Text</label>
+                                        <input type="checkbox" id="propBold" onchange="updateSelectedElement()">
+                                    </div>
 
-                <div class="form-group" id="grpBorderStyle">
-                    <label>Style</label>
-                    <select id="propBorderStyle" onchange="updateSelectedElement()">
-                        <option value="solid">Solid</option>
-                        <option value="dashed">Dashed</option>
-                        <option value="dotted">Dotted</option>
-                    </select>
-                </div>
+                                    <!-- VISUAL STYLE PROPERTIES -->
+                                    <div class="form-group" id="grpStrokeWidth">
+                                        <label>Thickness (px)</label>
+                                        <input type="number" id="propStrokeWidth" min="1" max="20"
+                                            oninput="updateSelectedElement()">
+                                    </div>
+                                    <div class="form-group" id="grpBorderStyle">
+                                        <label>Style</label>
+                                        <select id="propBorderStyle" onchange="updateSelectedElement()">
+                                            <option value="solid">Solid</option>
+                                            <option value="dashed">Dashed</option>
+                                            <option value="dotted">Dotted</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" id="grpBorderRadius">
+                                        <label>Corner Radius (px)</label>
+                                        <input type="number" id="propBorderRadius" min="0" max="100"
+                                            oninput="updateSelectedElement()">
+                                    </div>
 
-                <div class="form-group" id="grpBorderRadius">
-                    <label>Corner Radius (px)</label>
-                    <input type="number" id="propBorderRadius" min="0" max="100" oninput="updateSelectedElement()">
-                </div>
+                                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
 
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+                                    <!-- COLOR CONTROLS -->
+                                    <div class="color-section">
+                                        <div class="category-title">🎨 Colors</div>
+                                        <div class="form-group" id="grpTextColor">
+                                            <label>Text Color</label>
+                                            <div style="display: flex; gap: 5px; align-items: center;">
+                                                <input type="color" id="propTextColor" value="#000000"
+                                                    oninput="updateSelectedElement()"
+                                                    style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
+                                                <input type="text" id="propTextColorHex" value="#000000"
+                                                    oninput="syncColorFromHex('text')"
+                                                    style="flex: 1; font-family: monospace; font-size: 0.85rem;"
+                                                    placeholder="#000000">
+                                            </div>
+                                        </div>
+                                        <div class="form-group" id="grpBackgroundColor">
+                                            <label>Background Color</label>
+                                            <div style="display: flex; gap: 5px; align-items: center;">
+                                                <input type="color" id="propBackgroundColor" value="#ffffff"
+                                                    oninput="updateSelectedElement()"
+                                                    style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
+                                                <input type="text" id="propBackgroundColorHex" value="#ffffff"
+                                                    oninput="syncColorFromHex('background')"
+                                                    style="flex: 1; font-family: monospace; font-size: 0.85rem;"
+                                                    placeholder="#ffffff">
+                                            </div>
+                                        </div>
+                                        <div class="form-group" id="grpBorderColor">
+                                            <label>Border Color</label>
+                                            <div style="display: flex; gap: 5px; align-items: center;">
+                                                <input type="color" id="propBorderColor" value="#cccccc"
+                                                    oninput="updateSelectedElement()"
+                                                    style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
+                                                <input type="text" id="propBorderColorHex" value="#cccccc"
+                                                    oninput="syncColorFromHex('border')"
+                                                    style="flex: 1; font-family: monospace; font-size: 0.85rem;"
+                                                    placeholder="#cccccc">
+                                            </div>
+                                        </div>
+                                    </div>
 
-                <!-- DIMENSION CONTROLS -->
-                <div class="form-group" id="grpWidth" style="display: none;">
-                    <label>Width (px)</label>
-                    <input type="number" id="propWidth" min="10" max="2000" oninput="updateDimensionsFromInputs()">
-                </div>
-                <div class="form-group" id="grpHeight" style="display: none;">
-                    <label>Height (px)</label>
-                    <input type="number" id="propHeight" min="10" max="2000" oninput="updateDimensionsFromInputs()">
-                </div>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-
-                <div class="form-group">
-                    <label>Position X (px)</label>
-                    <input type="number" id="propX" oninput="updatePosFromInputs()">
-                </div>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-
-                <!-- COLOR CONTROLS -->
-                <div class="color-section">
-                    <div class="category-title">🎨 Colors</div>
-                    <div class="form-group" id="grpTextColor" style="display: none;">
-                        <label>Text Color</label>
-                        <div style="display: flex; gap: 5px; align-items: center;">
-                            <input type="color" id="propTextColor" value="#000000" oninput="updateSelectedElement()"
-                                style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
-                            <input type="text" id="propTextColorHex" value="#000000" oninput="syncColorFromHex('text')"
-                                style="flex: 1; font-family: monospace; font-size: 0.85rem;" placeholder="#000000">
+                                    <!-- ADVANCED STYLING -->
+                                    <div class="style-section">
+                                        <div class="category-title">✨ Visual Effects</div>
+                                        <div class="form-group" id="grpOpacity">
+                                            <label>Opacity <span id="opacityValue"
+                                                    style="color: var(--text-light); font-size: 0.85rem;">100%</span></label>
+                                            <input type="range" id="propOpacity" min="0" max="100" value="100"
+                                                oninput="updateSelectedElement()" style="width: 100%;">
+                                        </div>
+                                        <div class="form-group" id="grpPadding">
+                                            <label>Padding (px)</label>
+                                            <input type="number" id="propPadding" min="0" max="50" value="8"
+                                                oninput="updateSelectedElement()">
+                                        </div>
+                                        <div class="form-group" id="grpShadow">
+                                            <label style="display: flex; align-items: center; gap: 5px;">
+                                                <input type="checkbox" id="propShadow"
+                                                    onchange="updateSelectedElement()">
+                                                <span>Add Shadow Effect</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="designEmptyState" style="text-align: center; color: #999; padding-top: 50px;">
+                                    No element selected
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="form-group" id="grpBackgroundColor" style="display: none;">
-                        <label>Background Color</label>
-                        <div style="display: flex; gap: 5px; align-items: center;">
-                            <input type="color" id="propBackgroundColor" value="#ffffff"
-                                oninput="updateSelectedElement()"
-                                style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
-                            <input type="text" id="propBackgroundColorHex" value="#ffffff"
-                                oninput="syncColorFromHex('background')"
-                                style="flex: 1; font-family: monospace; font-size: 0.85rem;" placeholder="#ffffff">
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="grpBorderColor" style="display: none;">
-                        <label>Border Color</label>
-                        <div style="display: flex; gap: 5px; align-items: center;">
-                            <input type="color" id="propBorderColor" value="#cccccc" oninput="updateSelectedElement()"
-                                style="width: 50px; height: 35px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">
-                            <input type="text" id="propBorderColorHex" value="#cccccc"
-                                oninput="syncColorFromHex('border')"
-                                style="flex: 1; font-family: monospace; font-size: 0.85rem;" placeholder="#cccccc">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ADVANCED STYLING -->
-                <div class="style-section">
-                    <div class="category-title">✨ Visual Effects</div>
-                    <div class="form-group" id="grpOpacity" style="display: none;">
-                        <label>Opacity <span id="opacityValue"
-                                style="color: var(--text-light); font-size: 0.85rem;">100%</span></label>
-                        <input type="range" id="propOpacity" min="0" max="100" value="100"
-                            oninput="updateSelectedElement()" style="width: 100%;">
-                    </div>
-
-                    <div class="form-group" id="grpPadding" style="display: none;">
-                        <label>Padding (px)</label>
-                        <input type="number" id="propPadding" min="0" max="50" value="8"
-                            oninput="updateSelectedElement()">
-                    </div>
-
-                    <div class="form-group" id="grpShadow" style="display: none;">
-                        <label style="display: flex; align-items: center; gap: 5px;">
-                            <input type="checkbox" id="propShadow" onchange="updateSelectedElement()">
-                            <span>Add Shadow Effect</span>
-                        </label>
-                    </div>
-                </div>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-
-                <div class="form-group">
-                    <label>Position Y (px)</label>
-                    <input type="number" id="propY" oninput="updatePosFromInputs()">
-                </div>
-                <div class="form-group">
-                    <button class="btn btn-outline" style="width: 100%; justify-content: center; margin-bottom: 0.5rem;"
-                        onclick="duplicateSelected()">
-                        Duplicate Element
-                    </button>
-                    <button class="btn btn-outline"
-                        style="color: var(--danger); border-color: var(--danger); width: 100%; justify-content: center;"
-                        onclick="deleteSelected()">
-                        Delete Element
-                    </button>
-                </div>
-
-                <div class="form-group">
-                    <button class="btn btn-outline" style="width: 100%; justify-content: center;"
-                        onclick="showGlobalProps()">
-                        &larr; Back to Form Settings
-                    </button>
-                </div>
-            </div>
         </aside>
     </div>
 
@@ -2306,100 +2432,169 @@
             });
         }
 
+        // TAB SWITCHING LOGIC
+        function switchTab(tabId) {
+            // Update Buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // Update Content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+                content.classList.remove('active');
+            });
+            const targetContent = document.getElementById('tab-' + tabId);
+            if (targetContent) {
+                targetContent.style.display = 'block'; // Ensure block display
+                targetContent.classList.add('active');
+            }
+        }
+
         function updatePropsPanel() {
+            const elmProps = document.getElementById('elementProps');
+            const designProps = document.getElementById('designProps');
+            const emptyProps = document.getElementById('propEmptyState');
+            const emptyDesign = document.getElementById('designEmptyState');
+
             if (selectedIds.length === 0) {
                 showGlobalProps();
                 return;
             }
 
-            if (selectedIds.length > 1) {
-                // Multi-selection: Show Summary
-                elmPropsPanel.classList.remove('hidden');
-                globalPropsPanel.classList.add('hidden');
-            } else {
-                // Single Selection (or First of Multi)
-                globalPropsPanel.classList.add('hidden');
-                elmPropsPanel.classList.remove('hidden');
-
-                const id = selectedIds[0];
-                const elm = elements.find(e => e.id === id);
-
-                document.getElementById('propLabel').value = elm.props.label || '';
-                document.getElementById('propLabelRegional').value = elm.props.labelRegional || '';
-                document.getElementById('propName').value = elm.props.name || '';
-                document.getElementById('propRequired').checked = elm.props.required;
-                document.getElementById('propTranslatable').checked = elm.props.translatable;
-                document.getElementById('propX').value = elm.x;
-                document.getElementById('propY').value = elm.y;
-
-                // Handle Visibility of Style Props
-                const t = elm.type;
-                const setDisplay = (id, show) => document.getElementById(id).style.display = show ? 'block' : 'none';
-                const setDisplayFlex = (id, show) => document.getElementById(id).style.display = show ? 'flex' : 'none';
-
-                setDisplay('grpHeadingLevel', t === 'heading');
-                setDisplay('grpAlign', ['heading', 'label', 'form_title', 'punchline', 'logo', 'image'].includes(t));
-                setDisplay('grpFontSize', ['label', 'form_title', 'punchline'].includes(t));
-                setDisplayFlex('grpBold', ['label', 'form_title', 'punchline'].includes(t));
-                setDisplay('grpOptions', t === 'dropdown');
-                setDisplay('grpPlaceholder', !['rect', 'line', 'separator', 'repeater', 'logo', 'image', 'form_title', 'punchline'].includes(t));
-                setDisplay('grpImageUrl', t === 'image' || t === 'logo');
-                setDisplay('grpSyncConfig', t === 'form_title' || t === 'punchline' || t === 'logo');
-
-                // Always visible styling controls
-                setDisplay('grpTextColor', true);
-                setDisplay('grpBackgroundColor', true);
-                setDisplay('grpBorderColor', true);
-                setDisplay('grpOpacity', true);
-                setDisplay('grpPadding', true);
-                setDisplay('grpShadow', true);
-
-                // Shape Styles Visibility
-                const isShape = t === 'rect' || t === 'line' || t === 'separator';
-                setDisplay('grpStrokeWidth', isShape || t === 'image' || t === 'logo');
-                setDisplay('grpBorderStyle', isShape);
-                setDisplay('grpBorderRadius', t === 'rect' || t === 'image' || t === 'logo');
-
-                // Purpose and Branding Style
-                const purpose = elm.props.purpose || (t === 'form_title' || t === 'punchline' || t === 'logo' ? 'branding' : 'form');
-                const brandingStyle = elm.props.brandingStyle || 'default';
-                document.getElementById('propPurpose').value = purpose;
-                document.getElementById('propBrandingStyle').value = brandingStyle;
-                setDisplay('grpBrandingStyle', purpose === 'branding' && (t === 'text' || t === 'label' || t === 'form_title' || t === 'punchline' || t === 'image' || t === 'logo'));
-
-                // Form-specific fields visibility (hide when purpose = branding)
-                const isFormField = purpose === 'form';
-                setDisplay('grpPlaceholder', isFormField && !['rect', 'line', 'separator', 'repeater', 'logo', 'image', 'form_title', 'punchline'].includes(t));
-                document.getElementById('propRequired').parentElement.style.display = isFormField ? 'flex' : 'none';
-                document.getElementById('propTranslatable').parentElement.style.display = isFormField ? 'flex' : 'none';
-                document.getElementById('propName').parentElement.style.display = isFormField ? 'block' : 'none';
-
-                // Dimension Controls Visibility
-                const hasSize = true; // All elements now have size controls
-                setDisplay('grpWidth', hasSize);
-                setDisplay('grpHeight', hasSize && t !== 'line' && t !== 'separator');
-
-                // Set Values
-                document.getElementById('propHeadingLevel').value = elm.props.headingLevel || 'h2';
-                document.getElementById('propAlign').value = elm.props.align || 'left';
-                document.getElementById('propFontSize').value = elm.props.fontSize || 14;
-                document.getElementById('propBold').checked = elm.props.isBold || false;
-                document.getElementById('propStrokeWidth').value = elm.props.strokeWidth || 2;
-                document.getElementById('propBorderStyle').value = elm.props.borderStyle || 'solid';
-                document.getElementById('propBorderRadius').value = elm.props.borderRadius || 0;
-                document.getElementById('propOptions').value = elm.props.options || '';
-                document.getElementById('propPlaceholder').value = elm.props.placeholder || '';
-                document.getElementById('propImageUrl').value = elm.props.imageUrl || '';
-                document.getElementById('propSyncConfig').checked = elm.props.syncConfig || false;
-
-                // Set Dimension Values
-                if (hasSize) {
-                    document.getElementById('propWidth').value = elm.props.width || 100;
-                    if (t !== 'line' && t !== 'separator') {
-                        document.getElementById('propHeight').value = elm.props.height || 100;
-                    }
-                }
+            // Switch to Properties tab by default if we were in Settings
+            // Or keep current if it's Properties or Design
+            const activeTab = document.querySelector('.tab-content.active');
+            if (!activeTab || activeTab.id === 'tab-settings') {
+                switchTab('properties');
             }
+
+            // Show Content Containers
+            elmProps.style.display = 'block';
+            designProps.style.display = 'block';
+            if (emptyProps) emptyProps.style.display = 'none';
+            if (emptyDesign) emptyDesign.style.display = 'none';
+
+            globalPropsPanel.classList.add('hidden'); // Ensure global is hidden safely
+
+            if (selectedIds.length > 1) {
+                // Multi-selection: Show Summary (Feature TODO: Multi-edit)
+                // For now just show "Multi Selection"
+                return;
+            }
+
+            // Single Selection
+            const id = selectedIds[0];
+            const elm = elements.find(e => e.id === id);
+            if (!elm) return;
+
+            // --- TAB: PROPERTIES (DATA) ---
+            document.getElementById('propId').value = elm.id;
+            document.getElementById('propType').value = elm.type;
+
+            document.getElementById('propLabel').value = elm.props.label || '';
+            document.getElementById('propLabelRegional').value = elm.props.labelRegional || '';
+            document.getElementById('propName').value = elm.props.name || '';
+            document.getElementById('propRequired').checked = elm.props.required;
+            document.getElementById('propTranslatable').checked = elm.props.translatable;
+            document.getElementById('propOptions').value = elm.props.options || '';
+            document.getElementById('propPlaceholder').value = elm.props.placeholder || '';
+            document.getElementById('propImageUrl').value = elm.props.imageUrl || '';
+            document.getElementById('propSyncConfig').checked = elm.props.syncConfig || false;
+
+            // Visibility Logic for Data Props
+            const t = elm.type;
+            const setDisplay = (id, show) => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = show ? 'block' : 'none';
+            };
+            const setDisplayFlex = (id, show) => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = show ? 'flex' : 'none';
+            };
+
+            // Purpose & Branding
+            const purpose = elm.props.purpose || (['form_title', 'punchline', 'logo'].includes(t) ? 'branding' : 'form');
+            const brandingStyle = elm.props.brandingStyle || 'default';
+            document.getElementById('propPurpose').value = purpose;
+            document.getElementById('propBrandingStyle').value = brandingStyle;
+
+            setDisplay('grpBrandingStyle', purpose === 'branding');
+
+            const isFormField = purpose === 'form';
+            // Hide/Show functional groups
+            document.getElementById('propRequired').parentElement.style.display = isFormField ? 'flex' : 'none';
+            document.getElementById('propTranslatable').parentElement.style.display = isFormField ? 'flex' : 'none';
+            document.getElementById('propName').parentElement.style.display = isFormField ? 'block' : 'none';
+            document.getElementById('propLabel').parentElement.style.display = 'block'; // Always show label?
+
+            setDisplay('grpOptions', t === 'dropdown');
+            setDisplay('grpPlaceholder', isFormField && !['rect', 'line', 'separator', 'repeater', 'logo', 'image', 'form_title', 'punchline'].includes(t));
+            setDisplay('grpImageUrl', t === 'image' || t === 'logo');
+            setDisplay('grpSyncConfig', t === 'form_title' || t === 'punchline' || t === 'logo');
+
+            // --- TAB: DESIGN (VISUALS) ---
+            document.getElementById('propX').value = elm.x;
+            document.getElementById('propY').value = elm.y;
+
+            // Dimensions
+            const hasSize = true;
+            setDisplay('grpWidth', hasSize);
+            document.getElementById('propWidth').value = elm.props.width || 100;
+
+            setDisplay('grpHeight', hasSize && t !== 'line' && t !== 'separator');
+            if (t !== 'line' && t !== 'separator') {
+                document.getElementById('propHeight').value = elm.props.height || 100;
+            }
+
+            // Typography
+            document.getElementById('propHeadingLevel').value = elm.props.headingLevel || 'h2';
+            document.getElementById('propAlign').value = elm.props.align || 'left';
+            document.getElementById('propFontSize').value = elm.props.fontSize || 14;
+            document.getElementById('propBold').checked = elm.props.isBold || false;
+
+            setDisplay('grpHeadingLevel', t === 'heading');
+            setDisplay('grpAlign', ['heading', 'label', 'form_title', 'punchline', 'logo', 'image', 'paragraph'].includes(t));
+            setDisplay('grpFontSize', ['label', 'form_title', 'punchline', 'paragraph', 'heading'].includes(t));
+            setDisplayFlex('grpBold', ['label', 'form_title', 'punchline', 'paragraph', 'heading'].includes(t));
+
+            // Shapes & Borders
+            const isShape = t === 'rect' || t === 'line' || t === 'separator';
+            document.getElementById('propStrokeWidth').value = elm.props.strokeWidth || 2;
+            document.getElementById('propBorderStyle').value = elm.props.borderStyle || 'solid';
+            document.getElementById('propBorderRadius').value = elm.props.borderRadius || 0;
+
+            setDisplay('grpStrokeWidth', isShape || t === 'image' || t === 'logo' || t === 'rect');
+            setDisplay('grpBorderStyle', isShape || t === 'rect');
+            setDisplay('grpBorderRadius', t === 'rect' || t === 'image' || t === 'logo');
+
+            // Colors (Always visible now)
+            setDisplay('grpTextColor', true);
+            setDisplay('grpBackgroundColor', true);
+            setDisplay('grpBorderColor', true);
+
+            // Advanced Effects (Always visible)
+            setDisplay('grpOpacity', true);
+            setDisplay('grpPadding', true);
+            setDisplay('grpShadow', true);
+
+            // Populate Color Inputs
+            const updateColorInput = (id, val) => {
+                const input = document.getElementById(id);
+                const hexInput = document.getElementById(id + 'Hex');
+                if (input) input.value = val || '#000000';
+                if (hexInput) hexInput.value = val || '#000000';
+            };
+
+            updateColorInput('propTextColor', elm.props.textColor);
+            updateColorInput('propBackgroundColor', elm.props.backgroundColor);
+            updateColorInput('propBorderColor', elm.props.borderColor);
+
+            document.getElementById('propOpacity').value = elm.props.opacity !== undefined ? elm.props.opacity : 100;
+            if (document.getElementById('opacityValue')) document.getElementById('opacityValue').innerText = (elm.props.opacity !== undefined ? elm.props.opacity : 100) + '%';
+
+            document.getElementById('propPadding').value = elm.props.padding || 8;
+            document.getElementById('propShadow').checked = elm.props.shadow || false;
         }
 
         function triggerFileUpload() {
@@ -2421,19 +2616,22 @@
         function showGlobalProps() {
             selectedIds = [];
             renderSelectionState();
-            elmPropsPanel.classList.add('hidden');
-            globalPropsPanel.classList.remove('hidden');
 
-            // Populate Branding Fields
+            // Switch to Settings Tab
+            switchTab('settings');
+
+            // Ensure Global Props is visible (though switchTab handles parent visibility)
+            // We just need to populate data
+
             document.getElementById('propHeaderTitle').value = formConfig.headerTitle || '';
-            document.getElementById('propLogoIcon').value = formConfig.logoIcon || '📝';
+            document.getElementById('propLogoIcon').value = formConfig.logoIcon || ''; // Default empty now
             document.getElementById('propLogoUrl').value = formConfig.logoUrl || '';
             document.getElementById('propPunchline').value = formConfig.punchline || '';
             document.getElementById('propBrandingDescription').value = formConfig.brandingDescription || '';
             document.getElementById('propFooterText').value = formConfig.footerText || '';
             document.getElementById('propDisplayMode').checked = (formConfig.displayMode === 'card');
 
-            updateCanvasBranding(); // Live refresh canvas
+            updateCanvasBranding();
         }
 
         // SINGLE ELEMENT UPDATE (Only when 1 selected)
