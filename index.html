@@ -3839,27 +3839,26 @@
                 workspaceId: formConfig.workspaceId, // Preserve Workspace Context
                 storageEngine: 'firebase' // Default to Firebase for Templates (System DB)
             };
-        };
 
-        // Reset Elements
-        elements = [];
-        canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
+            // Reset Elements
+            elements = [];
+            canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
 
-        // Reset UI
-        document.getElementById('propFormId').value = formConfig.id;
-        document.getElementById('propFormName').value = formConfig.formName;
-        document.getElementById('headerFormNameInput').value = formConfig.formName;
-        document.getElementById('propDescription').value = '';
-        document.getElementById('propAllowedDomains').value = '';
-        document.getElementById('propSheetUrl').value = '';
-        document.getElementById('propSheetName').value = 'Form Responses';
-        document.getElementById('headerFormId').innerText = formConfig.id;
+            // Reset UI
+            document.getElementById('propFormId').value = formConfig.id;
+            document.getElementById('propFormName').value = formConfig.formName;
+            document.getElementById('headerFormNameInput').value = formConfig.formName;
+            document.getElementById('propDescription').value = '';
+            document.getElementById('propAllowedDomains').value = '';
+            document.getElementById('propSheetUrl').value = '';
+            document.getElementById('propSheetName').value = 'Form Responses';
+            document.getElementById('headerFormId').innerText = formConfig.id;
 
-        renderSelectionState();
-        showGlobalProps();
-        updateFormLanguage();
+            renderSelectionState();
+            showGlobalProps();
+            updateFormLanguage();
 
-        alert("New Form Created! You can start adding elements.");
+            alert("New Form Created! You can start adding elements.");
         }
 
 
