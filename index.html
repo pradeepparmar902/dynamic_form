@@ -240,6 +240,77 @@
                 linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
         }
 
+        /* CANVAS BRANDING ZONES */
+        .canvas-branding-zone {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            pointer-events: none;
+            /* Don't interfere with drag/drop */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.5);
+            border-bottom: 1px dashed #ddd;
+            z-index: 1;
+        }
+
+        .canvas-branding-zone.footer {
+            position: absolute;
+            bottom: 0;
+            border-bottom: none;
+            border-top: 1px dashed #ddd;
+        }
+
+        .canvas-branding-logo {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .canvas-branding-logo img {
+            max-width: 120px;
+            max-height: 50px;
+            object-fit: contain;
+        }
+
+        .canvas-branding-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .canvas-branding-punchline {
+            font-size: 0.9rem;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .canvas-branding-footer-text {
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+
+        /* CARD MODE SIMULATION IN BUILDER */
+        .canvas-area.card-mode {
+            background: #f3f4f6;
+        }
+
+        .canvas-area.card-mode .canvas {
+            width: 700px;
+            /* Narrower for card */
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .canvas-area.card-mode .canvas.show-grid {
+            background-image: none;
+            /* Hide grid in card mode for focus */
+        }
+
+
         /* RULERS */
         .ruler-h {
             position: absolute;
@@ -878,6 +949,17 @@
                                 </svg>
                                 <span>Line</span>
                             </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="separator">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                    <line x1="2" y1="9" x2="22" y2="9" stroke-opacity="0.3"></line>
+                                    <line x1="2" y1="15" x2="22" y2="15" stroke-opacity="0.3"></line>
+                                </svg>
+                                <span>Separator</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -957,6 +1039,18 @@
             <div id="formCanvas" class="canvas show-grid">
                 <div class="ruler-h" id="rulerTop"></div>
                 <div class="ruler-v" id="rulerLeft"></div>
+
+                <!-- Live Branding Zones -->
+                <div id="canvasBrandingHeader" class="canvas-branding-zone header">
+                    <div class="canvas-branding-logo"></div>
+                    <div class="canvas-branding-title"></div>
+                    <div class="canvas-branding-punchline"></div>
+                </div>
+
+                <div id="canvasBrandingFooter" class="canvas-branding-zone footer">
+                    <div class="canvas-branding-footer-text"></div>
+                </div>
+
                 <!-- Elements will be dropped here -->
             </div>
         </main>
@@ -1055,19 +1149,25 @@
                         <div class="form-group" style="flex: 2;">
                             <label style="color: #be185d; font-weight: 700;">Form Header Title</label>
                             <input type="text" id="propHeaderTitle" placeholder="e.g. Data Entry Form"
-                                style="border-color: #f9a8d4;">
+                                style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
                         </div>
                         <div class="form-group" style="flex: 1;">
                             <label style="color: #be185d; font-weight: 700;">Logo/Icon</label>
                             <input type="text" id="propLogoIcon" placeholder="Emoji or Text"
-                                style="border-color: #f9a8d4;">
+                                style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="color: #be185d; font-weight: 700;">Punch Line / Subtitle</label>
+                        <input type="text" id="propPunchline" placeholder="e.g. Your tagline here"
+                            style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
                     </div>
 
                     <div class="form-group">
                         <label style="color: #be185d; font-weight: 700;">Logo Image URL (Optional)</label>
                         <input type="text" id="propLogoUrl" placeholder="https://example.com/logo.png"
-                            style="border-color: #f9a8d4; margin-bottom: 5px;">
+                            style="border-color: #f9a8d4; margin-bottom: 5px;" oninput="updateCanvasBranding()">
                         <small style="font-size: 0.65rem; color: #db2777;">Leave empty to use icon/emoji above.</small>
                     </div>
 
@@ -1075,20 +1175,28 @@
                         <label style="color: #be185d; font-weight: 700;">Form Description/Instructions</label>
                         <textarea id="propBrandingDescription" rows="3"
                             placeholder="Enter short instructions for your users..."
-                            style="border-color: #f9a8d4; border-radius: 6px; padding: 8px; width: 100%; font-size: 0.85rem;"></textarea>
+                            style="border-color: #f9a8d4; border-radius: 6px; padding: 8px; width: 100%; font-size: 0.85rem;"
+                            oninput="updateCanvasBranding()"></textarea>
                         <small style="font-size: 0.65rem; color: #db2777;">Appears below the header.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="color: #be185d; font-weight: 700;">Footer Text / Credits</label>
+                        <input type="text" id="propFooterText" placeholder="e.g. © 2024 Your Brand"
+                            style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
                     </div>
 
                     <div class="form-group"
                         style="margin-top: 10px; border-top: 1px dashed #f9a8d4; padding-top: 10px;">
                         <label class="checkbox-container" style="font-size: 0.85rem; color: #be185d; font-weight: 600;">
-                            <input type="checkbox" id="propDisplayMode" value="card">
+                            <input type="checkbox" id="propDisplayMode" value="card" onchange="updateCanvasBranding()">
                             <span class="checkmark"></span>
                             Display form in card container (centered, professional)
                         </label>
                         <small style="font-size: 0.65rem; color: #db2777; display: block; margin-top: 4px;">Recommended
                             for standalone pages.</small>
                     </div>
+
                 </div>
 
                 <div class="category-title"
@@ -1504,7 +1612,9 @@
             headerTitle: '',
             logoIcon: '📝',
             logoUrl: '',
+            punchline: '',
             brandingDescription: '',
+            footerText: '',
             displayMode: 'full' // 'full' or 'card'
         };
 
@@ -1650,25 +1760,26 @@
         // --- CORE LOGIC ---
         function addElement(type, x, y) {
             const id = 'elm_' + Date.now();
+            const actualType = type === 'separator' ? 'line' : type;
             const newElm = {
                 id: id,
-                type: type,
+                type: actualType,
                 x: x,
                 y: y,
                 props: {
-                    label: type === 'rect' || type === 'line' ? '' : 'New ' + type,
-                    name: type + '_' + Math.floor(Math.random() * 1000),
+                    label: (actualType === 'rect' || actualType === 'line') ? '' : 'New ' + actualType,
+                    name: actualType + '_' + Math.floor(Math.random() * 1000),
                     required: false,
-                    translatable: type === 'text',
-                    width: 200,
-                    height: type === 'rect' ? 100 : 40,
+                    translatable: actualType === 'text',
+                    width: type === 'separator' ? 700 : 200,
+                    height: actualType === 'rect' ? 100 : 40,
                     // Cosmetics
                     headingLevel: 'h2',
                     align: 'left',
                     fontSize: 14,
                     isBold: false,
                     // Shape Styles
-                    strokeWidth: type === 'line' || type === 'rect' ? 2 : 0,
+                    strokeWidth: (actualType === 'line' || actualType === 'rect') ? 2 : 0,
                     borderStyle: 'solid',
                     borderRadius: 0,
                     // Grouping
@@ -1736,6 +1847,53 @@
             // div.onmousedown = (e) => startDragElement(e, elmData.id);
 
             canvas.appendChild(div);
+        }
+
+        // --- BRANDING WYSIWYG ---
+        function updateCanvasBranding() {
+            const hTitle = document.getElementById('propHeaderTitle').value;
+            const lIcon = document.getElementById('propLogoIcon').value;
+            const lUrl = document.getElementById('propLogoUrl').value;
+            const punch = document.getElementById('propPunchline').value;
+            const footer = document.getElementById('propFooterText').value;
+            const desc = document.getElementById('propBrandingDescription').value;
+            const isCard = document.getElementById('propDisplayMode').checked;
+
+            const headerZone = document.getElementById('canvasBrandingHeader');
+            const footerZone = document.getElementById('canvasBrandingFooter');
+            const canvasArea = document.getElementById('canvasArea');
+
+            // 1. Header Logic
+            if (!hTitle && !lIcon && !lUrl && !punch) {
+                headerZone.style.display = 'none';
+            } else {
+                headerZone.style.display = 'flex';
+
+                const logoDiv = headerZone.querySelector('.canvas-branding-logo');
+                if (lUrl) {
+                    logoDiv.innerHTML = `<img src="${lUrl}" alt="Logo">`;
+                } else {
+                    logoDiv.innerText = lIcon;
+                }
+
+                headerZone.querySelector('.canvas-branding-title').innerText = hTitle;
+                headerZone.querySelector('.canvas-branding-punchline').innerText = punch;
+            }
+
+            // 2. Footer Logic
+            if (!footer) {
+                footerZone.style.display = 'none';
+            } else {
+                footerZone.style.display = 'flex';
+                footerZone.querySelector('.canvas-branding-footer-text').innerText = footer;
+            }
+
+            // 3. Card Mode Simulation
+            if (isCard) {
+                canvasArea.classList.add('card-mode');
+            } else {
+                canvasArea.classList.remove('card-mode');
+            }
         }
 
         // Modified Selection Logic
@@ -1838,8 +1996,12 @@
             document.getElementById('propHeaderTitle').value = formConfig.headerTitle || '';
             document.getElementById('propLogoIcon').value = formConfig.logoIcon || '📝';
             document.getElementById('propLogoUrl').value = formConfig.logoUrl || '';
+            document.getElementById('propPunchline').value = formConfig.punchline || '';
             document.getElementById('propBrandingDescription').value = formConfig.brandingDescription || '';
+            document.getElementById('propFooterText').value = formConfig.footerText || '';
             document.getElementById('propDisplayMode').checked = (formConfig.displayMode === 'card');
+
+            updateCanvasBranding(); // Live refresh canvas
         }
 
         // SINGLE ELEMENT UPDATE (Only when 1 selected)
@@ -2109,7 +2271,9 @@
             formConfig.headerTitle = document.getElementById('propHeaderTitle').value;
             formConfig.logoIcon = document.getElementById('propLogoIcon').value;
             formConfig.logoUrl = document.getElementById('propLogoUrl').value;
+            formConfig.punchline = document.getElementById('propPunchline').value;
             formConfig.brandingDescription = document.getElementById('propBrandingDescription').value;
+            formConfig.footerText = document.getElementById('propFooterText').value;
             formConfig.displayMode = document.getElementById('propDisplayMode').checked ? 'card' : 'full';
 
             // Sync API and Branding

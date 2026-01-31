@@ -765,6 +765,7 @@
                 bHeader.innerHTML = `
                     ${logoHtml}
                     ${formConfig.headerTitle ? `<h1 class="branding-title">${formConfig.headerTitle}</h1>` : ''}
+                    ${formConfig.punchline ? `<p class="branding-punchline" style="font-size: 1.1rem; color: #6b7280; margin: -5px 0 10px 0; font-style: italic;">${formConfig.punchline}</p>` : ''}
                     ${formConfig.brandingDescription ? `<p class="branding-desc">${formConfig.brandingDescription.replace(/\n/g, '<br>')}</p>` : ''}
                 `;
                 container.appendChild(bHeader);
@@ -886,6 +887,20 @@
 
                 container.appendChild(div);
             });
+
+            // Render Footer
+            if (formConfig.footerText) {
+                const bFooter = document.createElement('div');
+                bFooter.className = 'branding-footer';
+                bFooter.style.marginTop = '40px';
+                bFooter.style.paddingTop = '20px';
+                bFooter.style.borderTop = '1px solid #f3f4f6';
+                bFooter.style.textAlign = 'center';
+                bFooter.style.color = '#9ca3af';
+                bFooter.style.fontSize = '0.85rem';
+                bFooter.innerHTML = formConfig.footerText;
+                container.appendChild(bFooter);
+            }
 
             loader.style.display = 'none';
         }
