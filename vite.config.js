@@ -7,6 +7,9 @@ export default defineConfig({
             input: {
                 main: resolve(__dirname, 'index.html'),
                 viewer: resolve(__dirname, 'viewer.html'),
+                portal: resolve(__dirname, 'portal.html'),
+                debug: resolve(__dirname, 'debug-portal.html'),
+                diagnostic: resolve(__dirname, 'diagnostic.html'),
             },
         },
     },

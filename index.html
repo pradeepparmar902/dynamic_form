@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Form Builder</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -27,7 +31,7 @@
         body {
             margin: 0;
             font-family: 'Inter', sans-serif;
-            background: #f9fafb;
+            background: #ffffff;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -210,9 +214,8 @@
         /* CANVAS */
         .canvas-area {
             flex: 1;
-            background: #e5e5f7;
-            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-            background-size: 20px 20px;
+            background: #ffffff;
+            /* Clean professional background */
             padding: 2rem;
             overflow: auto;
             position: relative;
@@ -236,6 +239,89 @@
                 linear-gradient(to right, #f0f0f0 1px, transparent 1px),
                 linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
         }
+
+        /* CANVAS BRANDING ZONES */
+        .canvas-branding-zone {
+            width: 100%;
+            padding: 30px 20px;
+            box-sizing: border-box;
+            pointer-events: none;
+            /* Don't interfere with drag/drop */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background: #fff;
+            border-bottom: 2px solid #f3f4f6;
+            z-index: 5;
+            min-height: 50px;
+            position: relative;
+        }
+
+        .canvas-branding-zone.footer {
+            margin-top: 50px;
+            border-bottom: none;
+            border-top: 2px solid #f3f4f6;
+            padding: 20px;
+            min-height: 40px;
+        }
+
+        .canvas-branding-logo {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .canvas-branding-logo img {
+            max-width: 120px;
+            max-height: 50px;
+            object-fit: contain;
+        }
+
+        .canvas-branding-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .canvas-branding-punchline {
+            font-size: 0.9rem;
+            color: #616161;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .canvas-branding-desc {
+            font-size: 0.85rem;
+            color: #6b7280;
+            max-width: 80%;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .canvas-branding-footer-text {
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+
+        /* CARD MODE SIMULATION IN BUILDER */
+        .canvas-area.card-mode {
+            background: #f3f4f6;
+        }
+
+        .canvas-area.card-mode .canvas {
+            width: 700px;
+            /* Narrower for card */
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .canvas-area.card-mode .canvas.show-grid {
+            background-image: none;
+            /* Hide grid in card mode for focus */
+        }
+
 
         /* RULERS */
         .ruler-h {
@@ -366,6 +452,9 @@
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            /* Ensure vertical scrolling */
+            max-height: 100vh;
+            /* Prevent overflow of the whole app */
         }
 
         .props-header {
@@ -376,6 +465,8 @@
 
         .props-content {
             padding: 1rem;
+            flex: 1;
+            /* Allow content to fill available space */
         }
 
         .form-group {
@@ -591,13 +682,24 @@
                 </svg>
                 Portal Designer
             </button>
+
             <button class="btn btn-outline" onclick="openPreview()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
-                Preview
+                Preview Form
+            </button>
+            <button class="btn" onclick="openPortalWithApi()"
+                style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; border: none; font-weight: 600; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                Launch Portal
             </button>
             <button class="btn btn-primary" onclick="saveForm()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -628,19 +730,57 @@
 
     <!-- EMBED MODAL -->
     <div id="embedModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>Embed This Form</h3>
+                <h3>Get Sharing Code</h3>
                 <span class="close-modal" onclick="closeEmbedModal()">&times;</span>
             </div>
-            <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem;">
-                Copy the code below and paste it into any website where you want the form to appear.
-            </p>
-            <textarea id="embedCodeArea" rows="6" readonly
-                style="width: 100%; padding: 0.75rem; font-family: monospace; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 4px; background: #f8f9fa; margin-bottom: 1rem;"></textarea>
-            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="copyEmbedCode()">
-                Copy to Clipboard
-            </button>
+
+            <!-- OPTION 1: DIRECT LINK -->
+            <div style="margin-bottom: 2rem;">
+                <div
+                    style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; color: var(--primary);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                    <span style="font-weight: 700; font-size: 0.9rem;">Option 1: Direct Share Link</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.75rem;">
+                    Best for sending via WhatsApp, Email, or Social Media.
+                </p>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="directLinkArea" readonly
+                        style="flex: 1; padding: 0.6rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: #f8fafc; outline: none;">
+                    <button class="btn btn-primary" onclick="copyDirectLink()" style="padding: 0.6rem 1rem;">
+                        Copy Link
+                    </button>
+                </div>
+            </div>
+
+            <div style="height: 1px; background: var(--border); margin-bottom: 1.5rem;"></div>
+
+            <!-- OPTION 2: IFRAME EMBED -->
+            <div>
+                <div
+                    style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; color: var(--primary);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                    <span style="font-weight: 700; font-size: 0.9rem;">Option 2: Website Embed (Iframe)</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.75rem;">
+                    Copy this code to paste into your website's HTML editor.
+                </p>
+                <textarea id="embedCodeArea" rows="4" readonly
+                    style="width: 100%; padding: 0.75rem; font-family: monospace; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: #f8f9fa; margin-bottom: 0.75rem; resize: none;"></textarea>
+                <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="copyEmbedCode()">
+                    Copy Embed Code
+                </button>
+            </div>
         </div>
     </div>
 
@@ -650,6 +790,7 @@
             <div class="sidebar-tabs">
                 <div class="sidebar-tab active" onclick="switchSidebarTab('elements')">Elements</div>
                 <div class="sidebar-tab" onclick="switchSidebarTab('portal')">Portal View</div>
+                <div class="sidebar-tab" onclick="switchSidebarTab('branding')">🎨 Branding</div>
             </div>
 
             <div class="sidebar-content">
@@ -681,6 +822,47 @@
                                 <span>Date</span>
                             </div>
                             <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="dropdown">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                                <span>Dropdown</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="image">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                <span>Image</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="textarea">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                <span>Text Area</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="paragraph">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="21" y1="10" x2="3" y2="10"></line>
+                                    <line x1="21" y1="6" x2="3" y2="6"></line>
+                                    <line x1="21" y1="14" x2="3" y2="14"></line>
+                                    <line x1="21" y1="18" x2="3" y2="18"></line>
+                                </svg>
+                                <span>Paragraph</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
                                 data-type="number">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -690,6 +872,39 @@
                                     <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                                 </svg>
                                 <span>Number</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="email">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path
+                                        d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                                    </path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                                <span>Email</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="counter">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>+/- Counter</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="repeater">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                                <span>Add More List</span>
                             </div>
                             <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
                                 data-type="file">
@@ -747,6 +962,51 @@
                                 </svg>
                                 <span>Line</span>
                             </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="separator">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                    <line x1="2" y1="9" x2="22" y2="9" stroke-opacity="0.3"></line>
+                                    <line x1="2" y1="15" x2="22" y2="15" stroke-opacity="0.3"></line>
+                                </svg>
+                                <span>Separator</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tool-category">
+                        <div class="category-title" style="color: #c026d3;">✨ Branding & Title</div>
+                        <div class="tool-grid">
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="logo">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c026d3"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                                    <line x1="9" y1="9" x2="9.01" y2="9" />
+                                    <line x1="15" y1="9" x2="15.01" y2="9" />
+                                </svg>
+                                <span>Logo</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="form_title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c026d3"
+                                    stroke-width="2">
+                                    <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+                                </svg>
+                                <span>Form Title</span>
+                            </div>
+                            <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                data-type="punchline">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c026d3"
+                                    stroke-width="2">
+                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                                </svg>
+                                <span>Punchline</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -758,6 +1018,29 @@
                         <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 1rem;">
                             Pick forms for your portal sidebar and set their order.
                         </p>
+                        <!-- BRANDING SETTINGS FOR PORTAL -->
+                        <div
+                            style="background: #fffbeb; padding: 1rem; border-radius: 8px; border: 1px solid #fcd34d; margin-bottom: 1.5rem;">
+                            <label
+                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Professional
+                                Branding (Slug)</label>
+                            <input type="text" id="sidebarPortalSlug" placeholder="e.g. my-organization"
+                                style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px; margin-bottom: 5px;"
+                                oninput="syncPortalSlug(this.value)">
+                            <small style="font-size: 0.65rem; color: #92400e; display: block; margin-bottom: 10px;">
+                                This creates: <b>portal.html?p=name</b>
+                            </small>
+
+                            <label
+                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Custom
+                                Domain / Alias (Optional)</label>
+                            <input type="text" id="sidebarCustomDomain" placeholder="https://yourbrand.com"
+                                style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px;"
+                                oninput="syncCustomDomain(this.value)">
+                            <small style="font-size: 0.65rem; color: #92400e; display: block; margin-top: 4px;">
+                                Use this to hide "github.io" in shared links.
+                            </small>
+                        </div>
 
                         <div style="margin-bottom: 1rem;">
                             <button class="btn btn-outline"
@@ -775,7 +1058,19 @@
                             </div>
                         </div>
 
-                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <div
+                            style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                            <button class="btn btn-outline"
+                                style="width:100%; justify-content:center; border-color: #3b82f6; color: #3b82f6; background: #eff6ff;"
+                                onclick="openPortalPreview()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" style="margin-right: 6px;">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                Preview Portal Preview
+                            </button>
                             <button class="btn btn-primary" id="btnSavePortal"
                                 style="width:100%; justify-content:center;" onclick="savePortalSettings()">
                                 Save Portal Collection
@@ -783,7 +1078,147 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- BRANDING TAB PANEL -->
+                <div id="panelBranding" class="tab-panel">
+                    <div style="padding: 1rem;">
+                        <div class="category-title"
+                            style="color: #7c3aed; border-bottom: 2px solid #ddd6fe; padding-bottom: 5px; margin-bottom: 1rem;">
+                            🎨 Form Visual Branding
+                        </div>
+
+                        <!-- Draggable Branding Tools for better discoverability -->
+                        <div
+                            style="background: #f5f3ff; padding: 1rem; border-radius: 12px; border: 1px solid #ddd6fe; margin-bottom: 1rem;">
+                            <label
+                                style="color: #7c3aed; font-weight: 700; font-size: 0.75rem; display: block; margin-bottom: 10px; text-transform: uppercase;">Drag
+                                & Drop Brand Tools</label>
+                            <div class="tool-grid" style="grid-template-columns: repeat(3, 1fr);">
+                                <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                    data-type="logo" style="padding: 0.5rem; background: white;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                                        <line x1="9" y1="9" x2="9.01" y2="9" />
+                                        <line x1="15" y1="9" x2="15.01" y2="9" />
+                                    </svg>
+                                    <span style="font-size: 0.65rem;">Logo</span>
+                                </div>
+                                <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                    data-type="form_title" style="padding: 0.5rem; background: white;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
+                                        stroke-width="2">
+                                        <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+                                    </svg>
+                                    <span style="font-size: 0.65rem;">Title</span>
+                                </div>
+                                <div class="tool-item" draggable="true" ondragstart="handleDragStart(event)"
+                                    data-type="punchline" style="padding: 0.5rem; background: white;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed"
+                                        stroke-width="2">
+                                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                                    </svg>
+                                    <span style="font-size: 0.65rem;">Slogan</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            style="background: #fdf2f8; padding: 1.25rem; border-radius: 12px; border: 1px solid #fbcfe8; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                                <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                                    <label style="color: #be185d; font-weight: 700;">Form Header Title</label>
+                                    <input type="text" id="propHeaderTitle" placeholder="e.g. Data Entry Form"
+                                        style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
+                                </div>
+                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                    <label style="color: #be185d; font-weight: 700;">Logo/Icon</label>
+                                    <input type="text" id="propLogoIcon" placeholder="Emoji or Text"
+                                        style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color: #be185d; font-weight: 700;">Punch Line / Subtitle</label>
+                                <input type="text" id="propPunchline" placeholder="e.g. Your tagline here"
+                                    style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color: #be185d; font-weight: 700;">Logo Image URL (Optional)</label>
+                                <input type="text" id="propLogoUrl" placeholder="https://example.com/logo.png"
+                                    style="border-color: #f9a8d4; margin-bottom: 5px;" oninput="updateCanvasBranding()">
+                                <small style="font-size: 0.65rem; color: #db2777;">Paste a direct image link
+                                    here.</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color: #be185d; font-weight: 700;">Form Description/Instructions</label>
+                                <textarea id="propBrandingDescription" rows="3"
+                                    placeholder="Enter short instructions..."
+                                    style="border-color: #f9a8d4; border-radius: 6px; padding: 8px; width: 100%; font-size: 0.85rem;"
+                                    oninput="updateCanvasBranding()"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color: #be185d; font-weight: 700;">Footer Text / Credits</label>
+                                <input type="text" id="propFooterText" placeholder="e.g. © 2024 Your Brand"
+                                    style="border-color: #f9a8d4;" oninput="updateCanvasBranding()">
+                            </div>
+
+                            <div class="form-group"
+                                style="margin-top: 10px; border-top: 1px dashed #f9a8d4; padding-top: 15px;">
+                                <label class="checkbox-container"
+                                    style="font-size: 0.85rem; color: #be185d; font-weight: 600;">
+                                    <input type="checkbox" id="propDisplayMode" value="card"
+                                        onchange="updateCanvasBranding()">
+                                    <span class="checkmark"></span>
+                                    Display in Card Layout
+                                </label>
+                                <small
+                                    style="font-size: 0.65rem; color: #db2777; display: block; margin-top: 4px;">Recommended
+                                    for professional look.</small>
+                            </div>
+                        </div>
+
+                        <div class="category-title"
+                            style="color: #1e40af; border-bottom: 2px solid #bfdbfe; padding-bottom: 5px; margin-bottom: 1rem;">
+                            🔗 Custom URLs & Links
+                        </div>
+                        <div
+                            style="background: #eff6ff; padding: 1.25rem; border-radius: 12px; border: 1px solid #bfdbfe; margin-bottom: 1rem;">
+                            <div class="form-group">
+                                <label style="color: #1e40af; font-weight: 700;">Form Link Name (Slug)</label>
+                                <input type="text" id="fieldFormSlug" placeholder="e.g. donation-link"
+                                    style="border-color: #93c5fd; margin-bottom: 5px;">
+                                <small style="font-size: 0.65rem; color: #3b82f6;">Creates:
+                                    <b>viewer.html?v=name</b></small>
+                            </div>
+
+                            <div class="form-group"
+                                style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 15px;">
+                                <label style="color: #1e40af; font-weight: 700;">Portal Link Name (Slug)</label>
+                                <input type="text" id="portalSlug" placeholder="e.g. organization"
+                                    style="border-color: #93c5fd;"
+                                    oninput="syncPortalSlug(this.value, 'sidebarPortalSlug')">
+                                <small style="font-size: 0.65rem; color: #3b82f6;">Creates:
+                                    <b>portal.html?p=name</b></small>
+                            </div>
+
+                            <div class="form-group"
+                                style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 15px;">
+                                <label style="color: #1e40af; font-weight: 700;">Branded Domain (Optional)</label>
+                                <input type="text" id="propCustomDomain" placeholder="https://yourbrand.com"
+                                    style="border-color: #93c5fd; margin-bottom: 5px;"
+                                    oninput="syncCustomDomain(this.value, 'sidebarCustomDomain')">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </aside>
 
         <!-- CANVAS -->
@@ -791,6 +1226,9 @@
             <div id="formCanvas" class="canvas show-grid">
                 <div class="ruler-h" id="rulerTop"></div>
                 <div class="ruler-v" id="rulerLeft"></div>
+
+                <!-- Elements will be dropped here -->
+
                 <!-- Elements will be dropped here -->
             </div>
         </main>
@@ -800,7 +1238,13 @@
             <div class="props-header">Configuration</div>
 
             <div id="globalProps" class="props-content">
-                <div class="category-title">Form Settings</div>
+                <div class="category-title" style="display:flex; justify-content:space-between; align-items:center;">
+                    Form Settings
+                    <button class="btn btn-outline" id="adminUnlockArea" onclick="unlockAdminSettings()"
+                        style="font-size: 0.7rem; padding: 4px 8px; border-style: dashed; background: #fffbeb; border-color: #fcd34d; color: #92400e;">
+                        🔐 Unlock Admin
+                    </button>
+                </div>
                 <div class="form-group">
                     <label>Form Name (Display)</label>
                     <input type="text" id="propFormName" placeholder="e.g. Donation Form">
@@ -861,21 +1305,65 @@
                     </small>
                 </div>
                 <div class="form-group">
-                    <label>Allowed Domains (Security)</label>
-                    <input type="text" id="propAllowedDomains" placeholder="google.com, example.org">
-                    <small style="font-size: 0.7rem; color: var(--text-light);">Comma-separated. Leave empty to allow
-                        all.</small>
+                    <label>Allowed Domains (Security Only)</label>
+                    <input type="text" id="propAllowedDomains" placeholder="google.com, example.org"
+                        oninput="checkDomainWarning(this.value)">
+                    <small id="domainWarning"
+                        style="font-size: 0.7rem; color: #ef4444; display: none; margin-top: 4px; font-weight: 600;">
+                        ⚠️ Warning: Do not put your brand URL here for branding. Use the "Branding" box below.
+                    </small>
+                    <small style="font-size: 0.7rem; color: var(--text-light); display: block;">Limit where this form
+                        can be embedded. Empty = All.</small>
                 </div>
-                <div class="form-group">
-                    <label>GAS API URL (Required for External Hosting)</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="propApiUrl" placeholder="https://script.google.com/macros/s/.../exec"
-                            style="flex: 1;">
-                        <button class="btn btn-outline" onclick="testApiConnection()"
-                            style="padding: 0.5rem;">Test</button>
+
+                <!-- Moved Branding to Left Sidebar -->
+
+                <!-- Moved Branding & URLs to Left Sidebar -->
+
+
+                <div id="adminSettingsArea" class="hidden"
+                    style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 0.5rem;">
+                    <div class="form-group">
+                        <label>GAS API URL (Required for External Hosting)</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="propApiUrl" placeholder="https://script.google.com/macros/s/.../exec"
+                                style="flex: 1;">
+                            <button class="btn btn-outline" onclick="testApiConnection()"
+                                style="padding: 0.5rem;">Test</button>
+                        </div>
+                        <small style="font-size: 0.7rem; color: var(--text-light);">Required if hosted on GitHub Pages
+                            or
+                            locally.</small>
                     </div>
-                    <small style="font-size: 0.7rem; color: var(--text-light);">Required if hosted on GitHub Pages or
-                        locally.</small>
+
+                    <div class="category-title" style="margin-top: 1.5rem; color: var(--primary); font-size: 0.8rem;">
+                        Admin: Backend Strategy
+                    </div>
+                    <div class="form-group">
+                        <label>Storage Engine (Performance)</label>
+                        <select id="propStorageEngine" onchange="toggleBackendConfig()">
+                            <option value="gas">Google Apps Script (Standard)</option>
+                            <option value="firebase">Firebase (High Performance)</option>
+                        </select>
+                        <small style="font-size: 0.7rem; color: var(--text-light);">Firebase offers ~10x faster loading
+                            for
+                            clients.</small>
+                    </div>
+
+                    <div id="firebaseConfigArea" class="hidden">
+                        <div class="form-group">
+                            <label>Firebase Config (JSON Object)</label>
+                            <textarea id="propFirebaseConfig" rows="5"
+                                placeholder='{ "apiKey": "...", "projectId": "...", ... }'></textarea>
+                            <small style="font-size: 0.7rem; color: var(--text-light);">Paste the config object from
+                                Firebase Console.</small>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-outline" onclick="lockAdminSettings()"
+                        style="width: 100%; justify-content: center; margin-top: 1rem; font-size: 0.75rem;">
+                        🔒 Lock Settings
+                    </button>
                 </div>
             </div>
 
@@ -889,9 +1377,42 @@
                     <label id="lblPropSecondary">Field Label (Secondary)</label>
                     <input type="text" id="propLabelRegional" oninput="updateSelectedElement()">
                 </div>
+                <div class="form-group" id="grpOptions" style="display: none;">
+                    <label>Dropdown Options (Comma separated)</label>
+                    <textarea id="propOptions" placeholder="Option 1, Option 2, Option 3" rows="3"
+                        oninput="updateSelectedElement()"></textarea>
+                </div>
+
+                <div class="form-group" id="grpPlaceholder">
+                    <label>Placeholder</label>
+                    <input type="text" id="propPlaceholder" placeholder="Enter placeholder..."
+                        oninput="updateSelectedElement()">
+                </div>
                 <div class="form-group">
                     <label>Field Name (DB Key)</label>
                     <input type="text" id="propName" oninput="updateSelectedElement()">
+                </div>
+
+                <div class="form-group" id="grpImageUrl" style="display: none;">
+                    <label>Image / Logo URL</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="propImageUrl" oninput="updateSelectedElement()" style="flex: 1;">
+                        <button class="btn btn-outline" onclick="triggerFileUpload()" style="padding: 0 10px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                        </button>
+                    </div>
+                    <input type="file" id="propFileUpload" style="display: none;" accept="image/*"
+                        onchange="handleFileSelection(event)">
+                </div>
+
+                <div class="form-group toggle-group" id="grpSyncConfig" style="display: none;">
+                    <label>Keep Synced with Form Settings</label>
+                    <input type="checkbox" id="propSyncConfig" onchange="updateSelectedElement()">
                 </div>
 
                 <!-- Dynamic Options based on type -->
@@ -989,62 +1510,193 @@
 
     <!-- MAIN BUILDER LOGIC -->
     <script>
+        // FIREBASE INITIALIZATION
+        const defaultFirebaseConfig = {
+            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+            authDomain: "buildform-e7d3b.firebaseapp.com",
+            projectId: "buildform-e7d3b",
+            storageBucket: "buildform-e7d3b.firebasestorage.app",
+            messagingSenderId: "1010258612784",
+            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+            measurementId: "G-L217Q3WM0G"
+        };
+
+        // Initialize Firebase
+        let firebaseApp;
+        let db;
+
+        async function initFirebase() {
+            try {
+                const uiConfigRaw = document.getElementById('propFirebaseConfig').value;
+                let config = defaultFirebaseConfig;
+
+                if (uiConfigRaw && uiConfigRaw.trim().startsWith('{')) {
+                    try {
+                        config = JSON.parse(uiConfigRaw);
+                        console.log("📝 Using Custom Firebase Config from UI");
+                    } catch (e) {
+                        console.warn("⚠️ Invalid JSON in Firebase Config. Using default.");
+                    }
+                }
+
+                // If already initialized, check if we need to restart
+                if (firebase.apps.length > 0) {
+                    const currentApp = firebase.app();
+                    // Simple check: if projectID is different, delete and restart
+                    if (currentApp.options.projectId !== config.projectId) {
+                        console.log("♻️ Restarting Firebase for new Project ID:", config.projectId);
+                        await currentApp.delete();
+                    } else {
+                        db = firebase.firestore();
+                        return;
+                    }
+                }
+
+                firebaseApp = firebase.initializeApp(config);
+                db = firebase.firestore();
+                console.log("🔥 Firebase Initialized Successfully:", config.projectId);
+            } catch (err) {
+                console.error("❌ Firebase Init Error:", err);
+            }
+        }
+        initFirebase();
         // API Helper Function
         async function callApi(action, payload) {
-            // Check if running in Google Apps Script environment
+            // Priority 1: google.script.run (if hosted on GAS)
             if (typeof google !== 'undefined' && google.script) {
                 return new Promise((resolve, reject) => {
                     const run = google.script.run;
-                    run.withSuccessHandler(resolve).withFailureHandler(reject);
-
-                    if (action === 'saveForm') {
-                        run.saveForm(payload.formId, payload.schema, payload.config, payload.metadata);
-                    } else if (action === 'getForm') {
-                        run.getForm(payload.formId);
-                    } else if (action === 'listTemplates') {
-                        run.listTemplates();
-                    } else if (action === 'getPortalConfig') {
-                        run.getPortalConfig();
-                    } else if (action === 'savePortalConfig') {
-                        run.savePortalConfig(payload.config);
-                    } else {
-                        reject({ status: 'error', message: 'Unknown action: ' + action });
-                    }
+                    if (action === 'saveForm') run.withSuccessHandler(resolve).withFailureHandler(reject).saveForm(payload.formId, payload.schema, payload.config);
+                    else if (action === 'getForm') run.withSuccessHandler(resolve).withFailureHandler(reject).getForm(payload.formId);
+                    else if (action === 'listTemplates') run.withSuccessHandler(resolve).withFailureHandler(reject).listTemplates();
+                    else if (action === 'getScriptUrl') run.withSuccessHandler(resolve).withFailureHandler(reject).getScriptUrl();
+                    else if (action === 'getPortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).getPortalConfig();
+                    else if (action === 'savePortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).savePortalConfig(payload.config);
+                    else if (action === 'deleteForm') run.withSuccessHandler(resolve).withFailureHandler(reject).deleteForm(payload.formId);
+                    else if (action === 'ping') run.withSuccessHandler(resolve).withFailureHandler(reject).ping();
                 });
             }
 
-            // Standalone mode - use fetch with GAS URL
-            const gasApiUrl = formConfig.gasApiUrl || localStorage.getItem('gasApiUrl') || '';
-            if (!gasApiUrl) {
-                return { status: 'error', message: 'GAS API URL not configured. Please set it in Settings.' };
+            // --- MULTI-BACKEND ROUTING ---
+            const engine = document.getElementById('propStorageEngine').value || formConfig.storageEngine || 'gas';
+
+            if (engine === 'firebase') {
+                await initFirebase();
+                if (!db) return { status: 'error', message: 'Firebase not initialized. Check your console for errors.' };
+
+                try {
+                    if (action === 'saveForm') {
+                        console.log("📤 Firestore: Saving form...", payload.formId);
+                        await db.collection('forms').doc(payload.formId).set({
+                            id: payload.formId,
+                            schema: payload.schema,
+                            config: payload.config,
+                            metadata: payload.metadata,
+                            lastUpdated: Date.now()
+                        });
+
+                        // Vanity Mapping for Single Forms
+                        if (payload.config.slug) {
+                            console.log("📂 Firestore: Creating form vanity mapping for...", payload.config.slug);
+                            await db.collection('form_slugs').doc(payload.config.slug.toLowerCase()).set({
+                                formId: payload.formId,
+                                apiUrl: payload.config.gasApiUrl || localStorage.getItem('gasApiUrl'),
+                                storageEngine: payload.config.storageEngine || 'firebase',
+                                lastUpdated: Date.now()
+                            });
+                        }
+                        console.log("✅ Firestore: Save Successful");
+                        return { status: 'success' };
+                    } else if (action === 'getForm') {
+                        console.log("📥 Firestore: Loading form...", payload.formId);
+                        const doc = await db.collection('forms').doc(payload.formId).get();
+                        if (!doc.exists) return { status: 'error', message: 'Form not found in Firestore' };
+                        return { status: 'success', ...doc.data() };
+                    } else if (action === 'listTemplates') {
+                        console.log("🔍 Firestore: Querying 'forms' collection...");
+                        let snapshot;
+                        try {
+                            // Try without orderBy first to avoid index requirements
+                            snapshot = await db.collection('forms').get();
+                            console.log(`📄 Firestore: Found ${snapshot.size} documents in 'forms'`);
+                        } catch (qErr) {
+                            console.error("❌ Firestore Query Fail:", qErr);
+                            return { status: 'error', message: 'Query Failed: ' + qErr.message };
+                        }
+
+                        const forms = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            console.log("📍 Processing Doc:", doc.id, data);
+                            forms.push({
+                                id: doc.id,
+                                name: data.formName || (data.config && data.config.formName) || doc.id,
+                                description: data.description || (data.metadata && data.metadata.description) || '',
+                                lastUpdated: data.lastUpdated || Date.now()
+                            });
+                        });
+
+                        // Sort manually in JS to avoid Firestore index requirement
+                        forms.sort((a, b) => b.lastUpdated - a.lastUpdated);
+
+                        return { status: 'success', templates: forms };
+                    } else if (action === 'savePortalConfig') {
+                        // Standard global config
+                        await db.collection('config').doc('portal').set(payload.config);
+
+                        // Vanity Slug Mapping
+                        if (payload.config.slug) {
+                            console.log("📂 Firestore: Creating vanity mapping for...", payload.config.slug);
+                            await db.collection('portals').doc(payload.config.slug).set({
+                                config: payload.config,
+                                lastUpdated: Date.now()
+                            });
+                        }
+                        return { status: 'success' };
+                    } else if (action === 'getPortalConfig') {
+                        const doc = await db.collection('config').doc('portal').get();
+                        if (!doc.exists) return { status: 'error', message: 'Portal config not found' };
+                        return { status: 'success', config: doc.data() };
+                    } else if (action === 'deleteForm') {
+                        await db.collection('forms').doc(payload.formId).delete();
+                        return { status: 'success' };
+                    } else if (action === 'ping') {
+                        return { status: 'success', message: 'Firestore connected' };
+                    }
+                } catch (err) {
+                    console.error("🔥 Firestore Error:", err);
+                    return { status: 'error', message: 'Firestore Error: ' + err.message };
+                }
             }
 
-            try {
-                const url = gasApiUrl.trim().replace(/\/$/, "");
-                const sep = url.includes('?') ? '&' : '?';
+            // Priority 2: GAS fetch (if hosted externally, e.g. GitHub Pages)
+            const apiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
+            if (!apiUrl) {
+                return { status: 'error', message: 'GAS API URL not configured in settings.' };
+            }
+            // Sync back to config and storage
+            formConfig.gasApiUrl = apiUrl;
+            localStorage.setItem('gasApiUrl', apiUrl);
 
-                if (action === 'getForm') {
-                    const res = await fetch(`${url}${sep}action=getForm&id=${payload.formId}`);
-                    return await res.json();
-                } else if (action === 'listTemplates') {
-                    const res = await fetch(`${url}${sep}action=listTemplates`);
-                    return await res.json();
-                } else if (action === 'getPortalConfig') {
-                    const res = await fetch(`${url}${sep}action=getPortalConfig`);
-                    return await res.json();
-                } else if (action === 'saveForm' || action === 'savePortalConfig') {
-                    // POST actions
-                    const res = await fetch(url, {
+            try {
+                const postActions = ['saveForm', 'submitForm', 'translateText', 'savePortalConfig', 'deleteForm'];
+                if (postActions.includes(action)) {
+                    const response = await fetch(apiUrl, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ action, ...payload })
                     });
-                    // no-cors mode doesn't return response, so assume success
-                    return { status: 'success', message: 'Data sent successfully (no-cors mode)' };
+                    return { status: 'success', message: 'Payload sent.' };
+                } else {
+                    let url = `${apiUrl}?action=${action}`;
+                    if (payload.formId) url += `&id=${payload.formId}`;
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+                    return await response.json();
                 }
             } catch (err) {
-                console.error("API Call failed:", err);
+                console.error("API Call Error:", err);
                 return { status: 'error', message: 'Connection Error: ' + err.toString() };
             }
         }
@@ -1062,7 +1714,19 @@
             language: 'mr', // Legacy field for compat
             languagePrimary: 'en',
             languageSecondary: 'mr',
-            gasApiUrl: localStorage.getItem('gasApiUrl') || ''
+            slug: '',
+            customDomain: localStorage.getItem('customDomain') || '',
+            gasApiUrl: localStorage.getItem('gasApiUrl') || '',
+            storageEngine: localStorage.getItem('storageEngine') || 'firebase',
+            firebaseConfig: localStorage.getItem('firebaseConfig') || '',
+            // Branding Fields
+            headerTitle: '',
+            logoIcon: '📝',
+            logoUrl: '',
+            punchline: '',
+            brandingDescription: '',
+            footerText: '',
+            displayMode: 'full' // 'full' or 'card'
         };
 
         // DOM REFERENCES
@@ -1075,6 +1739,50 @@
         document.getElementById('headerFormId').innerText = formConfig.id;
         document.getElementById('propFormName').value = formConfig.formName;
         document.getElementById('headerFormNameInput').value = formConfig.formName;
+        document.getElementById('propStorageEngine').value = formConfig.storageEngine;
+        document.getElementById('propFirebaseConfig').value = formConfig.firebaseConfig;
+
+        function toggleBackendConfig() {
+            const engine = document.getElementById('propStorageEngine').value;
+            const configArea = document.getElementById('firebaseConfigArea');
+            if (engine === 'firebase') {
+                configArea.classList.remove('hidden');
+            } else {
+                configArea.classList.add('hidden');
+            }
+        }
+        toggleBackendConfig();
+
+        // --- ADMIN SECURITY ---
+        function unlockAdminSettings() {
+            const pass = prompt("Enter Admin Password:");
+            if (pass === "admin123") {
+                sessionStorage.setItem('admin_unlocked', 'true');
+                applyAdminVisibility();
+            } else {
+                alert("❌ Incorrect password.");
+            }
+        }
+
+        function lockAdminSettings() {
+            sessionStorage.removeItem('admin_unlocked');
+            applyAdminVisibility();
+        }
+
+        function applyAdminVisibility() {
+            const isUnlocked = sessionStorage.getItem('admin_unlocked') === 'true';
+            const unlockBtn = document.getElementById('adminUnlockArea');
+            const adminArea = document.getElementById('adminSettingsArea');
+
+            if (isUnlocked) {
+                unlockBtn.classList.add('hidden');
+                adminArea.classList.remove('hidden');
+            } else {
+                unlockBtn.classList.remove('hidden');
+                adminArea.classList.add('hidden');
+            }
+        }
+        applyAdminVisibility();
 
         // Sync both name inputs works on either update
         function syncFormName(val, source) {
@@ -1100,65 +1808,24 @@
 
         // --- SIDEBAR TABS ---
         function switchSidebarTab(tab) {
+            currentSidebarTab = tab; // Update tracker
             document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
 
             if (tab === 'elements') {
                 document.querySelector('.sidebar-tab:nth-child(1)').classList.add('active');
                 document.getElementById('panelElements').classList.add('active');
-            } else {
+            } else if (tab === 'portal') {
                 document.querySelector('.sidebar-tab:nth-child(2)').classList.add('active');
                 document.getElementById('panelPortal').classList.add('active');
                 refreshPortalList();
+            } else if (tab === 'branding') {
+                document.querySelector('.sidebar-tab:nth-child(3)').classList.add('active');
+                document.getElementById('panelBranding').classList.add('active');
+                updateCanvasBranding(); // Ensure canvas matches sidebar
             }
         }
 
-        async function refreshPortalList() {
-            const listEl = document.getElementById('sidebarPortalList');
-            listEl.innerHTML = '<div style="text-align:center; padding:1rem;">Loading...</div>';
-
-            try {
-                const [templates, config] = await Promise.all([
-                    callApi('listTemplates', {}),
-                    callApi('getPortalConfig', {})
-                ]);
-
-                allTemplates = templates;
-                portalConfig = config || { forms: [] };
-                renderPortalItemsInSidebar();
-            } catch (err) {
-                listEl.innerHTML = '<div style="color:red; font-size:0.8rem;">Error loading forms.</div>';
-            }
-        }
-
-        function renderPortalItemsInSidebar() {
-            const listEl = document.getElementById('sidebarPortalList');
-            if (!allTemplates || allTemplates.length === 0) {
-                listEl.innerHTML = '<div style="padding:1rem; color:#999; font-size:0.8rem;">No saved forms found.</div>';
-                return;
-            }
-
-            listEl.innerHTML = allTemplates.map(t => {
-                const portalItem = portalConfig.forms.find(pf => pf.id === t.id);
-                const isSelected = !!portalItem;
-                const order = portalItem ? portalItem.order : 0;
-
-                return `
-                    <div style="display:flex; flex-direction:column; gap:0.25rem; background:white; border:1px solid var(--border); padding:0.5rem; border-radius:4px; margin-bottom:0.5rem;">
-                        <label style="display:flex; align-items:center; gap:0.5rem; font-weight:600; cursor:pointer; font-size:0.8rem;">
-                            <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''}>
-                            ${t.name}
-                        </label>
-                        <div style="display:flex; align-items:center; justify-content:space-between; font-size:0.7rem; color:var(--text-light);">
-                            <span>ID: ${t.id}</span>
-                            <div style="display:flex; align-items:center; gap:4px;">
-                                Order: <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:40px; border:1px solid var(--border); text-align:center;">
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
 
         function updateFormLanguage() {
             formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
@@ -1182,7 +1849,9 @@
 
         // --- DRAG AND DROP (SIDEBAR TO CANVAS) ---
         function handleDragStart(e) {
-            e.dataTransfer.setData("type", e.target.dataset.type);
+            // Use currentTarget to ensure we get the div with data-type, even if icon/text was clicked
+            e.dataTransfer.setData("type", e.currentTarget.dataset.type);
+            e.dataTransfer.effectAllowed = "copy";
         }
 
         function allowDrop(e) {
@@ -1208,27 +1877,37 @@
         // --- CORE LOGIC ---
         function addElement(type, x, y) {
             const id = 'elm_' + Date.now();
+            const actualType = (type === 'separator' || type === 'form_title' || type === 'punchline') ? 'cosmetic' : (type === 'logo' ? 'image' : type);
+
+            // Branding defaults
+            let defaultLabel = 'New ' + actualType;
+            if (type === 'form_title') defaultLabel = formConfig.formName || 'Form Title';
+            if (type === 'punchline') defaultLabel = 'Your Tagline Here';
+            if (type === 'logo') defaultLabel = '';
+
             const newElm = {
                 id: id,
-                type: type,
+                type: type, // Keep original type for rendering specific logic
                 x: x,
                 y: y,
                 props: {
-                    label: type === 'rect' || type === 'line' ? '' : 'New ' + type,
+                    label: defaultLabel,
                     name: type + '_' + Math.floor(Math.random() * 1000),
                     required: false,
                     translatable: type === 'text',
-                    width: 200,
-                    height: type === 'rect' ? 100 : 40,
+                    width: type === 'logo' ? 100 : (type === 'form_title' ? 400 : (type === 'separator' ? 700 : 200)),
+                    height: type === 'logo' ? 100 : 40,
                     // Cosmetics
-                    headingLevel: 'h2',
-                    align: 'left',
-                    fontSize: 14,
-                    isBold: false,
+                    headingLevel: type === 'form_title' ? 'h1' : 'h2',
+                    align: (type === 'form_title' || type === 'punchline' || type === 'logo') ? 'center' : 'left',
+                    fontSize: type === 'form_title' ? 28 : (type === 'punchline' ? 16 : 14),
+                    isBold: type === 'form_title' || type === 'logo' ? true : false,
+                    // Image specific
+                    imageUrl: type === 'logo' ? 'https://via.placeholder.com/150?text=Logo' : '',
                     // Shape Styles
-                    strokeWidth: type === 'line' || type === 'rect' ? 2 : 0,
+                    strokeWidth: (type === 'line' || type === 'rect') ? 2 : 0,
                     borderStyle: 'solid',
-                    borderRadius: 0,
+                    borderRadius: (type === 'logo') ? 8 : 0,
                     // Grouping
                     groupId: null
                 }
@@ -1247,40 +1926,114 @@
 
             // Content based on type
             let content = '';
-            if (['text', 'date', 'number', 'file'].includes(elmData.type)) {
-                content = `
-                    <label class="preview-label">${elmData.props.label}${elmData.props.required ? '*' : ''}</label>
-                    <div class="preview-input" style="height: 30px; background: #eee;"></div>
-                `;
-            } else if (elmData.type === 'heading') {
-                div.style.width = '300px';
-                // Dynamic Heading Tag
-                const tag = elmData.props.headingLevel || 'h2';
-                content = `<${tag} style="margin:0; border-bottom: 2px solid #333;">${elmData.props.label || 'Section Heading'}</${tag}>`;
+            if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'logo', 'repeater'].includes(elmData.type)) {
+                let inputHtml = "";
+                if (elmData.type === 'dropdown') {
+                    inputHtml = `<div class="preview-input" style="height:30px; background:#eee; display:flex; align-items:center; padding:0 10px; font-size:12px; font-weight:700;">Select Option <svg width="12" height="12" style="margin-left:auto"><polyline points="3 4 6 7 9 4" fill="none" stroke="black"/></svg></div>`;
+                } else if (elmData.type === 'repeater') {
+                    inputHtml = `<div class="preview-input" style="height:35px; border:1px dashed #2563eb; background:#eff6ff; display:flex; align-items:center; justify-content:center; color:#2563eb; font-weight:700; font-size:12px;">+ Add New Item</div>`;
+                } else if (elmData.type === 'image' || elmData.type === 'logo') {
+                    const url = elmData.props.imageUrl || 'https://via.placeholder.com/150?text=Upload+Image';
+                    div.style.width = (elmData.props.width || 150) + 'px';
+                    div.style.height = (elmData.props.height || 100) + 'px';
+                    inputHtml = `<img src="${url}" style="width:100%; height:100%; object-fit:contain; border-radius:${elmData.props.borderRadius || 0}px; border:${elmData.props.strokeWidth || 0}px solid #ccc;">`;
+                } else if (elmData.type === 'textarea' || elmData.type === 'paragraph') {
+                    inputHtml = `<div class="preview-input" style="height:${elmData.type === 'paragraph' ? '60px' : '40px'}; background:#eee;"></div>`;
+                } else {
+                    inputHtml = `<div class="preview-input" style="height: 30px; background: #eee;"></div>`;
+                }
+
+                if (elmData.type === 'logo' || elmData.type === 'image') {
+                    content = inputHtml;
+                } else {
+                    content = `
+                        <label class="preview-label" style="font-weight:${elmData.props.isBold ? 'bold' : 'normal'}; font-size:${elmData.props.fontSize || 12}px">${elmData.props.label}${elmData.props.required ? '*' : ''}</label>
+                        ${inputHtml}
+                    `;
+                }
+            } else if (elmData.type === 'heading' || elmData.type === 'form_title') {
+                div.style.width = (elmData.props.width || 300) + 'px';
+                const tag = elmData.type === 'form_title' ? 'h1' : (elmData.props.headingLevel || 'h2');
+                const border = elmData.type === 'form_title' ? 'none' : '2px solid #333';
+                content = `<${tag} style="margin:0; border-bottom: ${border}; font-size:${elmData.props.fontSize || (elmData.type === 'form_title' ? 28 : 20)}px; font-weight:${elmData.props.isBold ? '700' : '400'};">${elmData.props.label || 'Section Heading'}</${tag}>`;
             } else if (elmData.type === 'rect') {
                 div.style.width = elmData.props.width + 'px';
                 div.style.height = elmData.props.height + 'px';
-                // Apply Styles
                 div.style.border = `${elmData.props.strokeWidth || 2}px ${elmData.props.borderStyle || 'solid'} #000`;
                 div.style.borderRadius = (elmData.props.borderRadius || 0) + 'px';
                 div.style.background = 'transparent';
-            } else if (elmData.type === 'line') {
-                div.style.width = '200px';
-                // Line Implementation: Height = Clickable Area, Visual = Border Top
-                div.style.height = (elmData.props.strokeWidth || 2) + 10 + 'px'; // Add padding for easier click
+            } else if (elmData.type === 'line' || elmData.type === 'separator') {
+                div.style.width = (elmData.props.width || 200) + 'px';
+                div.style.height = (elmData.props.strokeWidth || 2) + 10 + 'px';
                 div.style.borderTop = `${elmData.props.strokeWidth || 2}px ${elmData.props.borderStyle || 'solid'} #000`;
                 div.style.background = 'transparent';
-            } else if (elmData.type === 'label') {
-                content = `<span style="font-weight:${elmData.props.isBold ? 'bold' : 'normal'}; font-size:${elmData.props.fontSize || 14}px">${elmData.props.label || 'Label Text'}</span>`;
+            } else if (elmData.type === 'label' || elmData.type === 'punchline') {
+                const color = elmData.type === 'punchline' ? '#666' : 'inherit';
+                const style = elmData.type === 'punchline' ? 'italic' : 'normal';
+                content = `<span style="font-weight:${elmData.props.isBold ? 'bold' : 'normal'}; font-size:${elmData.props.fontSize || 14}px; color:${color}; font-style:${style}">${elmData.props.label || 'Label Text'}</span>`;
             }
 
             div.innerHTML = content;
             div.style.textAlign = elmData.props.align || 'left';
 
-            // Mouse Interaction handled globally
-            // div.onmousedown = (e) => startDragElement(e, elmData.id);
+            // ATTACH INTERACTIONS
+            div.onmousedown = (e) => {
+                // If we're not already dragging, and it's a left click
+                if (e.button === 0) {
+                    // Selection logic is handled globally via window.mousedown, 
+                    // but we need to ensure this element is recognized as .canvas-element
+                }
+            };
 
             canvas.appendChild(div);
+        }
+
+        // --- BRANDING WYSIWYG ---
+        function updateCanvasBranding() {
+            const hTitle = document.getElementById('propHeaderTitle').value;
+            const lIcon = document.getElementById('propLogoIcon').value;
+            const lUrl = document.getElementById('propLogoUrl').value;
+            const punch = document.getElementById('propPunchline').value;
+            const footer = document.getElementById('propFooterText').value;
+            const desc = document.getElementById('propBrandingDescription').value;
+            const isCard = document.getElementById('propDisplayMode').checked;
+
+            const headerZone = document.getElementById('canvasBrandingHeader');
+            const footerZone = document.getElementById('canvasBrandingFooter');
+            const canvasArea = document.getElementById('canvasArea');
+
+            // 1. Header Logic
+            if (!hTitle && !lIcon && !lUrl && !punch) {
+                headerZone.style.display = 'none';
+            } else {
+                headerZone.style.display = 'flex';
+
+                const logoDiv = headerZone.querySelector('.canvas-branding-logo');
+                if (lUrl) {
+                    logoDiv.innerHTML = `<img src="${lUrl}" alt="Logo">`;
+                } else {
+                    logoDiv.innerText = lIcon;
+                }
+
+                headerZone.querySelector('.canvas-branding-title').innerText = hTitle;
+                headerZone.querySelector('.canvas-branding-punchline').innerText = punch;
+                headerZone.querySelector('.canvas-branding-desc').innerText = desc;
+            }
+
+            // 2. Footer Logic
+            if (!footer) {
+                footerZone.style.display = 'none';
+            } else {
+                footerZone.style.display = 'flex';
+                footerZone.querySelector('.canvas-branding-footer-text').innerText = footer;
+            }
+
+            // 3. Card Mode Simulation
+            if (isCard) {
+                canvasArea.classList.add('card-mode');
+            } else {
+                canvasArea.classList.remove('card-mode');
+            }
         }
 
         // Modified Selection Logic
@@ -1347,26 +2100,49 @@
                 const setDisplayFlex = (id, show) => document.getElementById(id).style.display = show ? 'flex' : 'none';
 
                 setDisplay('grpHeadingLevel', t === 'heading');
-                setDisplay('grpAlign', t === 'heading' || t === 'label');
-                setDisplay('grpFontSize', t === 'label');
-                setDisplayFlex('grpBold', t === 'label');
+                setDisplay('grpAlign', ['heading', 'label', 'form_title', 'punchline', 'logo', 'image'].includes(t));
+                setDisplay('grpFontSize', ['label', 'form_title', 'punchline'].includes(t));
+                setDisplayFlex('grpBold', ['label', 'form_title', 'punchline'].includes(t));
+                setDisplay('grpOptions', t === 'dropdown');
+                setDisplay('grpPlaceholder', !['rect', 'line', 'separator', 'repeater', 'logo', 'image', 'form_title', 'punchline'].includes(t));
+                setDisplay('grpImageUrl', t === 'image' || t === 'logo');
+                setDisplay('grpSyncConfig', t === 'form_title' || t === 'punchline' || t === 'logo');
 
                 // Shape Styles Visibility
-                const isShape = t === 'rect' || t === 'line';
-                setDisplay('grpStrokeWidth', isShape);
+                const isShape = t === 'rect' || t === 'line' || t === 'separator';
+                setDisplay('grpStrokeWidth', isShape || t === 'image' || t === 'logo');
                 setDisplay('grpBorderStyle', isShape);
-                setDisplay('grpBorderRadius', t === 'rect');
+                setDisplay('grpBorderRadius', t === 'rect' || t === 'image' || t === 'logo');
 
                 // Set Values
                 document.getElementById('propHeadingLevel').value = elm.props.headingLevel || 'h2';
                 document.getElementById('propAlign').value = elm.props.align || 'left';
                 document.getElementById('propFontSize').value = elm.props.fontSize || 14;
                 document.getElementById('propBold').checked = elm.props.isBold || false;
-
                 document.getElementById('propStrokeWidth').value = elm.props.strokeWidth || 2;
                 document.getElementById('propBorderStyle').value = elm.props.borderStyle || 'solid';
                 document.getElementById('propBorderRadius').value = elm.props.borderRadius || 0;
+                document.getElementById('propOptions').value = elm.props.options || '';
+                document.getElementById('propPlaceholder').value = elm.props.placeholder || '';
+                document.getElementById('propImageUrl').value = elm.props.imageUrl || '';
+                document.getElementById('propSyncConfig').checked = elm.props.syncConfig || false;
             }
+        }
+
+        function triggerFileUpload() {
+            document.getElementById('propFileUpload').click();
+        }
+
+        function handleFileSelection(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('propImageUrl').value = e.target.result;
+                updateSelectedElement();
+            };
+            reader.readAsDataURL(file);
         }
 
         function showGlobalProps() {
@@ -1374,6 +2150,17 @@
             renderSelectionState();
             elmPropsPanel.classList.add('hidden');
             globalPropsPanel.classList.remove('hidden');
+
+            // Populate Branding Fields
+            document.getElementById('propHeaderTitle').value = formConfig.headerTitle || '';
+            document.getElementById('propLogoIcon').value = formConfig.logoIcon || '📝';
+            document.getElementById('propLogoUrl').value = formConfig.logoUrl || '';
+            document.getElementById('propPunchline').value = formConfig.punchline || '';
+            document.getElementById('propBrandingDescription').value = formConfig.brandingDescription || '';
+            document.getElementById('propFooterText').value = formConfig.footerText || '';
+            document.getElementById('propDisplayMode').checked = (formConfig.displayMode === 'card');
+
+            updateCanvasBranding(); // Live refresh canvas
         }
 
         // SINGLE ELEMENT UPDATE (Only when 1 selected)
@@ -1387,48 +2174,99 @@
             elm.props.name = document.getElementById('propName').value;
             elm.props.required = document.getElementById('propRequired').checked;
             elm.props.translatable = document.getElementById('propTranslatable').checked;
+            elm.props.options = document.getElementById('propOptions').value;
+            elm.props.placeholder = document.getElementById('propPlaceholder').value;
 
             // Style Props
             elm.props.headingLevel = document.getElementById('propHeadingLevel').value;
             elm.props.align = document.getElementById('propAlign').value;
-            elm.props.fontSize = document.getElementById('propFontSize').value;
+            elm.props.fontSize = parseInt(document.getElementById('propFontSize').value) || 14;
             elm.props.isBold = document.getElementById('propBold').checked;
 
-            // Shape Props
-            elm.props.strokeWidth = parseInt(document.getElementById('propStrokeWidth').value) || 2;
+            // Shape & Branding Props
+            elm.props.strokeWidth = parseInt(document.getElementById('propStrokeWidth').value) || 0;
             elm.props.borderStyle = document.getElementById('propBorderStyle').value;
             elm.props.borderRadius = parseInt(document.getElementById('propBorderRadius').value) || 0;
+            elm.props.imageUrl = document.getElementById('propImageUrl').value;
+            elm.props.syncConfig = document.getElementById('propSyncConfig').checked;
 
-            // Re-render visual content roughly
+            // Sync Logic
+            if (elm.props.syncConfig) {
+                if (elm.type === 'form_title') formConfig.formName = elm.props.label;
+                if (elm.type === 'punchline') formConfig.punchline = elm.props.label;
+                if (elm.type === 'logo') formConfig.logoUrl = elm.props.imageUrl;
+                // Update Sidebar Branding Panel UI if open
+                if (currentSidebarTab === 'branding') showGlobalProps();
+            }
+
+            // Re-render visual content
             const dom = document.getElementById(selectedId);
             if (dom) renderElementVisual(elm, dom);
         }
 
         function renderElementVisual(elm, dom) {
-            const separator = (elm.props.label && elm.props.labelRegional) ? ' / ' : '';
-            const regLabel = elm.props.labelRegional ? separator + elm.props.labelRegional : '';
+            if (!dom) return;
+            const t = elm.type;
+            const p = elm.props;
+
+            const separator = (p.label && p.labelRegional) ? ' / ' : '';
+            const regLabel = p.labelRegional ? separator + p.labelRegional : '';
+            const fullLabel = (p.label || '') + regLabel;
 
             // Update Base Styles
-            dom.style.textAlign = elm.props.align || 'left';
+            dom.style.textAlign = p.align || 'left';
 
-            if (['text', 'date', 'number', 'file'].includes(elm.type)) {
-                dom.querySelector('.preview-label').innerHTML = elm.props.label + regLabel + (elm.props.required ? '*' : '');
-            } else if (elm.type === 'heading') {
-                const hTag = document.createElement(elm.props.headingLevel || 'h2');
-                hTag.style.margin = '0';
-                hTag.style.borderBottom = '2px solid #333';
-                hTag.innerText = elm.props.label + regLabel;
-                dom.innerHTML = '';
-                dom.appendChild(hTag);
-            } else if (elm.type === 'label') {
-                const fSize = elm.props.fontSize || 14;
-                dom.innerHTML = `<span style="font-weight:${elm.props.isBold ? 'bold' : 'normal'}; font-size: ${fSize}px">${elm.props.label}${regLabel}</span>`;
-            } else if (elm.type === 'rect') {
-                dom.style.border = `${elm.props.strokeWidth}px ${elm.props.borderStyle} #000`;
-                dom.style.borderRadius = `${elm.props.borderRadius}px`;
-            } else if (elm.type === 'line') {
-                dom.style.borderTop = `${elm.props.strokeWidth}px ${elm.props.borderStyle} #000`;
-                dom.style.height = (elm.props.strokeWidth + 10) + 'px'; // Update click area
+            // Re-render based on type
+            if (['text', 'date', 'number', 'file', 'email', 'dropdown', 'textarea', 'paragraph', 'counter', 'image', 'logo', 'repeater'].includes(t)) {
+                if (t === 'logo' || t === 'image') {
+                    const img = dom.querySelector('img');
+                    if (img) {
+                        img.src = p.imageUrl || 'https://via.placeholder.com/150?text=Upload+Image';
+                        img.style.borderRadius = (p.borderRadius || 0) + 'px';
+                        img.style.border = `${p.strokeWidth || 0}px solid #ccc`;
+                    }
+                    dom.style.width = (p.width || (t === 'logo' ? 100 : 150)) + 'px';
+                    dom.style.height = (p.height || (t === 'logo' ? 100 : 100)) + 'px';
+                } else {
+                    const labelEl = dom.querySelector('.preview-label');
+                    if (labelEl) {
+                        labelEl.innerHTML = fullLabel + (p.required ? '*' : '');
+                        labelEl.style.fontWeight = p.isBold ? 'bold' : 'normal';
+                        labelEl.style.fontSize = (p.fontSize || 12) + 'px';
+                    }
+                }
+            } else if (t === 'heading' || t === 'form_title') {
+                const tag = t === 'form_title' ? 'h1' : (p.headingLevel || 'h2');
+                let head = dom.querySelector('h1, h2, h3, h4');
+
+                // If tag changed, we might need to recreate it but for simplicity, just update content/style
+                if (head) {
+                    head.innerText = fullLabel || (t === 'form_title' ? 'Form Title' : 'Section Heading');
+                    head.style.fontSize = (p.fontSize || (t === 'form_title' ? 28 : 20)) + 'px';
+                    head.style.fontWeight = p.isBold ? '700' : '400';
+                    head.style.borderBottom = t === 'form_title' ? 'none' : '2px solid #333';
+                }
+                dom.style.width = (p.width || 300) + 'px';
+            } else if (t === 'rect') {
+                dom.style.width = p.width + 'px';
+                dom.style.height = p.height + 'px';
+                dom.style.border = `${p.strokeWidth || 2}px ${p.borderStyle || 'solid'} #000`;
+                dom.style.borderRadius = (p.borderRadius || 0) + 'px';
+            } else if (t === 'line' || t === 'separator') {
+                dom.style.width = (p.width || 200) + 'px';
+                dom.style.height = (p.strokeWidth || 2) + 10 + 'px';
+                dom.style.borderTop = `${p.strokeWidth || 2}px ${p.borderStyle || 'solid'} #000`;
+            } else if (t === 'label' || t === 'punchline') {
+                const span = dom.querySelector('span');
+                if (span) {
+                    span.innerText = fullLabel || (t === 'punchline' ? 'Your Tagline Here' : 'Label Text');
+                    span.style.fontWeight = p.isBold ? 'bold' : 'normal';
+                    span.style.fontSize = (p.fontSize || 14) + 'px';
+                    if (t === 'punchline') {
+                        span.style.color = '#666';
+                        span.style.fontStyle = 'italic';
+                    }
+                }
             }
         }
 
@@ -1604,60 +2442,6 @@
 
 
         // --- API HELPER ---
-        async function callApi(action, payload) {
-            // Priority 1: google.script.run (if hosted on GAS)
-            if (typeof google !== 'undefined' && google.script) {
-                return new Promise((resolve, reject) => {
-                    const run = google.script.run;
-                    if (action === 'saveForm') run.withSuccessHandler(resolve).withFailureHandler(reject).saveForm(payload.formId, payload.schema, payload.config);
-                    else if (action === 'getForm') run.withSuccessHandler(resolve).withFailureHandler(reject).getForm(payload.formId);
-                    else if (action === 'listTemplates') run.withSuccessHandler(resolve).withFailureHandler(reject).listTemplates();
-                    else if (action === 'getScriptUrl') run.withSuccessHandler(resolve).withFailureHandler(reject).getScriptUrl();
-                    else if (action === 'getPortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).getPortalConfig();
-                    else if (action === 'savePortalConfig') run.withSuccessHandler(resolve).withFailureHandler(reject).savePortalConfig(payload.config);
-                    else if (action === 'deleteForm') run.withSuccessHandler(resolve).withFailureHandler(reject).deleteForm(payload.formId);
-                    else if (action === 'ping') run.withSuccessHandler(resolve).withFailureHandler(reject).ping();
-                });
-            }
-
-            // Priority 2: fetch (if hosted externally, e.g. GitHub Pages)
-            // Always pull latest from DOM just in case sync failed
-            const apiUrl = document.getElementById('propApiUrl').value || formConfig.gasApiUrl;
-            if (!apiUrl) {
-                return { status: 'error', message: 'GAS API URL not configured in settings.' };
-            }
-            // Sync back to config
-            formConfig.gasApiUrl = apiUrl;
-
-            try {
-                // Determine if we can use 'cors' (usually fails with GAS) or MUST use 'no-cors'
-                // GAS ContentService supports CORS for GET, but POST is trickier.
-
-                const postActions = ['saveForm', 'submitForm', 'translateText', 'savePortalConfig', 'deleteForm'];
-                if (postActions.includes(action)) {
-                    // Try standard POST first (likely to have opaque response)
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({ action, ...payload })
-                    });
-                    // With 'no-cors', the response is opaque. We return a hint.
-                    return { status: 'success', message: 'Payload sent. Check Drive for file.' };
-                } else {
-                    // GET actions (listTemplates, getForm, ping, getPortalConfig)
-                    let url = `${apiUrl}?action=${action}`;
-                    if (payload.formId) url += `&id=${payload.formId}`;
-
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-                    return await response.json();
-                }
-            } catch (err) {
-                console.error("API Call Error:", err);
-                return { status: 'error', message: 'Connection Error: ' + err.toString() };
-            }
-        }
 
         async function testApiConnection() {
             const btn = event.target;
@@ -1669,57 +2453,96 @@
 
             btn.innerText = originalText;
             if (res.status === 'success') {
-                alert("Success! " + res.message);
+                alert("Success! " + (res.message || "API Connected"));
             } else {
-                alert("Failed: " + res.message + "\n\n1. Ensure Web App is deployed as 'Anyone'.\n2. Ensure URL is correct.");
+                alert("Failed: " + (res.message || "Unknown Error") + "\n\n1. Ensure Web App is deployed as 'Anyone'.\n2. Ensure URL is correct.");
             }
         }
 
-        // Modified saveForm to use helper
-        async function saveForm() {
-            const btn = document.querySelector('.btn-primary');
+        async function saveForm(silent = false) {
+            const btn = document.querySelector('button[onclick="saveForm()"]') || document.querySelector('.header-actions .btn-primary');
             const originalText = btn.innerHTML;
             btn.innerHTML = 'Saving...';
             btn.disabled = true;
 
+            // Sync model with current UI values
+            formConfig.formName = document.getElementById('propFormName').value;
+            formConfig.id = document.getElementById('propFormId').value;
+            formConfig.description = document.getElementById('propDescription').value;
+            formConfig.sheetUrl = document.getElementById('propSheetUrl').value;
+            formConfig.sheetName = document.getElementById('propSheetName').value;
+            formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
+            formConfig.languageSecondary = document.getElementById('propLanguageSecondary').value;
+
+            // Sync Branding Fields
+            formConfig.headerTitle = document.getElementById('propHeaderTitle').value;
+            formConfig.logoIcon = document.getElementById('propLogoIcon').value;
+            formConfig.logoUrl = document.getElementById('propLogoUrl').value;
+            formConfig.punchline = document.getElementById('propPunchline').value;
+            formConfig.brandingDescription = document.getElementById('propBrandingDescription').value;
+            formConfig.footerText = document.getElementById('propFooterText').value;
+            formConfig.displayMode = document.getElementById('propDisplayMode').checked ? 'card' : 'full';
+
+            // Sync API and Branding
+            formConfig.storageEngine = document.getElementById('propStorageEngine').value;
+            formConfig.gasApiUrl = document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : formConfig.gasApiUrl;
+            formConfig.customDomain = document.getElementById('propCustomDomain') ? document.getElementById('propCustomDomain').value : formConfig.customDomain;
+
+
             const schema = elements;
-            const config = {
-                formName: formConfig.formName || formConfig.id,
-                targetSheetUrl: formConfig.sheetUrl,
-                targetSheetName: formConfig.sheetName,
-                language: formConfig.language
-            };
+            const config = formConfig;
             const metadata = {
-                description: formConfig.description,
-                allowedDomains: formConfig.allowedDomains
+                allowedDomains: document.getElementById('propAllowedDomains').value,
+                formName: formConfig.formName
             };
+
+            // Local Fallback for Preview (Instant)
+            const localData = { schema, config, metadata };
+            localStorage.setItem('form_' + formConfig.id, JSON.stringify(localData));
+
+            // Persist settings
+            localStorage.setItem('storageEngine', formConfig.storageEngine);
+            localStorage.setItem('gasApiUrl', formConfig.gasApiUrl);
+            localStorage.setItem('customDomain', formConfig.customDomain);
 
             const res = await callApi('saveForm', { formId: formConfig.id, schema, config, metadata });
 
             btn.innerHTML = originalText;
             btn.disabled = false;
+
             if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
-                alert('Form Saved! (Check Drive/Sheet to confirm if external)');
+                if (!silent) alert('Form Saved! (Check Drive/Sheet to confirm if external)');
             } else {
                 alert('Error: ' + res.message);
             }
         }
 
-        function openPreview() {
-            const apiUrl = formConfig.gasApiUrl;
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run.withSuccessHandler(url => {
-                    const finalUrl = url + '?view=form&id=' + formConfig.id;
-                    window.open(finalUrl, '_blank');
-                }).getScriptUrl();
-                alert("Redirecting to preview... if window doesn't open, use the link from browser address bar with ?view=form&id=" + formConfig.id);
-            } else {
-                let previewUrl = `viewer.html?view=form&id=${formConfig.id}`;
-                if (apiUrl) {
-                    previewUrl += `&api=${encodeURIComponent(apiUrl)}`;
-                }
-                window.open(previewUrl, '_blank');
+        async function openPreview() {
+            // Auto-save before previewing
+            const btn = document.querySelector('button[onclick="saveForm()"]');
+            const originalText = btn ? btn.innerHTML : 'Save';
+            if (btn) btn.innerHTML = '<span class="spinner-sm"></span> Saving...';
+
+            try {
+                await saveForm(true); // Call saveForm with a silent flag if possible
+            } catch (e) {
+                console.error("Auto-save failed:", e);
+                // Continue anyway if user wants to see what's there
+            } finally {
+                if (btn) btn.innerHTML = originalText;
             }
+
+            const apiUrl = formConfig.gasApiUrl;
+            const backend = document.getElementById('propStorageEngine') ? document.getElementById('propStorageEngine').value : (formConfig.storageEngine || 'firebase');
+            let previewUrl = `viewer.html?view=form&id=${formConfig.id}&backend=${backend}`;
+            if (apiUrl) {
+                previewUrl += `&api=${encodeURIComponent(apiUrl)}`;
+            }
+            window.open(previewUrl, '_blank');
+        }
+
+        function openPortalPreview() {
+            openPortalWithApi(); // Reuse the same logic which is already host-safe
         }
 
         // --- KEYBOARD SHORTCUTS ---
@@ -1877,12 +2700,19 @@
             listEl.innerHTML = '';
             loadingEl.classList.remove('hidden');
             try {
-                const templates = await callApi('listTemplates', {});
+                const res = await callApi('listTemplates', {});
                 loadingEl.classList.add('hidden');
-                if (Array.isArray(templates)) {
-                    renderTemplates(templates);
-                } else if (templates.status === 'error') {
-                    listEl.innerHTML = `<li>Error: ${templates.message}</li>`;
+
+                // Standardize: Handle both flat array and {status, templates} formats
+                let data = Array.isArray(res) ? res : (res.templates || []);
+
+                console.log("📊 UI Data Package:", data);
+
+                if (data.length > 0) {
+                    renderTemplates(data);
+                } else if (res.status === 'error') {
+                    alert("❌ Firebase Error: " + res.message);
+                    listEl.innerHTML = `<li>Error: ${res.message}</li>`;
                 } else {
                     renderTemplates([]);
                 }
@@ -1951,6 +2781,10 @@
             formConfig.language = config.language || "mr";
             formConfig.languagePrimary = config.languagePrimary || "en";
             formConfig.languageSecondary = config.languageSecondary || config.language || 'mr';
+            formConfig.storageEngine = config.storageEngine || 'gas';
+            formConfig.firebaseConfig = metadata.firebaseConfig || "";
+            formConfig.slug = config.slug || "";
+            formConfig.customDomain = config.customDomain || "";
 
             document.getElementById('propFormId').value = formConfig.id;
             document.getElementById('propFormName').value = formConfig.formName;
@@ -1961,7 +2795,27 @@
             document.getElementById('propSheetName').value = formConfig.sheetName;
             document.getElementById('propLanguagePrimary').value = formConfig.languagePrimary;
             document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary;
+            document.getElementById('propStorageEngine').value = formConfig.storageEngine;
+            document.getElementById('propFirebaseConfig').value = formConfig.firebaseConfig;
+            document.getElementById('fieldFormSlug').value = formConfig.slug;
+            document.getElementById('propCustomDomain').value = formConfig.customDomain || "";
+
+            // Branding Fields Population
+            document.getElementById('propHeaderTitle').value = formConfig.headerTitle || '';
+            document.getElementById('propLogoIcon').value = formConfig.logoIcon || '📝';
+            document.getElementById('propLogoUrl').value = formConfig.logoUrl || '';
+            document.getElementById('propPunchline').value = formConfig.punchline || '';
+            document.getElementById('propBrandingDescription').value = formConfig.brandingDescription || '';
+            document.getElementById('propFooterText').value = formConfig.footerText || '';
+            document.getElementById('propDisplayMode').checked = (formConfig.displayMode === 'card');
+
+            updateCanvasBranding(); // Ensure canvas is updated
+            if (document.getElementById('sidebarCustomDomain')) document.getElementById('sidebarCustomDomain').value = formConfig.customDomain || "";
+            document.getElementById('portalSlug').value = portalConfig.slug || "";
+            if (document.getElementById('sidebarPortalSlug')) document.getElementById('sidebarPortalSlug').value = portalConfig.slug || "";
             document.getElementById('headerFormId').innerText = formConfig.id;
+
+            toggleBackendConfig();
 
             elements = [];
             canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
@@ -2013,13 +2867,14 @@
 
             try {
                 // Fetch both all templates AND current portal config
-                const [templates, config] = await Promise.all([
+                const [res, configRes] = await Promise.all([
                     callApi('listTemplates', {}),
                     callApi('getPortalConfig', {})
                 ]);
 
-                allTemplates = templates;
-                portalConfig = config || { forms: [] };
+                // Standardize template response
+                allTemplates = Array.isArray(res) ? res : (res.templates || []);
+                portalConfig = (configRes && configRes.config) ? configRes.config : { forms: [] };
 
                 document.getElementById('portalLoading').classList.add('hidden');
                 renderPortalItems();
@@ -2074,10 +2929,26 @@
                     callApi('getPortalConfig', {})
                 ]);
 
-                allTemplates = Array.isArray(templates) ? templates : [];
-                portalConfig = config || { forms: [] };
+                // Standardize: Handle both flat array and {status, templates} formats
+                allTemplates = Array.isArray(templates) ? templates : (templates.templates || []);
+
+                // CRITICAL FIX: Extract config correctly from either raw object (GAS) or wrapped object (Firebase)
+                portalConfig = (config && config.config) ? config.config : (config || { forms: [] });
+
+                const slugInput = document.getElementById('portalSlug');
+                if (slugInput) slugInput.value = portalConfig.slug || "";
+                if (document.getElementById('sidebarPortalSlug')) document.getElementById('sidebarPortalSlug').value = portalConfig.slug || "";
+
+                const domainInput = document.getElementById('propCustomDomain');
+                if (domainInput) domainInput.value = portalConfig.customDomain || formConfig.customDomain || "";
+                if (document.getElementById('sidebarCustomDomain')) document.getElementById('sidebarCustomDomain').value = portalConfig.customDomain || formConfig.customDomain || "";
+
+                console.log("📊 Portal Source Data:", { allTemplates, portalConfig });
 
                 if (allTemplates.length === 0) {
+                    if (templates.status === 'error') {
+                        alert("❌ Portal Load Error: " + templates.message);
+                    }
                     listEl.innerHTML = '<div style="color:var(--text-light); font-size:0.8rem; text-align:center; padding:2rem;">No saved forms found. Create and save forms first.</div>';
                     return;
                 }
@@ -2089,15 +2960,15 @@
                     const order = portalItem ? portalItem.order : 0;
 
                     return `
-                        <div class="portal-item-row">
-                            <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''} style="width:18px; height:18px; cursor:pointer;">
+                        <div class="portal-item-row" style="display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); padding:12px; border-radius:12px; margin-bottom:8px; transition:all 0.2s; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                            <input type="checkbox" class="portal-check" data-id="${t.id}" data-name="${t.name}" ${isSelected ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer; accent-color:var(--primary);">
                             <div style="flex:1; min-width:0;">
-                                <div style="font-weight:600; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.name}</div>
-                                <div style="font-size:0.7rem; color:var(--text-light);">ID: ${t.id}</div>
+                                <div style="font-weight:700; font-size:0.85rem; color:var(--text-main);">${t.name}</div>
+                                <div style="font-size:0.7rem; color:var(--text-light); text-transform:uppercase; letter-spacing:0.025em; margin-top:2px;">ID: ${t.id}</div>
                             </div>
-                            <div style="display:flex; align-items:center; gap:4px;">
-                                <span style="font-size:0.7rem; color:var(--text-light);">Order:</span>
-                                <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:50px; padding:3px; border:1px solid var(--border); border-radius:3px; text-align:center; font-size:0.8rem;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:0.75rem; color:var(--text-light); font-weight:600;">Order:</span>
+                                <input type="number" class="portal-order" data-id="${t.id}" value="${order}" style="width:48px; height:32px; padding:4px; border:2px solid var(--surface-alt); background:var(--surface-alt); border-radius:8px; text-align:center; font-size:0.9rem; font-weight:700; outline:none; transition:all 0.2s; color:var(--primary);" onfocus="this.style.borderColor='var(--primary)'; this.style.background='white';">
                             </div>
                         </div>
                     `;
@@ -2134,7 +3005,17 @@
                 btn.innerText = 'Saving...';
             }
 
-            const res = await callApi('savePortalConfig', { config: { forms: selectedForms, layout: 'sidebar' } });
+            const slug = document.getElementById('portalSlug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            const res = await callApi('savePortalConfig', {
+                config: {
+                    forms: selectedForms,
+                    layout: 'sidebar',
+                    slug: slug,
+                    customDomain: document.getElementById('propCustomDomain').value.trim(),
+                    gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl,
+                    storageEngine: document.getElementById('propStorageEngine').value || formConfig.storageEngine
+                }
+            });
 
             if (btn) {
                 btn.disabled = false;
@@ -2142,6 +3023,8 @@
             }
 
             if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
+                localStorage.setItem('gasApiUrl', document.getElementById('propApiUrl').value || formConfig.gasApiUrl);
+                localStorage.setItem('storageEngine', document.getElementById('propStorageEngine').value || formConfig.storageEngine);
                 alert("Portal Collection Updated Successfully!");
             } else {
                 alert("Error: " + res.message);
@@ -2149,26 +3032,65 @@
         }
 
 
+
+        function getBrandedBase() {
+            const customBase = (formConfig.customDomain || "").trim();
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            if (!customBase) return currentHost;
+            return customBase.replace(/\/$/, '');
+        }
+
+        function checkDomainWarning(val) {
+            const warning = document.getElementById('domainWarning');
+            if (val.includes('://') || val.includes('.com') || val.includes('.in')) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+
+        function syncPortalSlug(val, targetId = 'portalSlug') {
+            const target = document.getElementById(targetId);
+            if (target) target.value = val;
+            portalConfig.slug = val;
+        }
+
+        function syncCustomDomain(val, targetId = 'propCustomDomain') {
+            const target = document.getElementById(targetId);
+            if (target) target.value = val;
+            formConfig.customDomain = val;
+            portalConfig.customDomain = val;
+        }
+
         async function showEmbedModal() {
             const modal = document.getElementById('embedModal');
             const area = document.getElementById('embedCodeArea');
-            if (!modal || !area) return;
+            const directArea = document.getElementById('directLinkArea');
+            if (!modal || !area || !directArea) return;
 
-            const currentApiUrl = (document.getElementById('propApiUrl') ? document.getElementById('propApiUrl').value : "") || formConfig.gasApiUrl;
-            const myHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '');
-            const viewerPath = myHost + (myHost.endsWith('/') ? '' : '/') + 'viewer.html';
+            const apiInput = document.getElementById('propApiUrl');
+            const currentApiSUrl = (apiInput ? apiInput.value.trim() : "") || formConfig.gasApiUrl;
 
-            if (currentApiUrl) {
-                const embedUrl = `${viewerPath}?id=${formConfig.id}&api=${encodeURIComponent(currentApiUrl)}`;
-                const portalUrl = `${viewerPath}?view=portal&api=${encodeURIComponent(currentApiUrl)}`;
-
-                const code = `<!-- SINGLE FORM -->\n<iframe src="${embedUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>\n\n<!-- MULTI-FORM PORTAL -->\n<iframe src="${portalUrl}" width="100%" height="800px" frameborder="0" style="border:none;"></iframe>`;
-
-                area.value = code;
-                modal.style.display = 'flex';
-            } else {
-                alert("Please configure 'GAS API URL' in Settings first.");
+            if (!currentApiSUrl || currentApiSUrl.length < 20) {
+                alert("⚠️ Please enter your Google Script API URL in Settings first.");
+                showGlobalProps();
+                return;
             }
+
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            const brandedBase = getBrandedBase();
+
+            const portalSlug = document.getElementById('portalSlug').value.trim();
+            const engine = document.getElementById('propStorageEngine').value || formConfig.storageEngine || 'gas';
+            const backendParam = `&backend=${engine}`;
+
+            let workingLink = `${currentHost}/portal.html?p=${portalSlug || 'none'}&api=${encodeURIComponent(currentApiSUrl)}${backendParam}`;
+            let professionalLink = `${brandedBase}/portal.html?p=${portalSlug || 'none'}`;
+
+            directArea.value = professionalLink;
+            area.value = `<!-- MULTI-FORM PORTAL EMBED -->\n<iframe src="${workingLink}" width="100%" height="800" frameborder="0"></iframe>`;
+
+            modal.style.display = 'flex';
         }
 
         function closeEmbedModal() {
@@ -2181,7 +3103,16 @@
             if (area) {
                 area.select();
                 document.execCommand('copy');
-                alert('Embed code copied!');
+                alert('✅ Embed code copied to clipboard!');
+            }
+        }
+
+        function copyDirectLink() {
+            const area = document.getElementById('directLinkArea');
+            if (area) {
+                area.select();
+                document.execCommand('copy');
+                alert('✅ Share Link copied to clipboard!');
             }
         }
 
@@ -2271,6 +3202,42 @@
             updateFormLanguage();
 
             alert("New Form Created! You can start adding elements.");
+        }
+
+
+
+        function openPortalWithApi() {
+            const apiInput = document.getElementById('propApiUrl');
+            const currentApiUrl = (apiInput ? apiInput.value.trim() : "") || formConfig.gasApiUrl;
+
+            if (!currentApiUrl || currentApiUrl.length < 20) {
+                alert("⚠️ Please enter your Google Script API URL in Settings first!");
+                showGlobalProps();
+                return;
+            }
+
+            localStorage.setItem('gasApiUrl', currentApiUrl);
+            formConfig.gasApiUrl = currentApiUrl;
+
+            // PREVIEW MODE: Always use current host (github.io)
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            const backend = document.getElementById('propStorageEngine') ? document.getElementById('propStorageEngine').value : (formConfig.storageEngine || 'firebase');
+            const portalUrl = currentHost + '/portal.html?api=' + encodeURIComponent(currentApiUrl) + '&backend=' + backend;
+
+            console.log("🚀 Previewing Portal:", portalUrl);
+            window.open(portalUrl, '_blank');
+        }
+
+        function copyPortalLink() {
+            const currentApiUrl = document.getElementById('propApiUrl').value.trim() || formConfig.gasApiUrl;
+            if (!currentApiUrl) return;
+
+            const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
+            const portalUrl = currentHost + '/portal.html?api=' + encodeURIComponent(currentApiUrl);
+
+            navigator.clipboard.writeText(portalUrl).then(() => {
+                alert("✅ Preview Link copied! Use this for testing.");
+            });
         }
 
         initRulers();
