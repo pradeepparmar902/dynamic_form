@@ -1955,7 +1955,7 @@
                             await db.collection('portals').doc(payload.config.slug).set({
                                 config: payload.config,
                                 lastUpdated: Date.now()
-                            });
+                            }, { merge: true });
                         }
                         return { status: 'success' };
                     } else if (action === 'getPortalConfig') {
@@ -3141,9 +3141,11 @@
         }
 
         // Helper to safely get value from potentially missing element
-        function safeGetValue(id, fallback = '') {
+        function safeGetValue(id, fallback) {
             const el = document.getElementById(id);
-            return el ? el.value : fallback;
+            if (!el) return fallback;
+            let val = el.value;
+            return (typeof val === 'string') ? val.trim() : val;
         }
 
         async function saveForm(silent = false) {

@@ -250,6 +250,13 @@
                     collected data from this portal.</p>
 
                 <div style="margin-bottom:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Portal
+                        Name</label>
+                    <input type="text" id="confPortalName" placeholder="My Organization Portal"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                </div>
+
+                <div style="margin-bottom:1rem;">
                     <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Google
                         Sheet URL (Client Response Sheet)</label>
                     <input type="text" id="confSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..."
@@ -261,6 +268,23 @@
                         Script API URL</label>
                     <input type="text" id="confGasUrl" placeholder="https://script.google.com/macros/s/..."
                         style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                </div>
+
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Storage
+                        Engine</label>
+                    <select id="confStorageEngine" onchange="toggleConfFirebase(this.value)"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; background:white;">
+                        <option value="gas">Google Apps Script (Sheets)</option>
+                        <option value="firebase">Firebase Firestore</option>
+                    </select>
+                </div>
+
+                <div id="confFirebaseArea" style="display:none; margin-bottom:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Firebase
+                        Config JSON</label>
+                    <textarea id="confFirebaseConfig" placeholder='{"apiKey": "...", ...}' rows="5"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; font-family:monospace; font-size:0.8rem;"></textarea>
                 </div>
 
                 <div style="margin-bottom:1rem;">
@@ -518,6 +542,10 @@
         }
 
         // --- SHARE MODAL LOGIC ---
+        function toggleConfFirebase(val) {
+            document.getElementById('confFirebaseArea').style.display = (val === 'firebase') ? 'block' : 'none';
+        }
+
         let currentPortalIdForConfig = null;
 
         async function openShareModal(portalId, slug) {
@@ -536,8 +564,12 @@
             embedInput.value = `<iframe src="${fullLink}" width="100%" height="800" frameborder="0"></iframe>`;
 
             // 2. Load Existing Config
+            document.getElementById('confPortalName').value = 'Loading...';
             document.getElementById('confSheetUrl').value = 'Loading...';
             document.getElementById('confGasUrl').value = 'Loading...';
+            document.getElementById('confStorageEngine').value = 'gas';
+            document.getElementById('confFirebaseConfig').value = '';
+            toggleConfFirebase('gas');
 
             modal.style.display = 'flex';
 
@@ -545,10 +577,19 @@
                 const doc = await db.collection('portals').doc(portalId).get();
                 if (doc.exists) {
                     const data = doc.data();
+                    document.getElementById('confPortalName').value = data.name || '';
                     const cfg = data.config || {};
                     document.getElementById('confSheetUrl').value = cfg.sheetUrl || '';
                     document.getElementById('confGasUrl').value = cfg.gasApiUrl || '';
                     document.getElementById('confCustomDomain').value = cfg.customDomain || '';
+
+                    if (cfg.storageEngine) {
+                        document.getElementById('confStorageEngine').value = cfg.storageEngine;
+                        toggleConfFirebase(cfg.storageEngine);
+                    }
+                    if (cfg.firebaseConfig) {
+                        document.getElementById('confFirebaseConfig').value = (typeof cfg.firebaseConfig === 'object') ? JSON.stringify(cfg.firebaseConfig, null, 2) : cfg.firebaseConfig;
+                    }
                 }
             } catch (e) {
                 console.error("Failed to load config", e);
@@ -561,16 +602,28 @@
             const btn = document.getElementById('btnSaveConfig');
             btn.innerText = "Saving...";
 
+            let firebaseConfig = document.getElementById('confFirebaseConfig').value.trim();
+            if (firebaseConfig) {
+                try {
+                    firebaseConfig = JSON.parse(firebaseConfig);
+                } catch (e) {
+                    alert("Invalid Firebase Config JSON format");
+                    btn.innerText = "Save Changes";
+                    return;
+                }
+            }
+
             try {
-                await db.collection('portals').doc(currentPortalIdForConfig).set({
-                    config: {
-                        sheetUrl: document.getElementById('confSheetUrl').value.trim(),
-                        gasApiUrl: document.getElementById('confGasUrl').value.trim(),
-                        customDomain: document.getElementById('confCustomDomain').value.trim(),
-                        storageEngine: 'gas'
-                    }
-                }, { merge: true });
+                await db.collection('portals').doc(currentPortalIdForConfig).update({
+                    'name': document.getElementById('confPortalName').value.trim(),
+                    'config.sheetUrl': document.getElementById('confSheetUrl').value.trim(),
+                    'config.gasApiUrl': document.getElementById('confGasUrl').value.trim(),
+                    'config.customDomain': document.getElementById('confCustomDomain').value.trim(),
+                    'config.storageEngine': document.getElementById('confStorageEngine').value,
+                    'config.firebaseConfig': firebaseConfig
+                });
                 alert("Configuration Saved!");
+                loadPortals(); // Refresh list to see name changes
             } catch (e) {
                 alert("Error saving: " + e.message);
             } finally {

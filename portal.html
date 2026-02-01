@@ -503,7 +503,8 @@
         // INIT
         async function init() {
             console.log("🚀 Portal: Starting initialization...");
-            const portalSlug = urlParams.get('p');
+            let portalSlug = urlParams.get('p') || urlParams.get('slug');
+            if (portalSlug) portalSlug = portalSlug.trim().toLowerCase();
 
             // --- VANITY URL RESOLUTION ---
             if (portalSlug && portalSlug !== 'none') {
@@ -540,7 +541,7 @@
                         // Inject settings from slug document
                         const cfg = data.config || {};
                         if (cfg.gasApiUrl) {
-                            API_URL = cfg.gasApiUrl;
+                            API_URL = cfg.gasApiUrl.trim();
                             localStorage.setItem('gasApiUrl', API_URL);
                         }
 
@@ -744,13 +745,31 @@
             } catch (err) {
                 console.error("❌ FetchForm Error:", err);
                 wrapper.classList.remove('loading');
-                document.getElementById('loader').style.display = 'none'; // Ensure global loader hides on error
+                document.getElementById('loader').style.display = 'none';
+
+                let debugInfo = "";
+                if (backend === 'gas') {
+                    debugInfo = `<div style="margin-top:10px; font-size:0.7rem; color:#94a3b8; word-break:break-all;">
+                        <b>Diagnostic Report:</b><br>
+                        Backend: GAS<br>
+                        URL: <a href="${API_URL}?action=ping" target="_blank" style="color:#3b82f6;">${API_URL}</a><br>
+                        Error: ${err.message}
+                    </div>`;
+                } else {
+                    debugInfo = `<div style="margin-top:10px; font-size:0.7rem; color:#94a3b8;">
+                        <b>Diagnostic Report:</b><br>
+                        Backend: Firebase<br>
+                        Error: ${err.message}
+                    </div>`;
+                }
+
                 wrapper.innerHTML = `
                     <div class="error-box" style="text-align:center; padding:40px;">
                         <div style="color:#ef4444; font-size:2rem; margin-bottom:10px;">⚠️</div>
-                        <strong style="font-size:1.1rem; display:block; margin-bottom:5px;">Failed to Load Form</strong>
-                        <p style="color:#666; margin:0;">${err.message}</p>
-                        <button onclick="location.reload()" style="margin-top:15px; background:none; border:1px solid #ccc; padding:5px 10px; border-radius:4px; font-size:0.8rem; cursor:pointer;">Retry</button>
+                        <h3 style="margin-bottom:5px;">Failed to Load Form</h3>
+                        <p style="color:#64748b; font-size:0.9rem;">${err.message || "Failed to fetch"}</p>
+                        ${debugInfo}
+                        <button class="btn btn-outline" style="margin-top:15px; display:inline-flex;" onclick="fetchForm('${id}')">Retry</button>
                     </div>
                 `;
             }
