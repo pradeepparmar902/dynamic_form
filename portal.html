@@ -732,7 +732,8 @@
                     const timeout = new Promise((_, reject) =>
                         setTimeout(() => reject(new Error("Form fetch timed out (10s)")), 10000)
                     );
-                    const fetchPromise = fetch(`${API_URL}?action=getForm&id=${id}`).then(r => r.json());
+                    const fullUrl = `${API_URL}?action=getForm&id=${encodeURIComponent(id)}`;
+                    const fetchPromise = fetch(fullUrl).then(r => r.json());
                     res = await Promise.race([fetchPromise, timeout]);
                 }
 
@@ -749,11 +750,13 @@
 
                 let debugInfo = "";
                 if (backend === 'gas') {
-                    debugInfo = `<div style="margin-top:10px; font-size:0.7rem; color:#94a3b8; word-break:break-all;">
+                    const testUrl = `${API_URL}?action=getForm&id=${encodeURIComponent(id)}`;
+                    debugInfo = `<div style="margin-top:10px; font-size:0.75rem; color:#94a3b8; word-break:break-all;">
                         <b>Diagnostic Report:</b><br>
                         Backend: GAS<br>
-                        URL: <a href="${API_URL}?action=ping" target="_blank" style="color:#3b82f6;">${API_URL}</a><br>
+                        Attempted URL: <a href="${testUrl}" target="_blank" style="color:#3b82f6;">Click to Test API Link</a><br>
                         Error: ${err.message}
+                        <p style="margin-top:8px; color:#64748b;">If the link above shows a JSON error, the API is reachable but the form ID might be wrong. If it says "Not Found" or "Access Denied", check your GAS Deployment settings.</p>
                     </div>`;
                 } else {
                     debugInfo = `<div style="margin-top:10px; font-size:0.7rem; color:#94a3b8;">
