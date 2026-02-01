@@ -986,7 +986,7 @@
         <aside class="sidebar">
             <div class="sidebar-tabs">
                 <div class="sidebar-tab active" onclick="switchSidebarTab('elements')">Elements</div>
-                <div class="sidebar-tab" onclick="switchSidebarTab('portal')">Portal View</div>
+                <!-- Portal View Removed to avoid confusion -->
                 <div class="sidebar-tab" onclick="switchSidebarTab('branding')">🎨 Branding</div>
             </div>
 
@@ -1208,73 +1208,7 @@
                     </div>
                 </div>
 
-                <!-- PORTAL DESIGNER TAB -->
-                <div id="panelPortal" class="tab-panel">
-                    <div class="portal-config-panel">
-                        <div class="category-title">Portal Navigation Designer</div>
-                        <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 1rem;">
-                            Pick forms for your portal sidebar and set their order.
-                        </p>
-                        <!-- BRANDING SETTINGS FOR PORTAL -->
-                        <div
-                            style="background: #fffbeb; padding: 1rem; border-radius: 8px; border: 1px solid #fcd34d; margin-bottom: 1.5rem;">
-                            <label
-                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Professional
-                                Branding (Slug)</label>
-                            <input type="text" id="sidebarPortalSlug" placeholder="e.g. my-organization"
-                                style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px; margin-bottom: 5px;"
-                                oninput="syncPortalSlug(this.value)">
-                            <small style="font-size: 0.65rem; color: #92400e; display: block; margin-bottom: 10px;">
-                                This creates: <b>portal.html?p=name</b>
-                            </small>
-
-                            <label
-                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Custom
-                                Domain / Alias (Optional)</label>
-                            <input type="text" id="sidebarCustomDomain" placeholder="https://yourbrand.com"
-                                style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px;"
-                                oninput="syncCustomDomain(this.value)">
-                            <small style="font-size: 0.65rem; color: #92400e; display: block; margin-top: 4px;">
-                                Use this to hide "github.io" in shared links.
-                            </small>
-                        </div>
-
-                        <div style="margin-bottom: 1rem;">
-                            <button class="btn btn-outline"
-                                style="width:100%; justify-content:center; font-size:0.75rem;"
-                                onclick="refreshPortalList()">
-                                ↻ Refresh Forms List
-                            </button>
-                        </div>
-
-                        <div id="sidebarPortalList"
-                            style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem; background: var(--surface-alt);">
-                            <!-- List of forms with checkboxes and order inputs -->
-                            <div style="color:var(--text-light); font-size:0.8rem; text-align:center; padding:2rem;">
-                                Click Refresh to load forms...
-                            </div>
-                        </div>
-
-                        <div
-                            style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
-                            <button class="btn btn-outline"
-                                style="width:100%; justify-content:center; border-color: #3b82f6; color: #3b82f6; background: #eff6ff;"
-                                onclick="openPortalPreview()">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" style="margin-right: 6px;">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                                Preview Portal Preview
-                            </button>
-                            <button class="btn btn-primary" id="btnSavePortal"
-                                style="width:100%; justify-content:center;" onclick="savePortalSettings()">
-                                Save Portal Collection
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <!-- PORTAL DESIGNER TAB REMOVED - Use Dashboard Instead -->
 
                 <!-- BRANDING TAB PANEL -->
                 <div id="panelBranding" class="tab-panel">
@@ -3520,6 +3454,12 @@
             formConfig.firebaseConfig = config.firebaseConfig || metadata.firebaseConfig || "";
             formConfig.slug = config.slug || "";
             formConfig.customDomain = config.customDomain || "";
+
+            // CRITICAL FIX: Restore workspace context if available in metadata
+            if (metadata.workspaceId) {
+                formConfig.workspaceId = metadata.workspaceId;
+                console.log("🔗 Restored Workspace Context:", formConfig.workspaceId);
+            }
 
             // Mapping to DOM safely
             safeSetValue('propFormId', formConfig.id);
