@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Diagnostic</title>
+    <title>Diagnostic & Fixer</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <style>
@@ -13,24 +13,40 @@
         }
 
         li {
-            margin-bottom: 10px;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 20px;
         }
 
         .exists {
             color: green;
+            font-weight: bold;
         }
 
         .missing {
             color: red;
             font-weight: bold;
         }
+
+        .btn-delete {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .btn-delete:hover {
+            background: #b91c1c;
+        }
     </style>
 </head>
 
 <body>
-    <h1>Processing Portal Diagnosis...</h1>
+    <h1>Portal Duplicates Fixer</h1>
     <div id="results">Scanning...</div>
     <script>
         const config = {
@@ -55,7 +71,13 @@
 
                 const checks = snap.docs.map(async doc => {
                     const d = doc.data();
-                    let status = `<li><strong>Portal ID:</strong> ${doc.id}<br><strong>Name:</strong> ${d.name}<br><strong>Forms Count:</strong> ${(d.attachedForms || []).length}`;
+                    let status = `<li>
+                <div style="font-size:1.1em; margin-bottom:5px;">
+                    <strong>Portal ID:</strong> ${doc.id} 
+                    <button class="btn-delete" onclick="deletePortal('${doc.id}')">DELETE THIS DUPLICATE</button>
+                </div>
+                <strong>Name:</strong> ${d.name}<br>
+                <strong>Forms Count:</strong> ${(d.attachedForms || []).length}`;
 
                     // Check all forms
                     const forms = d.attachedForms || [];
@@ -85,6 +107,21 @@
                 document.getElementById('results').innerHTML = out;
             } catch (e) {
                 document.getElementById('results').innerHTML = '<h2 style="color:red">Error: ' + e.message + '</h2>';
+            }
+        }
+
+        async function deletePortal(id) {
+            const confirmMsg = '⚠️ ARE YOU SURE?\n\nYou are about to PERMANENTLY DELETE portal ID: ' + id + '\n\nThis cannot be undone.';
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                document.getElementById('results').innerHTML = '<h2>Deleting...</h2>';
+                await db.collection('portals').doc(id).delete();
+                alert('✅ Deleted Successfully! Rescanning...');
+                run();
+            } catch (e) {
+                alert('❌ Error deleting: ' + e.message);
+                run(); // Rerun manually
             }
         }
         run();
