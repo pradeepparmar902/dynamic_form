@@ -493,9 +493,11 @@
                     // Initialize Firebase first to do the lookup
                     initFirebase();
                     const db = firebase.firestore();
-                    const slugDoc = await db.collection('portals').doc(portalSlug.toLowerCase()).get();
+                    // Changed to query instead of direct fetch because IDs are auto-generated
+                    const query = await db.collection('portals').where('slug', '==', portalSlug.toLowerCase()).limit(1).get();
 
-                    if (slugDoc.exists) {
+                    if (!query.empty) {
+                        const slugDoc = query.docs[0];
                         const data = slugDoc.data();
                         console.log("✅ Branding: Resolved configuration:", data);
 
