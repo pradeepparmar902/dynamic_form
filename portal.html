@@ -637,7 +637,14 @@
                         setTimeout(() => reject(new Error("Connection timed out (10s). Check internet / API URL.")), 10000)
                     );
 
-                    const fetchPromise = fetch(`${API_URL}?action=loadPortal`)
+                    // If we know the first form from Firestore slug config, pass it to batch-load
+                    let initialFormParam = "";
+                    if (currentState.portalForms && currentState.portalForms.length > 0) {
+                        const firstId = currentState.portalForms[0].formId || currentState.portalForms[0].id;
+                        initialFormParam = `&formId=${encodeURIComponent(firstId)}`;
+                    }
+
+                    const fetchPromise = fetch(`${API_URL}?action=loadPortal${initialFormParam}`)
                         .then(r => {
                             if (!r.ok) throw new Error(`HTTP Error: ${r.status}`);
                             return r.json();
@@ -649,6 +656,16 @@
                 if (res.status !== 'success') throw new Error(res.message || "Failed to load portal configuration");
 
                 currentState.config = res.config || {};
+
+                // Cache the initial form if provided by the batch loader
+                if (res.initialForm && res.initialForm.id) {
+                    console.log("📦 Portal: Pre-caching initial form:", res.initialForm.id);
+                    currentState.formCache[res.initialForm.id] = {
+                        status: 'success',
+                        schema: res.initialForm.schema,
+                        config: res.initialForm.config
+                    };
+                }
 
                 // CRITICAL: If we have explicit forms from the portal document (slug resolution), use them
                 // Otherwise fallback to the 'forms' array in the generic config
@@ -732,9 +749,9 @@
                     const timeout = new Promise((_, reject) =>
                         setTimeout(() => reject(new Error("Form fetch timed out (10s)")), 10000)
                     );
-                    // Add cache buster to prevent stale redirects
+                    // Add cache buster to prevent stale redirects, but remove no-store as it can break some redirects
                     const fullUrl = `${API_URL}?action=getForm&id=${encodeURIComponent(id)}&_cb=${Date.now()}`;
-                    const fetchPromise = fetch(fullUrl, { cache: 'no-store' }).then(r => r.json());
+                    const fetchPromise = fetch(fullUrl).then(r => r.json());
                     res = await Promise.race([fetchPromise, timeout]);
                 }
 
