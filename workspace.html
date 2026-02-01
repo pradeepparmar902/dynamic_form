@@ -417,13 +417,13 @@
             if (!name || !slug) return alert("Please fill all fields");
 
             try {
-                // Check slug uniqueness (basic check)
-                const check = await db.collection('portals').where('slug', '==', slug).get();
-                if (!check.empty) {
+                // Check slug uniqueness (Instant ID check - NO INDEX NEEDED)
+                const check = await db.collection('portals').doc(slug).get();
+                if (check.exists) {
                     return alert("This URL slug is already taken. Please choose another.");
                 }
 
-                await db.collection('portals').add({
+                await db.collection('portals').doc(slug).set({
                     name: name,
                     slug: slug,
                     workspaceId: workspaceId,

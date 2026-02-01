@@ -493,12 +493,29 @@
                     // Initialize Firebase first to do the lookup
                     initFirebase();
                     const db = firebase.firestore();
-                    // Changed to query instead of direct fetch because IDs are auto-generated
-                    const query = await db.collection('portals').where('slug', '==', portalSlug.toLowerCase()).limit(1).get();
 
-                    if (!query.empty) {
-                        const slugDoc = query.docs[0];
-                        const data = slugDoc.data();
+                    // 1. TRY INSTANT LOOKUP (By Document ID = Slug)
+                    let data = null;
+                    try {
+                        const slugDoc = await db.collection('portals').doc(portalSlug.toLowerCase()).get();
+                        if (slugDoc.exists) data = slugDoc.data();
+                    } catch (e) { console.warn("ID lookup failed, falling back to query."); }
+
+                    if (!data) {
+                        // 2. FALLBACK: QUERY (For older portals with random IDs)
+                        console.log("🔍 Branding: ID lookup missed, trying query fallback...");
+                        const slugTimeout = new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error("Slug resolution timed out (10s)")), 10000)
+                        );
+                        const slugQuery = db.collection('portals').where('slug', '==', portalSlug.toLowerCase()).limit(1).get();
+                        const query = await Promise.race([slugQuery, slugTimeout]);
+
+                        if (!query.empty) {
+                            data = query.docs[0].data();
+                        }
+                    }
+
+                    if (data) {
                         console.log("✅ Branding: Resolved configuration:", data);
 
                         // Inject settings from slug document
@@ -569,7 +586,15 @@
                 else if (backend === 'firebase') {
                     console.log("🔥 Portal: Fetching config from Firestore...");
                     const db = firebase.firestore();
-                    const doc = await db.collection('config').doc('portal').get();
+
+                    // Added timeout for generic config too
+                    const configTimeout = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Database connection timed out (10s)")), 10000)
+                    );
+
+                    const fetchConfig = db.collection('config').doc('portal').get();
+                    const doc = await Promise.race([fetchConfig, configTimeout]);
+
                     if (!doc.exists) throw new Error("Portal config not found in Firestore");
                     res = { status: 'success', config: doc.data() };
                 } else {
@@ -639,6 +664,7 @@
 
         // FETCH SINGLE
         async function fetchForm(id) {
+            console.log(`📋 Portal: Fetching form ${id} (Backend: ${backend})...`);
             const wrapper = document.getElementById('form-wrapper');
 
             // Set active sidebar item immediately
@@ -655,41 +681,43 @@
 
             wrapper.classList.add('loading');
 
-            if (backend === 'firebase') {
-                try {
-                    console.log(`🔥 Portal: Fetching form ${id} from Firestore...`);
-                    const db = firebase.firestore();
-                    const doc = await db.collection('forms').doc(id).get();
-                    if (!doc.exists) throw new Error("Form not found in Firestore");
-
-                    const res = { status: 'success', ...doc.data() };
-                    currentState.formCache[id] = res;
-                    setTimeout(() => renderForm(id, res), 100);
-                    return;
-                } catch (err) {
-                    console.error("🔥 Firestore Fetch Error:", err);
-                    throw err;
-                }
-            }
-
             try {
-                const res = await fetch(`${API_URL}?action=getForm&id=${id}`).then(r => r.json());
-                if (res.status === 'success') {
-                    // Save to Cache
-                    currentState.formCache[id] = res;
+                let res;
+                if (backend === 'firebase') {
+                    const db = firebase.firestore();
+                    // Set a timeout for form fetch
+                    const formTimeout = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Form fetch timed out (10s)")), 10000)
+                    );
+                    const fetchPromise = db.collection('forms').doc(id).get();
+                    const doc = await Promise.race([fetchPromise, formTimeout]);
 
-                    // Small delay for smooth transition if needed, but the cache will make next time instant
+                    if (!doc.exists) throw new Error("Form template not found in system");
+                    res = { status: 'success', schema: doc.data().schema, config: doc.data().config };
+                } else {
+                    const timeout = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Form fetch timed out (10s)")), 10000)
+                    );
+                    const fetchPromise = fetch(`${API_URL}?action=getForm&id=${id}`).then(r => r.json());
+                    res = await Promise.race([fetchPromise, timeout]);
+                }
+
+                if (res.status === 'success') {
+                    currentState.formCache[id] = res;
                     setTimeout(() => renderForm(id, res), 100);
                 } else {
-                    throw new Error(res.message || "Form not found");
+                    throw new Error(res.message || "Form template error");
                 }
             } catch (err) {
+                console.error("❌ FetchForm Error:", err);
                 wrapper.classList.remove('loading');
+                document.getElementById('loader').style.display = 'none'; // Ensure global loader hides on error
                 wrapper.innerHTML = `
                     <div class="error-box" style="text-align:center; padding:40px;">
                         <div style="color:#ef4444; font-size:2rem; margin-bottom:10px;">⚠️</div>
                         <strong style="font-size:1.1rem; display:block; margin-bottom:5px;">Failed to Load Form</strong>
                         <p style="color:#666; margin:0;">${err.message}</p>
+                        <button onclick="location.reload()" style="margin-top:15px; background:none; border:1px solid #ccc; padding:5px 10px; border-radius:4px; font-size:0.8rem; cursor:pointer;">Retry</button>
                     </div>
                 `;
             }
