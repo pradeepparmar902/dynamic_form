@@ -1424,9 +1424,22 @@
                 <div class="ruler-h" id="rulerTop"></div>
                 <div class="ruler-v" id="rulerLeft"></div>
 
-                <!-- Elements will be dropped here -->
+                <!-- BRANDING HEADER ZONE -->
+                <div id="canvasBrandingHeader" class="canvas-branding-header" style="display: none;">
+                    <div class="canvas-branding-logo"></div>
+                    <div class="canvas-branding-content">
+                        <div class="canvas-branding-title"></div>
+                        <div class="canvas-branding-punchline"></div>
+                        <div class="canvas-branding-desc"></div>
+                    </div>
+                </div>
 
                 <!-- Elements will be dropped here -->
+
+                <!-- BRANDING FOOTER ZONE -->
+                <div id="canvasBrandingFooter" class="canvas-branding-footer" style="display: none;">
+                    <div class="canvas-branding-footer-text"></div>
+                </div>
             </div>
         </main>
 
@@ -1467,6 +1480,22 @@
                         <div class="form-group">
                             <label>Description (Optional)</label>
                             <textarea id="propDescription" class="prop-input" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Primary Language</label>
+                            <select id="propLanguagePrimary" onchange="updateFormLanguage()">
+                                <option value="en">English (Primary)</option>
+                                <option value="mr">Marathi (Primary)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Secondary Language (Translation)</label>
+                            <select id="propLanguageSecondary" onchange="updateFormLanguage()">
+                                <option value="en">English</option>
+                                <option value="mr" selected>Marathi</option>
+                                <option value="hi">Hindi</option>
+                            </select>
                         </div>
 
                         <div class="prop-group">
@@ -2115,22 +2144,31 @@
 
 
         function updateFormLanguage() {
-            formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
-            formConfig.languageSecondary = document.getElementById('propLanguageSecondary').value;
+            const pEl = document.getElementById('propLanguagePrimary');
+            const sEl = document.getElementById('propLanguageSecondary');
+            if (!pEl || !sEl) return;
+
+            formConfig.languagePrimary = pEl.value;
+            formConfig.languageSecondary = sEl.value;
             formConfig.language = formConfig.languageSecondary; // Sync for compat
 
-            const l1Name = document.getElementById('propLanguagePrimary').selectedOptions[0].text.split(' ')[0];
-            const l2Name = document.getElementById('propLanguageSecondary').selectedOptions[0].text.split(' ')[0];
+            const l1Name = pEl.selectedOptions[0].text.split(' ')[0];
+            const l2Name = sEl.selectedOptions[0].text.split(' ')[0];
 
-            document.getElementById('lblPropPrimary').innerText = `Field Label (${l1Name})`;
-            document.getElementById('lblPropSecondary').innerText = `Field Label (${l2Name})`;
-            document.getElementById('lblPropTranslatable').innerText = `Enable Translation (${l1Name} -> ${l2Name})`;
+            safeSetText('lblPropPrimary', `Field Label (${l1Name})`);
+            safeSetText('lblPropSecondary', `Field Label (${l2Name})`);
+            safeSetText('lblPropTranslatable', `Enable Translation (${l1Name} -> ${l2Name})`);
 
             // Trigger refresh of canvas elements to show new labels if needed
             elements.forEach(elm => {
                 const dom = document.getElementById(elm.id);
                 if (dom) renderElementVisual(elm, dom);
             });
+        }
+
+        function safeSetText(id, txt) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = txt;
         }
 
 
@@ -2313,49 +2351,59 @@
 
         // --- BRANDING WYSIWYG ---
         function updateCanvasBranding() {
-            const hTitle = document.getElementById('propHeaderTitle').value;
-            const lIcon = document.getElementById('propLogoIcon').value;
-            const lUrl = document.getElementById('propLogoUrl').value;
-            const punch = document.getElementById('propPunchline').value;
-            const footer = document.getElementById('propFooterText').value;
-            const desc = document.getElementById('propBrandingDescription').value;
-            const isCard = document.getElementById('propDisplayMode').checked;
+            const hTitle = document.getElementById('propHeaderTitle')?.value || '';
+            const lIcon = document.getElementById('propLogoIcon')?.value || '';
+            const lUrl = document.getElementById('propLogoUrl')?.value || '';
+            const punch = document.getElementById('propPunchline')?.value || '';
+            const footer = document.getElementById('propFooterText')?.value || '';
+            const desc = document.getElementById('propBrandingDescription')?.value || '';
+            const isCard = document.getElementById('propDisplayMode')?.checked || false;
 
             const headerZone = document.getElementById('canvasBrandingHeader');
             const footerZone = document.getElementById('canvasBrandingFooter');
             const canvasArea = document.getElementById('canvasArea');
 
             // 1. Header Logic
-            if (!hTitle && !lIcon && !lUrl && !punch) {
-                headerZone.style.display = 'none';
-            } else {
-                headerZone.style.display = 'flex';
-
-                const logoDiv = headerZone.querySelector('.canvas-branding-logo');
-                if (lUrl) {
-                    logoDiv.innerHTML = `<img src="${lUrl}" alt="Logo">`;
+            if (headerZone) {
+                if (!hTitle && !lIcon && !lUrl && !punch) {
+                    headerZone.style.display = 'none';
                 } else {
-                    logoDiv.innerText = lIcon;
+                    headerZone.style.display = 'flex';
+                    const logoDiv = headerZone.querySelector('.canvas-branding-logo');
+                    if (logoDiv) {
+                        if (lUrl) {
+                            logoDiv.innerHTML = `<img src="${lUrl}" alt="Logo">`;
+                        } else {
+                            logoDiv.innerText = lIcon;
+                        }
+                    }
+                    const titleEl = headerZone.querySelector('.canvas-branding-title');
+                    if (titleEl) titleEl.innerText = hTitle;
+                    const punchEl = headerZone.querySelector('.canvas-branding-punchline');
+                    if (punchEl) punchEl.innerText = punch;
+                    const descEl = headerZone.querySelector('.canvas-branding-desc');
+                    if (descEl) descEl.innerText = desc;
                 }
-
-                headerZone.querySelector('.canvas-branding-title').innerText = hTitle;
-                headerZone.querySelector('.canvas-branding-punchline').innerText = punch;
-                headerZone.querySelector('.canvas-branding-desc').innerText = desc;
             }
 
             // 2. Footer Logic
-            if (!footer) {
-                footerZone.style.display = 'none';
-            } else {
-                footerZone.style.display = 'flex';
-                footerZone.querySelector('.canvas-branding-footer-text').innerText = footer;
+            if (footerZone) {
+                if (!footer) {
+                    footerZone.style.display = 'none';
+                } else {
+                    footerZone.style.display = 'flex';
+                    const footerTextEl = footerZone.querySelector('.canvas-branding-footer-text');
+                    if (footerTextEl) footerTextEl.innerText = footer;
+                }
             }
 
             // 3. Card Mode Simulation
-            if (isCard) {
-                canvasArea.classList.add('card-mode');
-            } else {
-                canvasArea.classList.remove('card-mode');
+            if (canvasArea) {
+                if (isCard) {
+                    canvasArea.classList.add('card-mode');
+                } else {
+                    canvasArea.classList.remove('card-mode');
+                }
             }
         }
 
