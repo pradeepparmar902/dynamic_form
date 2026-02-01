@@ -527,11 +527,17 @@
                         const slugTimeout = new Promise((_, reject) =>
                             setTimeout(() => reject(new Error("Slug resolution timed out (10s)")), 10000)
                         );
-                        const slugQuery = db.collection('portals').where('slug', '==', portalSlug.toLowerCase()).limit(1).get();
+                        const slugQuery = db.collection('portals').where('slug', '==', portalSlug.toLowerCase()).get();
                         const query = await Promise.race([slugQuery, slugTimeout]);
 
                         if (!query.empty) {
-                            data = query.docs[0].data();
+                            // CONFLICT RESOLUTION: If multiple portals have the same slug, pick the most recently updated one.
+                            // This fixes the "Duplicate Portal" bug where an old/broken portal might be loaded.
+                            const allMatches = query.docs.map(d => ({ ...d.data(), id: d.id }));
+                            allMatches.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
+
+                            data = allMatches[0];
+                            console.log(`🔍 Branding: Found ${allMatches.length} match(es). Using most recent: ${data.id}`);
                         }
                     }
 
