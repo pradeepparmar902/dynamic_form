@@ -221,11 +221,11 @@
             if (missingForms.length > 0) {
                 html += missingForms.map(f => `
                     <li class="form-item" style="background: #fff5f5; border-left: 4px solid #ef4444;">
-                        <input type="checkbox" class="form-check" data-id="${f.formId}" checked style="width: 20px; height: 20px; accent-color: #ef4444;">
+                        <input type="checkbox" class="form-check" data-id="${f.formId}" style="width: 20px; height: 20px; accent-color: #ef4444;">
                         <div class="form-info">
-                            <div class="form-name" style="color: #b91c1c;">⚠️ Missing Form: ${f.label || f.formId}</div>
-                            <div class="form-id" style="color: #ef4444;">ID: ${f.formId} (Not found in workspace)</div>
-                            <div style="font-size: 0.7rem; color: #b91c1c; margin-top: 4px;">Uncheck to remove this broken link.</div>
+                            <div class="form-name" style="color: #b91c1c;">⚠️ Broken Link: ${f.label || f.formId}</div>
+                            <div class="form-id" style="color: #ef4444;">ID: ${f.formId} (Not found)</div>
+                            <div style="font-size: 0.7rem; color: #b91c1c; margin-top: 4px;">Link will be removed upon saving.</div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem; opacity: 0.5; pointer-events: none;">
                             <label style="font-size: 0.8rem; color: var(--text-light);">Order:</label>
