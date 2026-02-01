@@ -858,15 +858,13 @@
 
             try {
                 const submissionPromises = [];
+                const formCache = currentState.formCache[currentState.currentFormId] || {};
+                const formCfg = formCache.config || {};
+                const sheetUrl = formCfg.sheetUrl || formCfg.targetSheetUrl || null;
 
-                // 1. GAS SUBMISSION (Client's Sheet) - STRICTLY ONLY STORE HERE
-                if (API_URL && API_URL.length > 10) {
-                    console.log("🚀 Submitting to GAS...");
-
-                    // Check if current form has storage overrides
-                    const formCache = currentState.formCache[currentState.currentFormId] || {};
-                    const formCfg = formCache.config || {};
-
+                if (sheetUrl && API_URL && API_URL.length > 10) {
+                    // 1. GAS SUBMISSION (Client's Sheet)
+                    console.log("🚀 Submitting to GAS (Client Sheet)...");
                     const gasReq = fetch(API_URL, {
                         method: 'POST',
                         mode: 'no-cors',
@@ -874,16 +872,23 @@
                             action: 'submitForm',
                             formId: currentState.currentFormId,
                             formData: formData,
-                            // Overrides
-                            targetSheetUrl: formCfg.targetSheetUrl || null,
-                            targetSheetName: formCfg.targetSheetName || null
+                            targetSheetUrl: sheetUrl,
+                            targetSheetName: formCfg.sheetName || formCfg.targetSheetName || "Form Responses"
                         })
                     }).then(() => console.log("✅ GAS Request Sent"));
                     submissionPromises.push(gasReq);
                 } else {
-                    // If no GAS URL, we cannot store client data as per design.
-                    // (Unless we want to fallback, but user said "only those data... in client's google sheet")
-                    throw new Error("Configuration Error: No Client Google Sheet connected. Cannot save data.");
+                    // 2. FIREBASE FALLBACK
+                    console.log("🔥 Fallback: Submitting to Firebase...");
+                    initFirebase();
+                    const db = firebase.firestore();
+                    const fbReq = db.collection('submissions').add({
+                        formId: currentState.currentFormId,
+                        formData: formData,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        source: 'fallback'
+                    }).then(() => console.log("✅ Firebase Fallback Done"));
+                    submissionPromises.push(fbReq);
                 }
 
                 await Promise.all(submissionPromises);
