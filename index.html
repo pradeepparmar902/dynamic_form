@@ -1535,7 +1535,17 @@
                                     placeholder='{"apiKey": "...", ...}'></textarea>
                             </div>
 
-                            <!-- GAS Script URL moved to Admin Panel (Global Setting) -->
+
+                            <div class="form-group">
+                                <label>🌐 Global GAS Script URL (Admin Only)</label>
+                                <input type="text" id="propGlobalGasUrl"
+                                    placeholder="https://script.google.com/macros/s/.../exec"
+                                    style="font-family:monospace; font-size:0.85rem;">
+                                <small style="color: #666; font-size: 0.75rem; display: block; margin-top: 5px;">
+                                    This is the global Google Apps Script URL used for ALL forms. Deploy your GAS as a
+                                    Web App and paste the URL here.
+                                </small>
+                            </div>
                         </div>
 
                         <!-- BRANDING -->
@@ -2044,6 +2054,17 @@
         document.getElementById('headerFormNameInput').value = formConfig.formName;
         document.getElementById('propStorageEngine').value = formConfig.storageEngine;
         document.getElementById('propFirebaseConfig').value = formConfig.firebaseConfig;
+
+        // Initialize Global GAS URL (Admin Only)
+        const savedGasUrl = localStorage.getItem('gasApiUrl') || '';
+        if (document.getElementById('propGlobalGasUrl')) {
+            document.getElementById('propGlobalGasUrl').value = savedGasUrl;
+            // Save on change
+            document.getElementById('propGlobalGasUrl').addEventListener('change', function () {
+                localStorage.setItem('gasApiUrl', this.value.trim());
+                console.log('✅ Global GAS URL saved:', this.value.trim());
+            });
+        }
 
         function toggleBackendConfig() {
             const engine = document.getElementById('propStorageEngine').value;
