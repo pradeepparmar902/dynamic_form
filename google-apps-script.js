@@ -40,7 +40,7 @@ function doPost(e) {
         if (action === 'saveForm') {
             result = saveForm(params.formId, params.schema, params.config, params.metadata);
         } else if (action === 'submitForm') {
-            result = submitForm(params.formId, params.formData);
+            result = submitForm(params.formId, params.formData, params.targetSheetUrl, params.targetSheetName);
         } else if (action === 'translateText') {
             result = { status: 'success', translated: translateText(params.text, params.targetLang, params.sourceLang) };
         } else if (action === 'savePortalConfig') {
@@ -77,6 +77,7 @@ function loadPortal(requestedFormId) {
     }
 
     // Return everything in ONE request
+    if (formData) formData.id = formIdToLoad; // Ensure ID is present for caching
     return {
         status: 'success',
         config: config,
@@ -274,14 +275,19 @@ function translateText(text, target, source) {
     } catch (e) { return text; }
 }
 
-function submitForm(formId, formData) {
+function submitForm(formId, formData, targetSheetUrl, targetSheetName) {
     try {
         const record = getForm(formId);
-        if (record.status !== 'success') return { status: 'error', message: 'Form not found' };
 
-        const ss = SpreadsheetApp.openByUrl(record.config.targetSheetUrl);
-        let sheet = ss.getSheetByName(record.config.targetSheetName || 'Form Responses');
-        if (!sheet) sheet = ss.insertSheet(record.config.targetSheetName || 'Form Responses');
+        // Use overrides if provided, otherwise fallback to form config
+        const finalSheetUrl = targetSheetUrl || (record.status === 'success' ? record.config.targetSheetUrl : null);
+        const finalSheetName = targetSheetName || (record.status === 'success' ? record.config.targetSheetName : 'Form Responses');
+
+        if (!finalSheetUrl) return { status: 'error', message: 'No target sheet URL provided for this form.' };
+
+        const ss = SpreadsheetApp.openByUrl(finalSheetUrl);
+        let sheet = ss.getSheetByName(finalSheetName);
+        if (!sheet) sheet = ss.insertSheet(finalSheetName);
 
         if (!formData.Timestamp) formData.Timestamp = new Date();
         const headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].filter(Boolean);

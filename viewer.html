@@ -449,7 +449,7 @@
             }
         }
 
-        // 2. API Helper
+        // 2. API Helper with Intelligent Storage Routing
         async function callApi(action, payload) {
             if (backend === 'firebase') {
                 try {
@@ -462,13 +462,69 @@
                         const doc = await db.collection('config').doc('portal').get();
                         if (!doc.exists) throw new Error('Portal config not found');
                         return { status: 'success', config: doc.data() };
+                    } else if (action === 'submitForm') {
+                        // 🎯 INTELLIGENT STORAGE ROUTING
+                        // Check if client has configured their own Google Sheet
+                        const hasClientSheet = formConfig.sheetUrl && formConfig.sheetUrl.trim() !== '';
+                        const hasGlobalGasApi = gasApiUrl && gasApiUrl.trim() !== '';
+
+                        if (hasClientSheet && hasGlobalGasApi) {
+                            // Client has their own Google Sheet - use GLOBAL GAS to write to their sheet
+                            console.log('📊 Routing to client Google Sheet via Global GAS');
+                            console.log('   Sheet URL:', formConfig.sheetUrl);
+                            console.log('   Using Global GAS API:', gasApiUrl);
+
+                            try {
+                                const res = await fetch(gasApiUrl, {
+                                    method: 'POST',
+                                    mode: 'no-cors',
+                                    headers: { 'Content-Type': 'text/plain' },
+                                    body: JSON.stringify({
+                                        action: 'submitForm',
+                                        formId: payload.formId,
+                                        formData: payload.formData,
+                                        targetSheetUrl: formConfig.sheetUrl,
+                                        targetSheetName: formConfig.sheetName || 'Form Responses'
+                                    }),
+                                    redirect: 'follow'
+                                });
+                                console.log('✅ Data sent to client Google Sheet via Global GAS');
+                                return { status: 'success', message: 'Form submitted to your Google Sheet successfully!', storage: 'google-sheet' };
+                            } catch (sheetErr) {
+                                console.error('❌ Failed to save to client sheet:', sheetErr);
+                                // Fallback to Firebase if client sheet fails
+                                console.log('⚠️ Falling back to Firebase storage...');
+                            }
+                        }
+
+                        // Default: Store in Firebase Firestore (your backend)
+                        console.log('🔥 Storing in Firebase Firestore (default backend)');
+                        const submissionData = {
+                            formId: payload.formId,
+                            formName: formConfig.formName || 'Untitled Form',
+                            data: payload.formData,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            submittedAt: new Date().toISOString(),
+                            userAgent: navigator.userAgent,
+                            metadata: {
+                                clientSheetUrl: formConfig.sheetUrl || null,
+                                storageType: hasClientSheet ? 'fallback' : 'default',
+                                reason: hasClientSheet ? 'Client sheet configured but GAS failed or not available' : 'No client sheet configured'
+                            }
+                        };
+
+                        const docRef = await db.collection('submissions').add(submissionData);
+                        console.log('✅ Saved to Firebase Firestore:', docRef.id);
+
+                        return {
+                            status: 'success',
+                            message: 'Form submitted successfully!',
+                            submissionId: docRef.id,
+                            storage: 'firebase'
+                        };
                     }
-                    // For submitForm, we still use GAS as primary for Sheets integration, 
-                    // or we could add Firestore storage later.
                 } catch (err) {
-                    console.error("🔥 Firestore Fetch Error:", err);
-                    // Fallback to GAS if Firestore fails? 
-                    // No, let's keep it clean.
+                    console.error("🔥 Firestore Error:", err);
                     return { status: 'error', message: 'Firestore Error: ' + err.message };
                 }
             }

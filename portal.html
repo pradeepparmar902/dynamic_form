@@ -428,6 +428,24 @@
         const HARDCODED_API_URL = "";
         // -------------------------------------------------------------------------
 
+        // GLOBAL ERROR HANDLER - NEVER HANG
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            console.error("💥 Critical Runtime Error:", msg, error);
+            const loader = document.getElementById('loader');
+            if (loader) {
+                loader.innerHTML = `
+                    <div style="text-align:center; padding:20px; color:#ef4444; background: #fff1f2; border: 1px solid #fda4af; border-radius: 8px; margin: 20px;">
+                        <h3 style="margin:0 0 10px 0;">Application Error</h3>
+                        <p style="font-size:0.9rem; color:#b91c1c;">${msg}</p>
+                        <p style="font-size:0.75rem; margin-top:10px; color:#6b7280;">This usually happens if your connection is unstable or the configuration is missing.</p>
+                        <button onclick="location.reload()" style="margin-top:15px; background:#b91c1c; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600;">Retry Page</button>
+                    </div>
+                `;
+                loader.style.display = 'flex';
+            }
+            return false;
+        };
+
         const urlParams = new URLSearchParams(window.location.search);
 
         function getStableApiUrl() {
@@ -484,25 +502,46 @@
 
         // INIT
         async function init() {
-            const portalSlug = urlParams.get('p');
+            console.log("🚀 Portal: Starting initialization...");
+            let portalSlug = urlParams.get('p') || urlParams.get('slug');
+            if (portalSlug) portalSlug = portalSlug.trim().toLowerCase();
 
             // --- VANITY URL RESOLUTION ---
-            if (portalSlug) {
+            if (portalSlug && portalSlug !== 'none') {
                 console.log(`🌐 Branding: Resolving vanity slug "${portalSlug}"...`);
                 try {
                     // Initialize Firebase first to do the lookup
                     initFirebase();
                     const db = firebase.firestore();
-                    const slugDoc = await db.collection('portals').doc(portalSlug.toLowerCase()).get();
 
-                    if (slugDoc.exists) {
-                        const data = slugDoc.data();
+                    // 1. TRY INSTANT LOOKUP (By Document ID = Slug)
+                    let data = null;
+                    try {
+                        const slugDoc = await db.collection('portals').doc(portalSlug.toLowerCase()).get();
+                        if (slugDoc.exists) data = slugDoc.data();
+                    } catch (e) { console.warn("ID lookup failed, falling back to query."); }
+
+                    if (!data) {
+                        // 2. FALLBACK: QUERY (For older portals with random IDs)
+                        console.log("🔍 Branding: ID lookup missed, trying query fallback...");
+                        const slugTimeout = new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error("Slug resolution timed out (10s)")), 10000)
+                        );
+                        const slugQuery = db.collection('portals').where('slug', '==', portalSlug.toLowerCase()).limit(1).get();
+                        const query = await Promise.race([slugQuery, slugTimeout]);
+
+                        if (!query.empty) {
+                            data = query.docs[0].data();
+                        }
+                    }
+
+                    if (data) {
                         console.log("✅ Branding: Resolved configuration:", data);
 
                         // Inject settings from slug document
                         const cfg = data.config || {};
                         if (cfg.gasApiUrl) {
-                            API_URL = cfg.gasApiUrl;
+                            API_URL = cfg.gasApiUrl.trim();
                             localStorage.setItem('gasApiUrl', API_URL);
                         }
 
@@ -512,24 +551,61 @@
                             console.log(`⚙️ Engine: Using ${cfg.storageEngine} from vanity mapping`);
                         }
 
+                        // NEW: Support custom Firebase config per portal
+                        if (cfg.firebaseConfig) {
+                            try {
+                                const customConfig = typeof cfg.firebaseConfig === 'string' ? JSON.parse(cfg.firebaseConfig) : cfg.firebaseConfig;
+                                if (firebase.apps.length > 0) {
+                                    await firebase.app().delete();
+                                }
+                                firebase.initializeApp(customConfig);
+                                console.log("🔥 Portal: Switched to custom Firebase project:", customConfig.projectId);
+                            } catch (e) {
+                                console.error("❌ Portal: Failed to apply custom Firebase config", e);
+                            }
+                        }
+
                         currentState.config = cfg;
 
-                        // We continue as "firebase" backend to fetch the individual forms if needed
-                        // but individual forms could still be GAS if that's what's saved
-                        console.log("🔗 Mapping: Redirecting to correct backend/API");
+                        // Capture attached forms from Portal Designer
+                        if (data.attachedForms && Array.isArray(data.attachedForms)) {
+                            console.log("📋 Portal: Found attached forms configuration");
+                            currentState.portalForms = data.attachedForms;
+
+                            // Update Portal Title If available
+                            if (data.name) {
+                                document.getElementById('portalTitle').innerText = data.name;
+                                document.title = data.name + " - Portal";
+                            }
+                        }
                     } else {
-                        console.warn("⚠️ Branding: Slug not found, falling back to URL params.");
+                        console.error("❌ Branding: Slug not found in database.");
+                        document.getElementById('loader').innerHTML = `
+                            <div style="text-align:center; padding:20px; color:#64748b;">
+                                <h3>Portal Not Found</h3>
+                                <p>The portal link you used is invalid or has expired.</p>
+                                <p style="font-size:0.8rem; margin-top:10px; opacity:0.7;">(Slug: ${portalSlug})</p>
+                            </div>
+                        `;
+                        return; // STOP execution
                     }
                 } catch (err) {
                     console.error("❌ Branding Resolution failed:", err);
+                    // Continue to fallback or show error?
+                    // Better to stop if checking slug failed
                 }
+            } else if (portalSlug === 'none') {
+                console.warn("⚠️ Url parameter p=none detected.");
+                // We will attempt to load the default/generic portal config below,
+                // BUT if that fails (e.g. no forms created), we should handle it.
             }
 
-            if (!API_URL) {
+            if (!API_URL && backend !== 'firebase') {
                 console.error("❌ Portal Error: No GAS API URL provided via ?api= OR localStorage.");
                 document.getElementById('loader').innerHTML = `
                     <div style="text-align:center; padding:20px; color:#64748b;">
                         <p>Unable to connect to service. Please check your implementation.</p>
+                        <p style="font-size:0.8rem; margin-top:10px;">(Missing API URL for GAS backend)</p>
                     </div>
                 `;
                 return;
@@ -544,7 +620,15 @@
                 else if (backend === 'firebase') {
                     console.log("🔥 Portal: Fetching config from Firestore...");
                     const db = firebase.firestore();
-                    const doc = await db.collection('config').doc('portal').get();
+
+                    // Added timeout for generic config too
+                    const configTimeout = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Database connection timed out (10s)")), 10000)
+                    );
+
+                    const fetchConfig = db.collection('config').doc('portal').get();
+                    const doc = await Promise.race([fetchConfig, configTimeout]);
+
                     if (!doc.exists) throw new Error("Portal config not found in Firestore");
                     res = { status: 'success', config: doc.data() };
                 } else {
@@ -553,7 +637,14 @@
                         setTimeout(() => reject(new Error("Connection timed out (10s). Check internet / API URL.")), 10000)
                     );
 
-                    const fetchPromise = fetch(`${API_URL}?action=loadPortal`)
+                    // If we know the first form from Firestore slug config, pass it to batch-load
+                    let initialFormParam = "";
+                    if (currentState.portalForms && currentState.portalForms.length > 0) {
+                        const firstId = currentState.portalForms[0].formId || currentState.portalForms[0].id;
+                        initialFormParam = `&formId=${encodeURIComponent(firstId)}`;
+                    }
+
+                    const fetchPromise = fetch(`${API_URL}?action=loadPortal${initialFormParam}`)
                         .then(r => {
                             if (!r.ok) throw new Error(`HTTP Error: ${r.status}`);
                             return r.json();
@@ -564,24 +655,50 @@
 
                 if (res.status !== 'success') throw new Error(res.message || "Failed to load portal configuration");
 
-                currentState.config = res.config;
-                renderSidebar(res.config.forms);
+                currentState.config = res.config || {};
+
+                // Cache the initial form if provided by the batch loader
+                if (res.initialForm && (res.initialForm.id || res.initialForm.formId)) {
+                    const cachedId = res.initialForm.id || res.initialForm.formId;
+                    console.log("📦 Portal: Pre-caching initial form:", cachedId);
+                    currentState.formCache[cachedId] = {
+                        status: 'success',
+                        schema: res.initialForm.schema,
+                        config: res.initialForm.config
+                    };
+                }
+
+                // CRITICAL: If we have explicit forms from the portal document (slug resolution), use them
+                // Otherwise fallback to the 'forms' array in the generic config
+                let formsToRender = currentState.portalForms || res.config.forms || [];
+
+                // NEW: Validate forms exist before rendering (only for Firebase backend)
+                if (backend === 'firebase' && formsToRender.length > 0) {
+                    console.log("🔍 Validating forms exist in database...");
+                    formsToRender = await validateAndFilterForms(formsToRender);
+                }
+
+                renderSidebar(formsToRender);
 
                 // Auto Load First Form
-                if (res.config.forms && res.config.forms.length > 0) {
-                    const firstId = res.config.forms[0].id;
-                    if (res.initialForm && res.initialForm.status === 'success') {
-                        const loadedId = res.initialForm.formId || res.initialForm.id;
-                        if (String(loadedId) === String(firstId)) {
-                            renderForm(firstId, res.initialForm);
-                        } else {
-                            fetchForm(firstId);
-                        }
-                    } else {
-                        fetchForm(firstId);
-                    }
+                if (formsToRender.length > 0) {
+                    // Support both formats
+                    const firstId = formsToRender[0].formId || formsToRender[0].id;
+                    fetchForm(firstId);
                 } else {
-                    document.getElementById('nav-list').innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-size:0.9rem;">No forms available</div>';
+                    const navList = document.getElementById('nav-list');
+                    navList.innerHTML = `
+                        <div style="padding:20px; text-align:center; color:#999; font-size:0.9rem;">
+                            <p style="margin:0 0 10px 0;">No valid forms available</p>
+                            <p style="font-size:0.75rem; color:#6b7280; margin:0;">
+                                The portal configuration may reference forms that don't exist.
+                            </p>
+                            <a href="check-portal-config.html?slug=${urlParams.get('p') || urlParams.get('slug') || 'first-portal'}" 
+                               style="display:inline-block; margin-top:15px; padding:8px 16px; background:#2563eb; color:white; text-decoration:none; border-radius:6px; font-size:0.8rem; font-weight:600;">
+                                🔍 Run Diagnostics
+                            </a>
+                        </div>
+                    `;
                     document.getElementById('loader').style.display = 'none';
                 }
 
@@ -596,19 +713,85 @@
         }
 
 
+        // VALIDATE FORMS EXIST (Firebase only)
+        async function validateAndFilterForms(forms) {
+            if (!forms || forms.length === 0) return [];
+
+            const db = firebase.firestore();
+            const validForms = [];
+            const missingForms = [];
+
+            console.log(`🔍 Checking ${forms.length} form(s) for existence...`);
+
+            for (const formRef of forms) {
+                const formId = formRef.formId || formRef.id;
+                const formName = formRef.label || formRef.name || formRef.formName || 'Untitled';
+
+                try {
+                    const formDoc = await db.collection('forms').doc(formId).get();
+
+                    if (formDoc.exists) {
+                        console.log(`✅ Form exists: ${formName} (${formId})`);
+                        validForms.push(formRef);
+                    } else {
+                        console.warn(`⚠️ Form missing: ${formName} (${formId})`);
+                        missingForms.push({ id: formId, name: formName });
+                    }
+                } catch (err) {
+                    console.error(`❌ Error checking form ${formId}:`, err);
+                    missingForms.push({ id: formId, name: formName });
+                }
+            }
+
+            if (missingForms.length > 0) {
+                console.warn(`⚠️ Portal Warning: ${missingForms.length} form(s) not found in database:`, missingForms);
+
+                // Show warning banner
+                const wrapper = document.getElementById('form-wrapper');
+                const warningBanner = document.createElement('div');
+                warningBanner.style.cssText = `
+                    background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px 20px;
+                    margin: 20px; border-radius: 8px; font-size: 0.9rem;
+                `;
+                warningBanner.innerHTML = `
+                    <strong style="color: #92400e;">⚠️ Portal Configuration Issue</strong>
+                    <p style="margin: 8px 0 0 0; color: #78350f;">
+                        ${missingForms.length} form(s) referenced in this portal don't exist in the database.
+                        Only ${validForms.length} valid form(s) are shown.
+                    </p>
+                    <a href="check-portal-config.html?slug=${urlParams.get('p') || urlParams.get('slug') || 'first-portal'}" 
+                       style="display:inline-block; margin-top:10px; padding:6px 12px; background:#f59e0b; color:white; text-decoration:none; border-radius:6px; font-size:0.8rem; font-weight:600;">
+                        🔍 View Diagnostic Report
+                    </a>
+                `;
+                wrapper.appendChild(warningBanner);
+            }
+
+            return validForms;
+        }
+
         // SIDEBAR
         function renderSidebar(forms) {
             const list = document.getElementById('nav-list');
-            list.innerHTML = forms.map((f) => `
-                <li class="nav-item" id="nav-${f.id}" onclick="fetchForm('${f.id}')">
-                    <span>${f.name}</span>
+            if (!forms || forms.length === 0) {
+                list.innerHTML = '<li style="padding:16px; color:#999; font-size:0.85rem; text-align:center;">No forms found</li>';
+                return;
+            }
+            list.innerHTML = forms.map((f) => {
+                // Support both new Portal Designer format and legacy format
+                const id = f.formId || f.id;
+                const name = f.label || f.name || f.formName || 'Untitled Form';
+                return `
+                <li class="nav-item" id="nav-${id}" onclick="fetchForm('${id}')">
+                    <span>${name}</span>
                     <span class="arrow-icon">→</span>
                 </li>
-            `).join('');
+            `}).join('');
         }
 
         // FETCH SINGLE
         async function fetchForm(id) {
+            console.log(`📋 Portal: Fetching form ${id} (Backend: ${backend})...`);
             const wrapper = document.getElementById('form-wrapper');
 
             // Set active sidebar item immediately
@@ -625,41 +808,70 @@
 
             wrapper.classList.add('loading');
 
-            if (backend === 'firebase') {
-                try {
-                    console.log(`🔥 Portal: Fetching form ${id} from Firestore...`);
-                    const db = firebase.firestore();
-                    const doc = await db.collection('forms').doc(id).get();
-                    if (!doc.exists) throw new Error("Form not found in Firestore");
-
-                    const res = { status: 'success', ...doc.data() };
-                    currentState.formCache[id] = res;
-                    setTimeout(() => renderForm(id, res), 100);
-                    return;
-                } catch (err) {
-                    console.error("🔥 Firestore Fetch Error:", err);
-                    throw err;
-                }
-            }
-
             try {
-                const res = await fetch(`${API_URL}?action=getForm&id=${id}`).then(r => r.json());
-                if (res.status === 'success') {
-                    // Save to Cache
-                    currentState.formCache[id] = res;
+                let res;
+                if (backend === 'firebase') {
+                    const db = firebase.firestore();
+                    // Set a timeout for form fetch
+                    const formTimeout = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Form fetch timed out (10s)")), 10000)
+                    );
+                    const fetchPromise = db.collection('forms').doc(id).get();
+                    const doc = await Promise.race([fetchPromise, formTimeout]);
 
-                    // Small delay for smooth transition if needed, but the cache will make next time instant
-                    setTimeout(() => renderForm(id, res), 100);
+                    if (!doc.exists) throw new Error("Form template not found in system");
+                    res = { status: 'success', schema: doc.data().schema, config: doc.data().config };
                 } else {
-                    throw new Error(res.message || "Form not found");
+                    const timeout = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Form fetch timed out (10s)")), 10000)
+                    );
+                    // Add cache buster to prevent stale redirects, but remove no-store as it can break some redirects
+                    const fullUrl = `${API_URL}?action=getForm&id=${encodeURIComponent(id)}&_cb=${Date.now()}`;
+                    const fetchPromise = fetch(fullUrl).then(r => r.json());
+                    res = await Promise.race([fetchPromise, timeout]);
+                }
+
+                if (res.status === 'success') {
+                    currentState.formCache[id] = res;
+                    renderForm(id, res);
+                } else {
+                    throw new Error(res.message || "Form template error");
                 }
             } catch (err) {
+                console.error("❌ FetchForm Error:", err);
                 wrapper.classList.remove('loading');
+                document.getElementById('loader').style.display = 'none';
+
+                let debugInfo = "";
+                if (backend === 'gas') {
+                    const testUrl = `${API_URL}?action=getForm&id=${encodeURIComponent(id)}&_cb=${Date.now()}`;
+                    debugInfo = `<div style="margin-top:10px; font-size:0.75rem; color:#94a3b8; word-break:break-all;">
+                        <b>Diagnostic Report:</b><br>
+                        Backend: GAS<br>
+                        Attempted URL: <a href="${testUrl}" target="_blank" style="color:#3b82f6;">Click to Reveal Status</a><br>
+                        Error: ${err.message}
+                        <p style="margin-top:8px; color:#64748b;">If the link above shows "status: success", your browser is blocking the automatic connection. Try clicking the "Deep Reset" button below.</p>
+                    </div>`;
+                } else {
+                    debugInfo = `<div style="margin-top:10px; font-size:0.7rem; color:#94a3b8;">
+                        <b>Diagnostic Report:</b><br>
+                        Backend: Firebase<br>
+                        Error: ${err.message}
+                    </div>`;
+                }
+
                 wrapper.innerHTML = `
                     <div class="error-box" style="text-align:center; padding:40px;">
                         <div style="color:#ef4444; font-size:2rem; margin-bottom:10px;">⚠️</div>
-                        <strong style="font-size:1.1rem; display:block; margin-bottom:5px;">Failed to Load Form</strong>
-                        <p style="color:#666; margin:0;">${err.message}</p>
+                        <h3 style="margin-bottom:5px;">Failed to Load Form</h3>
+                        <p style="color:#64748b; font-size:0.9rem;">${err.message || "Failed to fetch"}</p>
+                        <p style="font-size:0.75rem; color:var(--text-light); margin-bottom:10px;">Attempted ID: <b>${id}</b></p>
+                        ${debugInfo}
+                        <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+                            <button class="btn" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;" onclick="fetchForm('${id}')">Retry Loading</button>
+                            <button class="btn btn-outline" style="padding:10px 20px; border-radius:8px;" onclick="deepReset()">Deep Reset (Fix Redirects)</button>
+                        </div>
+                    </div>
                     </div>
                 `;
             }
@@ -667,70 +879,90 @@
 
         // RENDER FORM
         function renderForm(id, data) {
-            currentState.currentFormId = id;
-            const container = document.getElementById('form-wrapper');
-            container.innerHTML = '';
+            try {
+                console.log(`🎨 Rendering form: ${id}`, data);
+                currentState.currentFormId = id;
+                const container = document.getElementById('form-wrapper');
+                if (!container) throw new Error("Form wrapper container not found");
 
-            // Update Header if form name exists
-            if (data.config && data.config.formName) {
-                const titleEl = document.getElementById('portalTitle');
-                if (titleEl) titleEl.innerText = data.config.formName;
-            }
+                container.innerHTML = '';
 
-            let maxY = 0;
-            const schema = data.schema || [];
-
-            if (schema.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" style="text-align:center; padding:60px 20px;">
-                        <h3 style="margin:0 0 10px 0;">Form is Empty</h3>
-                        <p style="color:var(--text-light); margin:0;">No elements found in schema for this form.</p>
-                    </div>`;
-                container.classList.remove('loading');
-                return;
-            }
-
-            schema.forEach(elm => {
-                const elDiv = document.createElement('div');
-                elDiv.className = 'canvas-element';
-                elDiv.style.left = elm.x + 'px';
-                elDiv.style.top = elm.y + 'px';
-
-                const bottom = (elm.y || 0) + 60;
-                if (bottom > maxY) maxY = bottom;
-
-                if (['text', 'number', 'date', 'email', 'tel'].includes(elm.type)) {
-                    elDiv.innerHTML = `
-                        <label class="field-label">${elm.props.label || 'Input'} ${elm.props.required ? '<span style="color:#ef4444">*</span>' : ''}</label>
-                        <input type="${elm.type}" class="field-input" name="${elm.props.name}" 
-                               ${elm.props.required ? 'required' : ''} placeholder="Type here...">
-                    `;
-                } else if (elm.type === 'heading') {
-                    const tag = elm.props.headingLevel || 'h2';
-                    elDiv.innerHTML = `<${tag} style="margin:0; font-weight:700; color:var(--text-main);">${elm.props.label}</${tag}>`;
-                } else if (elm.type === 'label') {
-                    elDiv.innerHTML = `<span style="font-size:0.9rem; color:var(--text-main);">${elm.props.label}</span>`;
+                // Update Header if form name exists
+                if (data.config && data.config.formName) {
+                    const titleEl = document.getElementById('portalTitle');
+                    if (titleEl) titleEl.innerText = data.config.formName;
                 }
 
-                container.appendChild(elDiv);
-            });
+                let maxY = 0;
+                const schema = data.schema || [];
 
-            const paperHeight = Math.max(maxY + 100, 500);
-            container.style.height = paperHeight + 'px';
+                if (!Array.isArray(schema) || schema.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="text-align:center; padding:60px 20px;">
+                            <h3 style="margin:0 0 10px 0;">Form is Empty</h3>
+                            <p style="color:var(--text-light); margin:0;">No elements found in schema for this form.</p>
+                        </div>`;
+                } else {
+                    schema.forEach(elm => {
+                        if (!elm || !elm.type) return;
 
-            const submitDiv = document.createElement('div');
-            submitDiv.className = 'submit-container';
-            submitDiv.style.top = (paperHeight - 20) + 'px';
-            submitDiv.innerHTML = `
-                <button class="btn-submit" onclick="handleSubmit()">
-                    Submit Form Response
-                    <svg style="margin-left:8px;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-            `;
-            container.appendChild(submitDiv);
+                        const elDiv = document.createElement('div');
+                        elDiv.className = 'canvas-element';
+                        elDiv.style.left = (elm.x || 0) + 'px';
+                        elDiv.style.top = (elm.y || 0) + 'px';
 
-            container.classList.remove('loading');
-            document.getElementById('loader').style.display = 'none';
+                        const bottom = (elm.y || 0) + 60;
+                        if (bottom > maxY) maxY = bottom;
+
+                        const props = elm.props || {};
+
+                        if (['text', 'number', 'date', 'email', 'tel'].includes(elm.type)) {
+                            elDiv.innerHTML = `
+                                <label class="field-label">${props.label || 'Input'} ${props.required ? '<span style="color:#ef4444">*</span>' : ''}</label>
+                                <input type="${elm.type}" class="field-input" name="${props.name || 'field'}" 
+                                       ${props.required ? 'required' : ''} placeholder="Type here...">
+                            `;
+                        } else if (elm.type === 'heading') {
+                            const tag = props.headingLevel || 'h2';
+                            elDiv.innerHTML = `<${tag} style="margin:0; font-weight:700; color:var(--text-main);">${props.label || 'Heading'}</${tag}>`;
+                        } else if (elm.type === 'label') {
+                            elDiv.innerHTML = `<span style="font-size:0.9rem; color:var(--text-main);">${props.label || 'Label'}</span>`;
+                        }
+
+                        container.appendChild(elDiv);
+                    });
+
+                    const paperHeight = Math.max(maxY + 100, 500);
+                    container.style.height = paperHeight + 'px';
+
+                    const submitDiv = document.createElement('div');
+                    submitDiv.className = 'submit-container';
+                    submitDiv.style.top = (paperHeight - 20) + 'px';
+                    submitDiv.innerHTML = `
+                        <button class="btn-submit" onclick="handleSubmit()">
+                            Submit Form Response
+                            <svg style="margin-left:8px;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    `;
+                    container.appendChild(submitDiv);
+                }
+
+                container.classList.remove('loading');
+                const globalLoader = document.getElementById('loader');
+                if (globalLoader) globalLoader.style.display = 'none';
+                console.log("✅ Rendering complete");
+            } catch (err) {
+                console.error("❌ Rendering Error:", err);
+                const globalLoader = document.getElementById('loader');
+                if (globalLoader) globalLoader.style.display = 'none';
+
+                document.getElementById('form-wrapper').innerHTML = `
+                    <div style="padding:40px; text-align:center; color:#ef4444;">
+                        <h3>Design Rendering Error</h3>
+                        <p>${err.message}</p>
+                    </div>
+                `;
+            }
         }
 
         // SUBMIT
@@ -760,15 +992,41 @@
             btn.disabled = true;
 
             try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({
-                        action: 'submitForm',
+                const submissionPromises = [];
+                const formCache = currentState.formCache[currentState.currentFormId] || {};
+                const formCfg = formCache.config || {};
+                const sheetUrl = formCfg.sheetUrl || formCfg.targetSheetUrl || null;
+
+                if (sheetUrl && API_URL && API_URL.length > 10) {
+                    // 1. GAS SUBMISSION (Client's Sheet)
+                    console.log("🚀 Submitting to GAS (Client Sheet)...");
+                    const gasReq = fetch(API_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify({
+                            action: 'submitForm',
+                            formId: currentState.currentFormId,
+                            formData: formData,
+                            targetSheetUrl: sheetUrl,
+                            targetSheetName: formCfg.sheetName || formCfg.targetSheetName || "Form Responses"
+                        })
+                    }).then(() => console.log("✅ GAS Request Sent"));
+                    submissionPromises.push(gasReq);
+                } else {
+                    // 2. FIREBASE FALLBACK
+                    console.log("🔥 Fallback: Submitting to Firebase...");
+                    initFirebase();
+                    const db = firebase.firestore();
+                    const fbReq = db.collection('submissions').add({
                         formId: currentState.currentFormId,
-                        formData: formData
-                    })
-                });
+                        formData: formData,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        source: 'fallback'
+                    }).then(() => console.log("✅ Firebase Fallback Done"));
+                    submissionPromises.push(fbReq);
+                }
+
+                await Promise.all(submissionPromises);
 
                 // Success Animation
                 const wrapper = document.getElementById('form-wrapper');
@@ -795,6 +1053,15 @@
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
+            }
+        }
+
+        function deepReset() {
+            if (confirm("This will clear your local connection cache and refresh the portal. Continue?")) {
+                localStorage.clear();
+                sessionStorage.clear();
+                // Force reload ignoring cache
+                window.location.reload(true);
             }
         }
 

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Configuration Checker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #2563eb;
+            margin: 0 0 10px 0;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .status-card {
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            border-left: 4px solid;
+        }
+
+        .status-card.loading {
+            border-left-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .status-card.success {
+            border-left-color: #10b981;
+            background: #d1fae5;
+        }
+
+        .status-card.error {
+            border-left-color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .status-card.warning {
+            border-left-color: #f59e0b;
+            background: #fef3c7;
+        }
+
+        .status-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+        }
+
+        .status-card p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+
+        .form-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+
+        .form-item {
+            padding: 12px 16px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e5e7eb;
+        }
+
+        .form-item .status {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .form-item .status.exists {
+            color: #10b981;
+        }
+
+        .form-item .status.missing {
+            color: #ef4444;
+        }
+
+        pre {
+            background: #1f2937;
+            color: #10b981;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        .fix-section {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 2px dashed #d1d5db;
+        }
+
+        .fix-section h4 {
+            margin-top: 0;
+            color: #374151;
+        }
+
+        .fix-section ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .fix-section li {
+            margin: 8px 0;
+            color: #4b5563;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Portal Configuration Checker
+        </h1>
+        <p class="subtitle">Diagnose why your portal isn't loading forms correctly</p>
+
+        <div class="input-group">
+            <label for="slugInput">Portal Slug (from URL ?p=...)</label>
+            <input type="text" id="slugInput" placeholder="e.g., first-portal" value="first-portal">
+        </div>
+
+        <button onclick="runDiagnostics()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            Run Diagnostics
+        </button>
+
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+            authDomain: "buildform-e7d3b.firebaseapp.com",
+            projectId: "buildform-e7d3b",
+            storageBucket: "buildform-e7d3b.firebasestorage.app",
+            messagingSenderId: "1010258612784",
+            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+            measurementId: "G-L217Q3WM0G"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        async function runDiagnostics() {
+            const slug = document.getElementById('slugInput').value.trim().toLowerCase();
+            const resultsDiv = document.getElementById('results');
+
+            if (!slug) {
+                resultsDiv.innerHTML = `
+                    <div class="status-card error">
+                        <h3>❌ Error</h3>
+                        <p>Please enter a portal slug</p>
+                    </div>
+                `;
+                return;
+            }
+
+            resultsDiv.innerHTML = `
+                <div class="status-card loading">
+                    <h3><span class="spinner"></span> Running Diagnostics...</h3>
+                    <p>Checking portal configuration for: <strong>${slug}</strong></p>
+                </div>
+            `;
+
+            let html = '';
+            let portalData = null;
+            let formsToCheck = [];
+
+            // Step 1: Check if portal configuration exists
+            html += '<div class="status-card loading"><h3>Step 1: Checking Portal Configuration</h3>';
+            try {
+                const portalDoc = await db.collection('portals').doc(slug).get();
+
+                if (portalDoc.exists) {
+                    portalData = portalDoc.data();
+                    html += '<p style="color: #10b981; font-weight: 600;">✅ Portal configuration found!</p>';
+
+                    if (portalData.attachedForms && Array.isArray(portalData.attachedForms)) {
+                        formsToCheck = portalData.attachedForms;
+                        html += `<p>Found ${formsToCheck.length} form(s) in portal configuration</p>`;
+                        html += '<pre>' + JSON.stringify(portalData, null, 2) + '</pre>';
+                    } else {
+                        html += '<p style="color: #f59e0b; font-weight: 600;">⚠️ Portal exists but has no attached forms</p>';
+                    }
+                } else {
+                    html += '<p style="color: #ef4444; font-weight: 600;">❌ Portal configuration not found</p>';
+                    html += `<p>No document found in Firestore at: <code>portals/${slug}</code></p>`;
+                }
+            } catch (err) {
+                html += `<p style="color: #ef4444; font-weight: 600;">❌ Error: ${err.message}</p>`;
+            }
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+
+            // Step 2: Check each form
+            if (formsToCheck.length > 0) {
+                html += '<div class="status-card loading"><h3>Step 2: Verifying Forms Exist</h3>';
+                html += '<ul class="form-list">';
+
+                let existingForms = 0;
+                let missingForms = 0;
+
+                for (const formRef of formsToCheck) {
+                    const formId = formRef.formId || formRef.id;
+                    const formLabel = formRef.label || formRef.name || 'Untitled';
+
+                    try {
+                        const formDoc = await db.collection('forms').doc(formId).get();
+
+                        if (formDoc.exists) {
+                            existingForms++;
+                            html += `
+                                <li class="form-item">
+                                    <div>
+                                        <strong>${formLabel}</strong><br>
+                                        <small style="color: #6b7280;">ID: ${formId}</small>
+                                    </div>
+                                    <span class="status exists">✅ EXISTS</span>
+                                </li>
+                            `;
+                        } else {
+                            missingForms++;
+                            html += `
+                                <li class="form-item">
+                                    <div>
+                                        <strong>${formLabel}</strong><br>
+                                        <small style="color: #6b7280;">ID: ${formId}</small>
+                                    </div>
+                                    <span class="status missing">❌ MISSING</span>
+                                </li>
+                            `;
+                        }
+                    } catch (err) {
+                        missingForms++;
+                        html += `
+                            <li class="form-item">
+                                <div>
+                                    <strong>${formLabel}</strong><br>
+                                    <small style="color: #ef4444;">Error: ${err.message}</small>
+                                </div>
+                                <span class="status missing">❌ ERROR</span>
+                            </li>
+                        `;
+                    }
+                }
+
+                html += '</ul>';
+                html += `<p><strong>Summary:</strong> ${existingForms} existing, ${missingForms} missing</p>`;
+                html += '</div>';
+                resultsDiv.innerHTML = html;
+
+                // Step 3: Recommendations
+                if (missingForms > 0) {
+                    html += `
+                        <div class="status-card error">
+                            <h3>❌ Issue Found: Missing Forms</h3>
+                            <p>Your portal configuration references ${missingForms} form(s) that don't exist in the database.</p>
+                        </div>
+                        <div class="fix-section">
+                            <h4>🔧 How to Fix This:</h4>
+                            <ol>
+                                <li><strong>Option 1: Create the Missing Forms</strong>
+                                    <ul>
+                                        <li>Open your form builder (workspace.html)</li>
+                                        <li>Create new forms with the required content</li>
+                                        <li>Save each form</li>
+                                        <li>Update the portal configuration to reference the new form IDs</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Option 2: Update Portal Configuration</strong>
+                                    <ul>
+                                        <li>Open your portal designer/workspace</li>
+                                        <li>Remove the missing forms from the portal configuration</li>
+                                        <li>Add only the forms that exist</li>
+                                        <li>Save the portal configuration</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Option 3: Delete and Recreate Portal</strong>
+                                    <ul>
+                                        <li>Delete the current portal configuration</li>
+                                        <li>Create a fresh portal with only existing forms</li>
+                                    </ul>
+                                </li>
+                            </ol>
+                        </div>
+                    `;
+                } else if (existingForms > 0) {
+                    html += `
+                        <div class="status-card success">
+                            <h3>✅ All Forms Found!</h3>
+                            <p>All ${existingForms} form(s) referenced in your portal configuration exist in the database.</p>
+                            <p>If you're still seeing errors, try:</p>
+                            <ul>
+                                <li>Clear your browser cache and reload the portal</li>
+                                <li>Check the browser console for JavaScript errors</li>
+                                <li>Verify the portal URL is correct: <code>?p=${slug}</code></li>
+                            </ul>
+                        </div>
+                    `;
+                }
+            } else if (portalData) {
+                html += `
+                    <div class="status-card warning">
+                        <h3>⚠️ Portal Has No Forms</h3>
+                        <p>The portal configuration exists but has no attached forms.</p>
+                    </div>
+                    <div class="fix-section">
+                        <h4>🔧 How to Fix This:</h4>
+                        <ol>
+                            <li>Open your portal designer/workspace</li>
+                            <li>Select forms to attach to this portal</li>
+                            <li>Save the portal configuration</li>
+                        </ol>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="status-card error">
+                        <h3>❌ Portal Not Found</h3>
+                        <p>No portal configuration exists for slug: <strong>${slug}</strong></p>
+                    </div>
+                    <div class="fix-section">
+                        <h4>🔧 How to Fix This:</h4>
+                        <ol>
+                            <li>Open your portal designer/workspace</li>
+                            <li>Create a new portal with the slug: <strong>${slug}</strong></li>
+                            <li>Attach forms to the portal</li>
+                            <li>Save the portal configuration</li>
+                        </ol>
+                    </div>
+                `;
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>

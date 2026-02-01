@@ -917,9 +917,48 @@
                 </div>
             </div>
 
+            <!-- OPTION 2: IFRAME EMBED -->
+            <div
+                style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border);">
+                <h4
+                    style="margin: 0 0 12px 0; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    Configuration
+                </h4>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label
+                        style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-light);">Google
+                        Sheet URL (Optional)</label>
+                    <input type="text" id="propSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..."
+                        style="width: 100%; padding: 8px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label
+                        style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-light);">Sheet
+                        Name</label>
+                    <input type="text" id="propSheetName" placeholder="Form Responses"
+                        style="width: 100%; padding: 8px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+
+                <div class="form-group">
+                    <label
+                        style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-light);">Custom
+                        Domain (Optional)</label>
+                    <input type="text" id="propCustomDomain" placeholder="https://form.example.com"
+                        onchange="localStorage.setItem('customDomain', this.value)"
+                        style="width: 100%; padding: 8px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+            </div>
+
             <div style="height: 1px; background: var(--border); margin-bottom: 1.5rem;"></div>
 
-            <!-- OPTION 2: IFRAME EMBED -->
+            <!-- EMBED CODE WRAPPER -->
             <div>
                 <div
                     style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; color: var(--primary);">
@@ -947,7 +986,7 @@
         <aside class="sidebar">
             <div class="sidebar-tabs">
                 <div class="sidebar-tab active" onclick="switchSidebarTab('elements')">Elements</div>
-                <div class="sidebar-tab" onclick="switchSidebarTab('portal')">Portal View</div>
+                <!-- Portal View Removed to avoid confusion -->
                 <div class="sidebar-tab" onclick="switchSidebarTab('branding')">🎨 Branding</div>
             </div>
 
@@ -1169,73 +1208,7 @@
                     </div>
                 </div>
 
-                <!-- PORTAL DESIGNER TAB -->
-                <div id="panelPortal" class="tab-panel">
-                    <div class="portal-config-panel">
-                        <div class="category-title">Portal Navigation Designer</div>
-                        <p style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 1rem;">
-                            Pick forms for your portal sidebar and set their order.
-                        </p>
-                        <!-- BRANDING SETTINGS FOR PORTAL -->
-                        <div
-                            style="background: #fffbeb; padding: 1rem; border-radius: 8px; border: 1px solid #fcd34d; margin-bottom: 1.5rem;">
-                            <label
-                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Professional
-                                Branding (Slug)</label>
-                            <input type="text" id="sidebarPortalSlug" placeholder="e.g. my-organization"
-                                style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px; margin-bottom: 5px;"
-                                oninput="syncPortalSlug(this.value)">
-                            <small style="font-size: 0.65rem; color: #92400e; display: block; margin-bottom: 10px;">
-                                This creates: <b>portal.html?p=name</b>
-                            </small>
-
-                            <label
-                                style="color: #92400e; font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 5px;">Custom
-                                Domain / Alias (Optional)</label>
-                            <input type="text" id="sidebarCustomDomain" placeholder="https://yourbrand.com"
-                                style="width: 100%; padding: 8px; border: 1px solid #fcd34d; border-radius: 4px;"
-                                oninput="syncCustomDomain(this.value)">
-                            <small style="font-size: 0.65rem; color: #92400e; display: block; margin-top: 4px;">
-                                Use this to hide "github.io" in shared links.
-                            </small>
-                        </div>
-
-                        <div style="margin-bottom: 1rem;">
-                            <button class="btn btn-outline"
-                                style="width:100%; justify-content:center; font-size:0.75rem;"
-                                onclick="refreshPortalList()">
-                                ↻ Refresh Forms List
-                            </button>
-                        </div>
-
-                        <div id="sidebarPortalList"
-                            style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem; background: var(--surface-alt);">
-                            <!-- List of forms with checkboxes and order inputs -->
-                            <div style="color:var(--text-light); font-size:0.8rem; text-align:center; padding:2rem;">
-                                Click Refresh to load forms...
-                            </div>
-                        </div>
-
-                        <div
-                            style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
-                            <button class="btn btn-outline"
-                                style="width:100%; justify-content:center; border-color: #3b82f6; color: #3b82f6; background: #eff6ff;"
-                                onclick="openPortalPreview()">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" style="margin-right: 6px;">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                                Preview Portal Preview
-                            </button>
-                            <button class="btn btn-primary" id="btnSavePortal"
-                                style="width:100%; justify-content:center;" onclick="savePortalSettings()">
-                                Save Portal Collection
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <!-- PORTAL DESIGNER TAB REMOVED - Use Dashboard Instead -->
 
                 <!-- BRANDING TAB PANEL -->
                 <div id="panelBranding" class="tab-panel">
@@ -1385,9 +1358,22 @@
                 <div class="ruler-h" id="rulerTop"></div>
                 <div class="ruler-v" id="rulerLeft"></div>
 
-                <!-- Elements will be dropped here -->
+                <!-- BRANDING HEADER ZONE -->
+                <div id="canvasBrandingHeader" class="canvas-branding-header" style="display: none;">
+                    <div class="canvas-branding-logo"></div>
+                    <div class="canvas-branding-content">
+                        <div class="canvas-branding-title"></div>
+                        <div class="canvas-branding-punchline"></div>
+                        <div class="canvas-branding-desc"></div>
+                    </div>
+                </div>
 
                 <!-- Elements will be dropped here -->
+
+                <!-- BRANDING FOOTER ZONE -->
+                <div id="canvasBrandingFooter" class="canvas-branding-footer" style="display: none;">
+                    <div class="canvas-branding-footer-text"></div>
+                </div>
             </div>
         </main>
 
@@ -1430,6 +1416,22 @@
                             <textarea id="propDescription" class="prop-input" rows="3"></textarea>
                         </div>
 
+                        <div class="form-group">
+                            <label>Primary Language</label>
+                            <select id="propLanguagePrimary" onchange="updateFormLanguage()">
+                                <option value="en">English (Primary)</option>
+                                <option value="mr">Marathi (Primary)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Secondary Language (Translation)</label>
+                            <select id="propLanguageSecondary" onchange="updateFormLanguage()">
+                                <option value="en">English</option>
+                                <option value="mr" selected>Marathi</option>
+                                <option value="hi">Hindi</option>
+                            </select>
+                        </div>
+
                         <div class="prop-group">
                             <h3>🔐 Access & Security</h3>
                             <label>Allowed Domains (Comma separated)</label>
@@ -1456,7 +1458,7 @@
                                 <label>Storage Engine</label>
                                 <select id="propStorageEngine" onchange="toggleBackendConfig()">
                                     <option value="gas">Google Sheets (GAS)</option>
-                                    <option value="firebase">Firebase Firestore</option>
+                                    <option value="firebase">Default - System Storage</option>
                                 </select>
                             </div>
 
@@ -1467,18 +1469,16 @@
                                     placeholder='{"apiKey": "...", ...}'></textarea>
                             </div>
 
+
                             <div class="form-group">
-                                <label>GAS Script URL</label>
-                                <input type="text" id="propApiUrl">
-                            </div>
-                            <div class="form-group">
-                                <label>Google Sheet URL</label>
-                                <input type="text" id="propSheetUrl">
-                            </div>
-                            <div class="form-group">
-                                <label>Custom Domain (Optional)</label>
-                                <input type="text" id="propCustomDomain" placeholder="https://form.example.com"
-                                    onchange="localStorage.setItem('customDomain', this.value)">
+                                <label>🌐 Global GAS Script URL (Admin Only)</label>
+                                <input type="text" id="propGlobalGasUrl"
+                                    placeholder="https://script.google.com/macros/s/.../exec"
+                                    style="font-family:monospace; font-size:0.85rem;">
+                                <small style="color: #666; font-size: 0.75rem; display: block; margin-top: 5px;">
+                                    This is the global Google Apps Script URL used for ALL forms. Deploy your GAS as a
+                                    Web App and paste the URL here.
+                                </small>
                             </div>
                         </div>
 
@@ -1895,7 +1895,7 @@
                             await db.collection('portals').doc(payload.config.slug).set({
                                 config: payload.config,
                                 lastUpdated: Date.now()
-                            });
+                            }, { merge: true });
                         }
                         return { status: 'success' };
                     } else if (action === 'getPortalConfig') {
@@ -1972,7 +1972,8 @@
             brandingDescription: '',
             footerText: '',
             displayMode: 'full', // 'full' or 'card'
-            workspaceId: new URLSearchParams(window.location.search).get('workspaceId') || null
+            workspaceId: new URLSearchParams(window.location.search).get('workspaceId') || null,
+            id: new URLSearchParams(window.location.search).get('id') || ('Form_' + Date.now())
         };
 
         // DOM REFERENCES
@@ -1987,6 +1988,17 @@
         document.getElementById('headerFormNameInput').value = formConfig.formName;
         document.getElementById('propStorageEngine').value = formConfig.storageEngine;
         document.getElementById('propFirebaseConfig').value = formConfig.firebaseConfig;
+
+        // Initialize Global GAS URL (Admin Only)
+        const savedGasUrl = localStorage.getItem('gasApiUrl') || '';
+        if (document.getElementById('propGlobalGasUrl')) {
+            document.getElementById('propGlobalGasUrl').value = savedGasUrl;
+            // Save on change
+            document.getElementById('propGlobalGasUrl').addEventListener('change', function () {
+                localStorage.setItem('gasApiUrl', this.value.trim());
+                console.log('✅ Global GAS URL saved:', this.value.trim());
+            });
+        }
 
         function toggleBackendConfig() {
             const engine = document.getElementById('propStorageEngine').value;
@@ -2083,22 +2095,31 @@
 
 
         function updateFormLanguage() {
-            formConfig.languagePrimary = document.getElementById('propLanguagePrimary').value;
-            formConfig.languageSecondary = document.getElementById('propLanguageSecondary').value;
+            const pEl = document.getElementById('propLanguagePrimary');
+            const sEl = document.getElementById('propLanguageSecondary');
+            if (!pEl || !sEl) return;
+
+            formConfig.languagePrimary = pEl.value;
+            formConfig.languageSecondary = sEl.value;
             formConfig.language = formConfig.languageSecondary; // Sync for compat
 
-            const l1Name = document.getElementById('propLanguagePrimary').selectedOptions[0].text.split(' ')[0];
-            const l2Name = document.getElementById('propLanguageSecondary').selectedOptions[0].text.split(' ')[0];
+            const l1Name = pEl.selectedOptions[0].text.split(' ')[0];
+            const l2Name = sEl.selectedOptions[0].text.split(' ')[0];
 
-            document.getElementById('lblPropPrimary').innerText = `Field Label (${l1Name})`;
-            document.getElementById('lblPropSecondary').innerText = `Field Label (${l2Name})`;
-            document.getElementById('lblPropTranslatable').innerText = `Enable Translation (${l1Name} -> ${l2Name})`;
+            safeSetText('lblPropPrimary', `Field Label (${l1Name})`);
+            safeSetText('lblPropSecondary', `Field Label (${l2Name})`);
+            safeSetText('lblPropTranslatable', `Enable Translation (${l1Name} -> ${l2Name})`);
 
             // Trigger refresh of canvas elements to show new labels if needed
             elements.forEach(elm => {
                 const dom = document.getElementById(elm.id);
                 if (dom) renderElementVisual(elm, dom);
             });
+        }
+
+        function safeSetText(id, txt) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = txt;
         }
 
 
@@ -2281,49 +2302,59 @@
 
         // --- BRANDING WYSIWYG ---
         function updateCanvasBranding() {
-            const hTitle = document.getElementById('propHeaderTitle').value;
-            const lIcon = document.getElementById('propLogoIcon').value;
-            const lUrl = document.getElementById('propLogoUrl').value;
-            const punch = document.getElementById('propPunchline').value;
-            const footer = document.getElementById('propFooterText').value;
-            const desc = document.getElementById('propBrandingDescription').value;
-            const isCard = document.getElementById('propDisplayMode').checked;
+            const hTitle = document.getElementById('propHeaderTitle')?.value || '';
+            const lIcon = document.getElementById('propLogoIcon')?.value || '';
+            const lUrl = document.getElementById('propLogoUrl')?.value || '';
+            const punch = document.getElementById('propPunchline')?.value || '';
+            const footer = document.getElementById('propFooterText')?.value || '';
+            const desc = document.getElementById('propBrandingDescription')?.value || '';
+            const isCard = document.getElementById('propDisplayMode')?.checked || false;
 
             const headerZone = document.getElementById('canvasBrandingHeader');
             const footerZone = document.getElementById('canvasBrandingFooter');
             const canvasArea = document.getElementById('canvasArea');
 
             // 1. Header Logic
-            if (!hTitle && !lIcon && !lUrl && !punch) {
-                headerZone.style.display = 'none';
-            } else {
-                headerZone.style.display = 'flex';
-
-                const logoDiv = headerZone.querySelector('.canvas-branding-logo');
-                if (lUrl) {
-                    logoDiv.innerHTML = `<img src="${lUrl}" alt="Logo">`;
+            if (headerZone) {
+                if (!hTitle && !lIcon && !lUrl && !punch) {
+                    headerZone.style.display = 'none';
                 } else {
-                    logoDiv.innerText = lIcon;
+                    headerZone.style.display = 'flex';
+                    const logoDiv = headerZone.querySelector('.canvas-branding-logo');
+                    if (logoDiv) {
+                        if (lUrl) {
+                            logoDiv.innerHTML = `<img src="${lUrl}" alt="Logo">`;
+                        } else {
+                            logoDiv.innerText = lIcon;
+                        }
+                    }
+                    const titleEl = headerZone.querySelector('.canvas-branding-title');
+                    if (titleEl) titleEl.innerText = hTitle;
+                    const punchEl = headerZone.querySelector('.canvas-branding-punchline');
+                    if (punchEl) punchEl.innerText = punch;
+                    const descEl = headerZone.querySelector('.canvas-branding-desc');
+                    if (descEl) descEl.innerText = desc;
                 }
-
-                headerZone.querySelector('.canvas-branding-title').innerText = hTitle;
-                headerZone.querySelector('.canvas-branding-punchline').innerText = punch;
-                headerZone.querySelector('.canvas-branding-desc').innerText = desc;
             }
 
             // 2. Footer Logic
-            if (!footer) {
-                footerZone.style.display = 'none';
-            } else {
-                footerZone.style.display = 'flex';
-                footerZone.querySelector('.canvas-branding-footer-text').innerText = footer;
+            if (footerZone) {
+                if (!footer) {
+                    footerZone.style.display = 'none';
+                } else {
+                    footerZone.style.display = 'flex';
+                    const footerTextEl = footerZone.querySelector('.canvas-branding-footer-text');
+                    if (footerTextEl) footerTextEl.innerText = footer;
+                }
             }
 
             // 3. Card Mode Simulation
-            if (isCard) {
-                canvasArea.classList.add('card-mode');
-            } else {
-                canvasArea.classList.remove('card-mode');
+            if (canvasArea) {
+                if (isCard) {
+                    canvasArea.classList.add('card-mode');
+                } else {
+                    canvasArea.classList.remove('card-mode');
+                }
             }
         }
 
@@ -3061,9 +3092,11 @@
         }
 
         // Helper to safely get value from potentially missing element
-        function safeGetValue(id, fallback = '') {
+        function safeGetValue(id, fallback) {
             const el = document.getElementById(id);
-            return el ? el.value : fallback;
+            if (!el) return fallback;
+            let val = el.value;
+            return (typeof val === 'string') ? val.trim() : val;
         }
 
         async function saveForm(silent = false) {
@@ -3096,13 +3129,15 @@
             formConfig.storageEngine = safeGetValue('propStorageEngine', formConfig.storageEngine);
             formConfig.gasApiUrl = safeGetValue('propApiUrl', formConfig.gasApiUrl);
             formConfig.customDomain = safeGetValue('propCustomDomain', formConfig.customDomain);
+            formConfig.firebaseConfig = safeGetValue('propFirebaseConfig', formConfig.firebaseConfig);
 
             const schema = elements;
             const config = formConfig;
             const metadata = {
                 allowedDomains: safeGetValue('propAllowedDomains', ''),
                 formName: formConfig.formName,
-                workspaceId: formConfig.workspaceId
+                workspaceId: formConfig.workspaceId,
+                firebaseConfig: formConfig.firebaseConfig
             };
 
             // Local Fallback for Preview (Instant)
@@ -3113,6 +3148,7 @@
             localStorage.setItem('storageEngine', formConfig.storageEngine);
             localStorage.setItem('gasApiUrl', formConfig.gasApiUrl);
             localStorage.setItem('customDomain', formConfig.customDomain);
+            localStorage.setItem('firebaseConfig', formConfig.firebaseConfig);
 
             try {
                 // Diagnostic Step 1
@@ -3363,15 +3399,27 @@
             `).join('');
         }
 
+        function safeSetValue(id, val) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el.type === 'checkbox') el.checked = val;
+                else el.value = val || '';
+            }
+        }
+
         async function loadForm(id) {
             closeLoadModal();
             const loader = document.getElementById('loader');
             if (loader) loader.classList.remove('hidden');
             try {
+                console.log("📂 loadForm: Requesting ID", id);
                 const res = await callApi('getForm', { formId: id });
+                console.log("📥 loadForm: API Response", res);
+
                 if (res.status === 'success') {
                     applyLoadedForm(id, res.schema, res.config, res.metadata);
                 } else {
+                    console.warn("⚠️ loadForm: API error, checking localStorage", res.message);
                     const data = localStorage.getItem('form_' + id);
                     if (data) {
                         const parsed = JSON.parse(data);
@@ -3381,14 +3429,18 @@
                     }
                 }
             } catch (err) {
-                alert('Could not load form.');
+                console.error("❌ loadForm: Exception caught", err);
+                alert('Could not load form: ' + err.message);
             } finally {
                 if (loader) loader.classList.add('hidden');
             }
         }
 
         function applyLoadedForm(id, schema, config, metadata) {
+            console.log("🛠️ applyLoadedForm: Applying data for", id);
             metadata = metadata || {};
+            config = config || {};
+
             formConfig.id = id;
             formConfig.formName = config.formName || id;
             formConfig.description = metadata.description || "";
@@ -3399,51 +3451,66 @@
             formConfig.languagePrimary = config.languagePrimary || "en";
             formConfig.languageSecondary = config.languageSecondary || config.language || 'mr';
             formConfig.storageEngine = config.storageEngine || 'gas';
-            formConfig.firebaseConfig = metadata.firebaseConfig || "";
+            formConfig.firebaseConfig = config.firebaseConfig || metadata.firebaseConfig || "";
             formConfig.slug = config.slug || "";
             formConfig.customDomain = config.customDomain || "";
 
-            document.getElementById('propFormId').value = formConfig.id;
-            document.getElementById('propFormName').value = formConfig.formName;
-            document.getElementById('headerFormNameInput').value = formConfig.formName;
-            document.getElementById('propDescription').value = formConfig.description;
-            document.getElementById('propAllowedDomains').value = formConfig.allowedDomains;
-            document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
-            document.getElementById('propSheetName').value = formConfig.sheetName;
-            document.getElementById('propLanguagePrimary').value = formConfig.languagePrimary;
-            document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary;
-            document.getElementById('propStorageEngine').value = formConfig.storageEngine;
-            document.getElementById('propFirebaseConfig').value = formConfig.firebaseConfig;
-            document.getElementById('fieldFormSlug').value = formConfig.slug;
-            document.getElementById('propCustomDomain').value = formConfig.customDomain || "";
+            // CRITICAL FIX: Restore workspace context if available in metadata
+            if (metadata.workspaceId) {
+                formConfig.workspaceId = metadata.workspaceId;
+                console.log("🔗 Restored Workspace Context:", formConfig.workspaceId);
+            }
 
-            // Branding Fields Population
-            document.getElementById('propHeaderTitle').value = formConfig.headerTitle || '';
-            document.getElementById('propLogoIcon').value = formConfig.logoIcon || '📝';
-            document.getElementById('propLogoUrl').value = formConfig.logoUrl || '';
-            document.getElementById('propPunchline').value = formConfig.punchline || '';
-            document.getElementById('propBrandingDescription').value = formConfig.brandingDescription || '';
-            document.getElementById('propFooterText').value = formConfig.footerText || '';
-            document.getElementById('propDisplayMode').checked = (formConfig.displayMode === 'card');
+            // Mapping to DOM safely
+            safeSetValue('propFormId', formConfig.id);
+            safeSetValue('propFormName', formConfig.formName);
+            safeSetValue('headerFormNameInput', formConfig.formName);
+            safeSetValue('propDescription', formConfig.description);
+            safeSetValue('propAllowedDomains', formConfig.allowedDomains);
+            safeSetValue('propSheetUrl', formConfig.sheetUrl);
+            safeSetValue('propSheetName', formConfig.sheetName);
+            safeSetValue('propLanguagePrimary', formConfig.languagePrimary);
+            safeSetValue('propLanguageSecondary', formConfig.languageSecondary);
+            safeSetValue('propStorageEngine', formConfig.storageEngine);
+            safeSetValue('propFirebaseConfig', formConfig.firebaseConfig);
+            safeSetValue('fieldFormSlug', formConfig.slug);
+            safeSetValue('propCustomDomain', formConfig.customDomain);
 
-            updateCanvasBranding(); // Ensure canvas is updated
-            if (document.getElementById('sidebarCustomDomain')) document.getElementById('sidebarCustomDomain').value = formConfig.customDomain || "";
-            document.getElementById('portalSlug').value = portalConfig.slug || "";
-            if (document.getElementById('sidebarPortalSlug')) document.getElementById('sidebarPortalSlug').value = portalConfig.slug || "";
-            document.getElementById('headerFormId').innerText = formConfig.id;
+            // Branding Fields
+            safeSetValue('propHeaderTitle', formConfig.headerTitle || '');
+            safeSetValue('propLogoIcon', formConfig.logoIcon || '📝');
+            safeSetValue('propLogoUrl', formConfig.logoUrl || '');
+            safeSetValue('propPunchline', formConfig.punchline || '');
+            safeSetValue('propBrandingDescription', formConfig.brandingDescription || '');
+            safeSetValue('propFooterText', formConfig.footerText || '');
+
+            const modeEl = document.getElementById('propDisplayMode');
+            if (modeEl) modeEl.checked = (formConfig.displayMode === 'card');
+
+            updateCanvasBranding();
+
+            safeSetValue('sidebarCustomDomain', formConfig.customDomain);
+            safeSetValue('portalSlug', portalConfig.slug);
+            safeSetValue('sidebarPortalSlug', portalConfig.slug);
+
+            const headId = document.getElementById('headerFormId');
+            if (headId) headId.innerText = formConfig.id;
 
             toggleBackendConfig();
 
+            // Clear and Render Elements
             elements = [];
             canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
             (schema || []).forEach(elmData => {
                 elements.push(elmData);
                 renderElementDOM(elmData);
             });
+
             selectedIds = [];
             renderSelectionState();
             updatePropsPanel();
             updateFormLanguage();
+            console.log("✅ applyLoadedForm: Completed");
         }
 
         async function deleteTemplate(formId, formName) {
@@ -3630,7 +3697,8 @@
                     slug: slug,
                     customDomain: document.getElementById('propCustomDomain').value.trim(),
                     gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl,
-                    storageEngine: document.getElementById('propStorageEngine').value || formConfig.storageEngine
+                    storageEngine: document.getElementById('propStorageEngine').value || formConfig.storageEngine,
+                    firebaseConfig: document.getElementById('propFirebaseConfig').value || formConfig.firebaseConfig
                 }
             });
 
@@ -3642,6 +3710,7 @@
             if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
                 localStorage.setItem('gasApiUrl', document.getElementById('propApiUrl').value || formConfig.gasApiUrl);
                 localStorage.setItem('storageEngine', document.getElementById('propStorageEngine').value || formConfig.storageEngine);
+                localStorage.setItem('firebaseConfig', document.getElementById('propFirebaseConfig').value || formConfig.firebaseConfig);
                 alert("Portal Collection Updated Successfully!");
             } else {
                 alert("Error: " + res.message);
@@ -3685,13 +3754,19 @@
             const directArea = document.getElementById('directLinkArea');
             if (!modal || !area || !directArea) return;
 
+            // Populate Configuration Fields located in this modal
+            if (document.getElementById('propSheetUrl')) document.getElementById('propSheetUrl').value = formConfig.sheetUrl || "";
+            if (document.getElementById('propSheetName')) document.getElementById('propSheetName').value = formConfig.sheetName || "Form Responses";
+            if (document.getElementById('propCustomDomain')) document.getElementById('propCustomDomain').value = formConfig.customDomain || "";
+
             const apiInput = document.getElementById('propApiUrl');
             const currentApiSUrl = (apiInput ? apiInput.value.trim() : "") || formConfig.gasApiUrl;
+            const currentEngine = document.getElementById('propStorageEngine') ? document.getElementById('propStorageEngine').value : (formConfig.storageEngine || 'firebase');
 
-            if (!currentApiSUrl || currentApiSUrl.length < 20) {
-                alert("⚠️ Please enter your Google Script API URL in Settings first.");
-                showGlobalProps();
-                return;
+            // Only enforce GAS URL if we are actually using GAS engine
+            if (currentEngine === 'gas' && (!currentApiSUrl || currentApiSUrl.length < 20)) {
+                // Warning only - do not block
+                console.warn("⚠️ GAS API URL missing but engine is set to GAS.");
             }
 
             const currentHost = window.location.href.split('?')[0].split('#')[0].replace('index.html', '').replace(/\/$/, '');
@@ -3799,7 +3874,8 @@
                 languageSecondary: 'mr',
                 languageSecondary: 'mr',
                 gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl,
-                workspaceId: formConfig.workspaceId // Preserve Workspace Context
+                workspaceId: formConfig.workspaceId, // Preserve Workspace Context
+                storageEngine: 'firebase' // Default to Firebase for Templates (System DB)
             };
 
             // Reset Elements
@@ -3870,6 +3946,27 @@
         }
 
         initRulers();
+
+        // --- AUTO-LOAD LOGIC ---
+        // If an ID is passed in the URL, load that form automatically
+        (async function autoLoad() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const formId = urlParams.get('id');
+            if (formId) {
+                console.log("📂 Auto-loading Form ID:", formId);
+
+                // Safety: Wait for Firebase if needed
+                if (localStorage.getItem('storageEngine') === 'firebase') {
+                    for (let i = 0; i < 20; i++) {
+                        if (window.db) break;
+                        console.log("⏳ Auto-load: Waiting for Firebase db...");
+                        await new Promise(r => setTimeout(r, 250));
+                    }
+                }
+
+                await loadForm(formId);
+            }
+        })();
     </script>
 </body>
 

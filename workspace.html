@@ -162,6 +162,17 @@
             <div id="portalsList">
                 <div style="text-align:center; padding: 2rem; color: #999;">Loading portals...</div>
             </div>
+
+            <div
+                style="margin-top: 3rem; background: #fff; padding: 2rem; border-radius: 1rem; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin:0;">Developer: GAS Global Setup</h3>
+                    <button class="btn" style="background: #6366f1; font-size: 0.8rem; padding: 0.5rem 1rem;"
+                        onclick="openGasSnippet()">View API Code</button>
+                </div>
+                <p style="font-size: 0.85rem; color: #64748b;">To enable data storage in Google Sheets, each client or
+                    workspace needs a Google Apps Script bridge. Use the button above to copy the backend code.</p>
+            </div>
         </div>
 
     </main>
@@ -187,6 +198,155 @@
                 <button class="btn" style="background: transparent; color: var(--text-main);"
                     onclick="document.getElementById('portalModal').style.display='none'">Cancel</button>
                 <button class="btn" onclick="createPortal()">Create Portal</button>
+            </div>
+        </div>
+    </div>
+    <!-- SHARE PORTAL MODAL -->
+    <div id="shareModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:100;">
+        <div
+            style="background:white; padding:2rem; border-radius:1rem; width:550px; max-width:90%; max-height:90vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3 style="margin:0;">Share & Configure Portal</h3>
+                <span onclick="document.getElementById('shareModal').style.display='none'"
+                    style="font-size:1.5rem; cursor:pointer; line-height:1;">&times;</span>
+            </div>
+
+            <!-- TAB HEADERS -->
+            <div style="display:flex; border-bottom:1px solid var(--border); margin-bottom:1.5rem;">
+                <button class="tab-btn active" onclick="switchShareTab('link')" id="tabLink"
+                    style="padding:10px 20px; background:none; border:none; border-bottom:2px solid var(--primary); font-weight:600; cursor:pointer;">Share</button>
+                <button class="tab-btn" onclick="switchShareTab('config')" id="tabConfig"
+                    style="padding:10px 20px; background:none; border:none; border-bottom:2px solid transparent; color:#64748b; font-weight:600; cursor:pointer;">Configuration</button>
+            </div>
+
+            <!-- TAB 1: LINKS -->
+            <div id="share-link-content">
+                <div style="margin-bottom:1.5rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.9rem;">Option 1:
+                        Direct Link</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="shareDirectLink" readonly
+                            style="flex:1; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; background:#f8fafc; color:#475569;">
+                        <button class="btn" onclick="copyToClipboard('shareDirectLink')"
+                            style="padding:0 1rem;">Copy</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:1.5rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.9rem;">Option 2:
+                        Website Embed Code (Iframe)</label>
+                    <textarea id="shareEmbedCode" readonly rows="4"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; background:#f8fafc; font-family:monospace; color:#475569; resize:vertical;"></textarea>
+                    <button class="btn" onclick="copyToClipboard('shareEmbedCode')"
+                        style="width:100%; margin-top:0.5rem; background:#fff; color:var(--text-main); border:1px solid var(--border);">Copy
+                        HTML Code</button>
+                </div>
+            </div>
+
+            <!-- TAB 2: CONFIG -->
+            <div id="share-config-content" class="hidden">
+                <p style="font-size:0.85rem; color:#64748b; margin-bottom:1rem;">These settings apply to the newly
+                    collected data from this portal.</p>
+
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Portal
+                        Name</label>
+                    <input type="text" id="confPortalName" placeholder="My Organization Portal"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                </div>
+
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Google
+                        Sheet URL (Client Response Sheet)</label>
+                    <input type="text" id="confSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..."
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                </div>
+
+                <!-- GAS Script API URL moved to Admin Panel (Global Setting) -->
+
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Storage
+                        Engine</label>
+                    <select id="confStorageEngine" onchange="toggleConfFirebase(this.value)"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; background:white;">
+                        <option value="gas">Google Apps Script (Sheets)</option>
+                        <option value="firebase">Default - System Storage</option>
+                    </select>
+                </div>
+
+                <div id="confFirebaseArea" style="display:none; margin-bottom:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Firebase
+                        Config JSON</label>
+                    <textarea id="confFirebaseConfig" placeholder='{"apiKey": "...", ...}' rows="5"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; font-family:monospace; font-size:0.8rem;"></textarea>
+                </div>
+
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Custom
+                        Domain (Optional)</label>
+                    <input type="text" id="confCustomDomain" placeholder="https://portal.mycompany.com"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                </div>
+
+                <div style="text-align:right; margin-top:2rem;">
+                    <button id="btnSaveConfig" class="btn" onclick="savePortalConfig()">Save Changes</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FORM STORAGE MODAL -->
+    <div id="formStorageModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:110;">
+        <div style="background:white; padding:2rem; border-radius:1rem; width:450px; max-width:90%;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3 style="margin:0;">Form Storage Settings</h3>
+                <span onclick="document.getElementById('formStorageModal').style.display='none'"
+                    style="font-size:1.5rem; cursor:pointer; line-height:1;">&times;</span>
+            </div>
+            <p style="font-size:0.85rem; color:#64748b; margin-bottom:1.5rem;">Configure where responses for <strong
+                    id="storageFormName">this form</strong> are stored.</p>
+
+            <div style="margin-bottom:1.2rem;">
+                <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Google Sheet URL
+                    (Target)</label>
+                <input type="text" id="formSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..."
+                    style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:1.5rem;">
+                <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Worksheet Name
+                    (e.g. Sheet1)</label>
+                <input type="text" id="formSheetName" placeholder="Form Responses"
+                    style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; box-sizing:border-box;">
+            </div>
+
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button class="btn"
+                    style="background:transparent; color:var(--text-main); border:1px solid var(--border);"
+                    onclick="document.getElementById('formStorageModal').style.display='none'">Cancel</button>
+                <button id="btnSaveFormStorage" class="btn" onclick="saveFormStorage()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAS SETUP SNIPPET MODAL -->
+    <div id="gasSnippetModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:120;">
+        <div
+            style="background:white; padding:2rem; border-radius:1rem; width:600px; max-width:95%; max-height:80vh; overflow-y:auto;">
+            <h3 style="margin:0 0 1rem 0;">GAS Setup Instructions</h3>
+            <p style="font-size:0.9rem; color:#64748b; margin-bottom:1rem;">Copy this code to your Google Apps Script
+                editor to enable data storage for your clients.</p>
+            <textarea id="gasSnippetText" readonly rows="12"
+                style="width:100%; font-family:monospace; font-size:0.8rem; padding:10px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; margin-bottom:1rem;"></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn"
+                    style="background:transparent; color:var(--text-main); border:1px solid var(--border);"
+                    onclick="document.getElementById('gasSnippetModal').style.display='none'">Close</button>
+                <button class="btn" onclick="copyToClipboard('gasSnippetText')">Copy Code</button>
             </div>
         </div>
     </div>
@@ -289,6 +449,7 @@
                     </div>
                     <div>
                          <a href="portal-designer.html?id=${p.id}&workspaceId=${workspaceId}" class="btn" style="background:var(--surface-alt); color:var(--text-main); border:1px solid var(--border);">Design</a>
+                         <button onclick="openShareModal('${p.id}', '${p.slug}')" class="btn" style="background:var(--surface-alt); color:var(--text-main); border:1px solid var(--border);">Share / Embed</button>
                          <a href="portal.html?p=${p.slug}" target="_blank" class="btn" style="background:#fff; color:var(--primary); border:1px solid var(--border);">Visit</a>
                     </div>
                 </div>
@@ -302,19 +463,23 @@
                 return;
             }
 
-            list.innerHTML = forms.map(f => `
+            list.innerHTML = forms.map(f => {
+                const config = f.config || {};
+                const hasStorage = config.targetSheetUrl ? '✅' : '⚙️';
+                return `
                 <div class="list-item">
                     <div>
-                        <h4>${f.config?.formName || f.id}</h4>
+                        <h4>${config.formName || f.id}</h4>
                         <p>ID: ${f.id} • Updated: ${new Date(f.lastUpdated || 0).toLocaleDateString()}</p>
                     </div>
-                    <div>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="openFormStorageModal('${f.id}', '${(config.formName || f.id).replace(/'/g, "\\'")}')" class="btn" style="background:var(--surface-alt); color:var(--text-main); border:1px solid var(--border); padding: 0.75rem 1rem;" title="Configure Storage">${hasStorage} Storage</button>
                         <a href="index.html?id=${f.id}&workspaceId=${workspaceId}" class="btn" style="background:var(--surface-alt); color:var(--text-main); border:1px solid var(--border);">Edit</a>
                         <a href="viewer.html?view=form&id=${f.id}" target="_blank" class="btn" style="background:#fff; color:var(--primary); border:1px solid var(--border);">Preview</a>
                         <button onclick="disconnectForm('${f.id}')" class="btn" style="background:#fee2e2; color:#ef4444; border:none;">Remove</button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         async function disconnectForm(formId) {
@@ -340,13 +505,13 @@
             if (!name || !slug) return alert("Please fill all fields");
 
             try {
-                // Check slug uniqueness (basic check)
-                const check = await db.collection('portals').where('slug', '==', slug).get();
-                if (!check.empty) {
+                // Check slug uniqueness (Instant ID check - NO INDEX NEEDED)
+                const check = await db.collection('portals').doc(slug).get();
+                if (check.exists) {
                     return alert("This URL slug is already taken. Please choose another.");
                 }
 
-                await db.collection('portals').add({
+                await db.collection('portals').doc(slug).set({
                     name: name,
                     slug: slug,
                     workspaceId: workspaceId,
@@ -369,6 +534,208 @@
             document.getElementById('view-portals').classList.add('hidden');
 
             document.getElementById('view-' + view).classList.remove('hidden');
+        }
+
+        // --- SHARE MODAL LOGIC ---
+        function toggleConfFirebase(val) {
+            document.getElementById('confFirebaseArea').style.display = (val === 'firebase') ? 'block' : 'none';
+        }
+
+        let currentPortalIdForConfig = null;
+
+        async function openShareModal(portalId, slug) {
+            currentPortalIdForConfig = portalId;
+
+
+            const modal = document.getElementById('shareModal');
+            const linkInput = document.getElementById('shareDirectLink');
+            const embedInput = document.getElementById('shareEmbedCode');
+
+            // 1. Generate URLs
+            const baseUrl = window.location.href.split('?')[0].replace('workspace.html', 'portal.html').replace(/\/$/, '');
+            const fullLink = `${baseUrl}?p=${slug}`;
+
+            linkInput.value = fullLink;
+            embedInput.value = `<iframe src="${fullLink}" width="100%" height="800" frameborder="0"></iframe>`;
+
+            // 2. Load Existing Config
+            document.getElementById('confPortalName').value = 'Loading...';
+            document.getElementById('confSheetUrl').value = 'Loading...';
+            // GAS API URL is now global (admin-only), not per-portal
+            document.getElementById('confStorageEngine').value = 'gas';
+            document.getElementById('confFirebaseConfig').value = '';
+            toggleConfFirebase('gas');
+
+            modal.style.display = 'flex';
+
+            try {
+                const doc = await db.collection('portals').doc(portalId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('confPortalName').value = data.name || '';
+                    const cfg = data.config || {};
+                    document.getElementById('confSheetUrl').value = cfg.sheetUrl || '';
+                    // GAS API URL is now global (admin-only), not per-portal
+                    document.getElementById('confCustomDomain').value = cfg.customDomain || '';
+
+                    if (cfg.storageEngine) {
+                        document.getElementById('confStorageEngine').value = cfg.storageEngine;
+                        toggleConfFirebase(cfg.storageEngine);
+                    }
+                    if (cfg.firebaseConfig) {
+                        document.getElementById('confFirebaseConfig').value = (typeof cfg.firebaseConfig === 'object') ? JSON.stringify(cfg.firebaseConfig, null, 2) : cfg.firebaseConfig;
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load config", e);
+                document.getElementById('confSheetUrl').value = '';
+            }
+        }
+
+        async function savePortalConfig() {
+            if (!currentPortalIdForConfig) return;
+            const btn = document.getElementById('btnSaveConfig');
+            btn.innerText = "Saving...";
+
+            let firebaseConfig = document.getElementById('confFirebaseConfig').value.trim();
+            if (firebaseConfig) {
+                try {
+                    firebaseConfig = JSON.parse(firebaseConfig);
+                } catch (e) {
+                    alert("Invalid Firebase Config JSON format");
+                    btn.innerText = "Save Changes";
+                    return;
+                }
+            }
+
+            try {
+                await db.collection('portals').doc(currentPortalIdForConfig).update({
+                    'name': document.getElementById('confPortalName').value.trim(),
+                    'config.sheetUrl': document.getElementById('confSheetUrl').value.trim(),
+                    // GAS API URL is now global (admin-only), not saved per-portal
+                    'config.customDomain': document.getElementById('confCustomDomain').value.trim(),
+                    'config.storageEngine': document.getElementById('confStorageEngine').value,
+                    'config.firebaseConfig': firebaseConfig
+                });
+                alert("Configuration Saved!");
+                loadPortals(); // Refresh list to see name changes
+            } catch (e) {
+                alert("Error saving: " + e.message);
+            } finally {
+                btn.innerText = "Save Changes";
+            }
+        }
+
+        // --- FORM STORAGE LOGIC ---
+        let currentFormIdForStorage = null;
+
+        async function openFormStorageModal(formId, formName) {
+            currentFormIdForStorage = formId;
+            document.getElementById('storageFormName').innerText = formName;
+            const modal = document.getElementById('formStorageModal');
+
+            document.getElementById('formSheetUrl').value = 'Loading...';
+            document.getElementById('formSheetName').value = 'Loading...';
+            modal.style.display = 'flex';
+
+            try {
+                const doc = await db.collection('forms').doc(formId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    const cfg = data.config || {};
+                    document.getElementById('formSheetUrl').value = cfg.targetSheetUrl || '';
+                    document.getElementById('formSheetName').value = cfg.targetSheetName || '';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveFormStorage() {
+            if (!currentFormIdForStorage) return;
+            const btn = document.getElementById('btnSaveFormStorage');
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            try {
+                await db.collection('forms').doc(currentFormIdForStorage).update({
+                    'config.targetSheetUrl': document.getElementById('formSheetUrl').value.trim(),
+                    'config.targetSheetName': document.getElementById('formSheetName').value.trim()
+                });
+                document.getElementById('formStorageModal').style.display = 'none';
+                loadForms();
+            } catch (e) {
+                alert("Error: " + e.message);
+            } finally {
+                btn.innerText = "Save Settings";
+                btn.disabled = false;
+            }
+        }
+
+        function openGasSnippet() {
+            const modal = document.getElementById('gasSnippetModal');
+            document.getElementById('gasSnippetText').value = `/**
+ * DYNAMIC FORM BUILDER: CLIENT BACKEND
+ * Paste this into Google Apps Script and Deploy as Web App (Anyone)
+ */
+
+function doPost(e) {
+    try {
+        const p = JSON.parse(e.postData.contents);
+        if (p.action === 'submitForm') return submitForm(p);
+        return ContentService.createTextOutput("Invalid Action");
+    } catch(err) { return ContentService.createTextOutput(err.toString()); }
+}
+
+function submitForm(p) {
+    const ss = SpreadsheetApp.openByUrl(p.targetSheetUrl);
+    let s = ss.getSheetByName(p.targetSheetName || "Responses");
+    if (!s) s = ss.insertSheet(p.targetSheetName || "Responses");
+
+    const data = p.formData;
+    if (!data.Timestamp) data.Timestamp = new Date();
+    
+    const headers = s.getRange(1, 1, 1, Math.max(s.getLastColumn(), 1)).getValues()[0].filter(Boolean);
+    const newHeaders = Object.keys(data).filter(k => !headers.includes(k));
+
+    if (newHeaders.length > 0) {
+        s.getRange(1, headers.length + 1, 1, newHeaders.length).setValues([newHeaders]);
+        headers.push(...newHeaders);
+    }
+
+    const row = headers.map(h => data[h] || '');
+    s.appendRow(row);
+    return ContentService.createTextOutput(JSON.stringify({status:"success"})).setMimeType(ContentService.MimeType.JSON);
+}`;
+            modal.style.display = 'flex';
+        }
+
+        function switchShareTab(tab) {
+            const tabLink = document.getElementById('tabLink');
+            const tabConfig = document.getElementById('tabConfig');
+            const contentLink = document.getElementById('share-link-content');
+            const contentConfig = document.getElementById('share-config-content');
+
+            if (tab === 'link') {
+                tabLink.style.borderBottomColor = 'var(--primary)';
+                tabLink.style.color = 'var(--text-main)';
+                tabConfig.style.borderBottomColor = 'transparent';
+                tabConfig.style.color = '#64748b';
+                contentLink.classList.remove('hidden');
+                contentConfig.classList.add('hidden');
+            } else {
+                tabConfig.style.borderBottomColor = 'var(--primary)';
+                tabConfig.style.color = 'var(--text-main)';
+                tabLink.style.borderBottomColor = 'transparent';
+                tabLink.style.color = '#64748b';
+                contentLink.classList.add('hidden');
+                contentConfig.classList.remove('hidden');
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const el = document.getElementById(elementId);
+            el.select();
+            document.execCommand('copy');
+            alert("Copied to clipboard!");
         }
 
         init();

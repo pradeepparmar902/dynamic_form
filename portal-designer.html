@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Designer - Dynamic Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-light: #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--surface-alt);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin: 0;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .form-list {
+            list-style: none;
+            padding: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+        }
+
+        .form-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            gap: 1rem;
+        }
+
+        .form-item:last-child {
+            border-bottom: none;
+        }
+
+        .form-info {
+            flex: 1;
+        }
+
+        .form-name {
+            font-weight: 600;
+        }
+
+        .form-id {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--text-light);
+            padding: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside class="sidebar">
+        <h2 style="font-size: 1.25rem; margin-bottom: 2rem;">Portal Designer</h2>
+        <div style="margin-bottom: 1rem;">
+            <label style="font-size: 0.75rem; color: var(--text-light); font-weight: 600;">ACTIVE PORTAL</label>
+            <div id="portalNameDisplay" style="font-weight: 500; margin-top: 0.25rem;">Loading...</div>
+            <div id="portalSlugDisplay" style="font-size: 0.8rem; color: var(--primary); margin-top: 0.25rem;">...</div>
+        </div>
+        <div style="margin-top: auto;">
+            <button class="btn btn-outline" style="width: 100%; margin-bottom: 0.5rem;" onclick="goBack()">Back to
+                Workspace</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="header">
+            <div>
+                <h1>Manage Portal Content</h1>
+                <p style="color: var(--text-light);">Select forms to display in this portal.</p>
+            </div>
+            <button class="btn" onclick="savePortalConfig()">Save Changes</button>
+        </div>
+
+        <div id="contentArea">
+            <div class="loading">Loading forms...</div>
+        </div>
+    </main>
+
+    <script>
+        // FIREBASE INIT
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+            authDomain: "buildform-e7d3b.firebaseapp.com",
+            projectId: "buildform-e7d3b",
+            storageBucket: "buildform-e7d3b.firebasestorage.app",
+            messagingSenderId: "1010258612784",
+            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+            measurementId: "G-L217Q3WM0G"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // PARAMS
+        const urlParams = new URLSearchParams(window.location.search);
+        const workspaceId = urlParams.get('workspaceId');
+        const portalId = urlParams.get('id');
+
+        // STATE
+        let allForms = [];
+        let portalData = null;
+
+        // INIT
+        async function init() {
+            if (!workspaceId || !portalId) {
+                alert("Missing ID parameters");
+                return;
+            }
+
+            try {
+                // 1. Fetch Portal Details
+                const pDoc = await db.collection('portals').doc(portalId).get();
+                if (!pDoc.exists) return alert("Portal not found");
+                portalData = { id: pDoc.id, ...pDoc.data() };
+
+                document.getElementById('portalNameDisplay').innerText = portalData.name;
+                document.getElementById('portalSlugDisplay').innerText = '/portal.html?p=' + portalData.slug;
+
+                // 2. Fetch Workspace Forms
+                const fSnap = await db.collection('forms').get(); // Client-side filter for now
+                allForms = [];
+                fSnap.forEach(doc => {
+                    const d = doc.data();
+                    if ((d.metadata && d.metadata.workspaceId === workspaceId)) {
+                        allForms.push({ id: doc.id, ...d });
+                    }
+                });
+
+                renderList();
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('contentArea').innerHTML = `Error: ${e.message}`;
+            }
+        }
+
+        function renderList() {
+            const attachedIds = new Set((portalData.attachedForms || []).map(f => f.formId));
+            const attachedConfig = {};
+            (portalData.attachedForms || []).forEach(f => attachedConfig[f.formId] = f);
+
+            const container = document.getElementById('contentArea');
+
+            // Combine all valid forms AND any attached forms that are missing (so we can show them as errors)
+            const validFormIds = new Set(allForms.map(f => f.id));
+            const missingForms = (portalData.attachedForms || []).filter(f => !validFormIds.has(f.formId));
+
+            if (allForms.length === 0 && missingForms.length === 0) {
+                container.innerHTML = '<div class="loading">No forms found in this workspace.</div>';
+                return;
+            }
+
+            let html = '<ul class="form-list">';
+
+            // 1. Render Missing Forms (Errors) First
+            if (missingForms.length > 0) {
+                html += missingForms.map(f => `
+                    <li class="form-item" style="background: #fff5f5; border-left: 4px solid #ef4444;">
+                        <input type="checkbox" class="form-check" data-id="${f.formId}" style="width: 20px; height: 20px; accent-color: #ef4444;">
+                        <div class="form-info">
+                            <div class="form-name" style="color: #b91c1c;">⚠️ Broken Link: ${f.label || f.formId}</div>
+                            <div class="form-id" style="color: #ef4444;">ID: ${f.formId} (Not found)</div>
+                            <div style="font-size: 0.7rem; color: #b91c1c; margin-top: 4px;">Link will be removed upon saving.</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; opacity: 0.5; pointer-events: none;">
+                            <label style="font-size: 0.8rem; color: var(--text-light);">Order:</label>
+                            <input type="number" class="form-order" value="${f.order || 0}" style="width: 60px; padding: 0.25rem;">
+                        </div>
+                    </li>
+                `).join('');
+            }
+
+            // 2. Render Valid Forms
+            html += allForms.map(form => {
+                const isChecked = attachedIds.has(form.id);
+                const order = isChecked ? (attachedConfig[form.id].order || 0) : 0;
+                return `
+                    <li class="form-item">
+                        <input type="checkbox" class="form-check" data-id="${form.id}" ${isChecked ? 'checked' : ''} style="width: 20px; height: 20px;">
+                        <div class="form-info">
+                            <div class="form-name">${form.config?.formName || form.id}</div>
+                            <div class="form-id">${form.id}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <label style="font-size: 0.8rem; color: var(--text-light);">Order:</label>
+                            <input type="number" class="form-order" data-id="${form.id}" value="${order}" style="width: 60px; padding: 0.25rem;">
+                        </div>
+                    </li>
+                    `;
+            }).join('');
+
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+
+        async function savePortalConfig() {
+            const checks = document.querySelectorAll('.form-check:checked');
+            const attachedForms = [];
+
+            checks.forEach(chk => {
+                const id = chk.dataset.id;
+                const orderInput = document.querySelector(`.form-order[data-id="${id}"]`);
+                attachedForms.push({
+                    formId: id,
+                    order: parseInt(orderInput.value) || 0,
+                    label: allForms.find(f => f.id === id).config?.formName || "Untitled"
+                });
+            });
+
+            // Sort by order
+            attachedForms.sort((a, b) => a.order - b.order);
+
+            const btn = document.querySelector('button[onclick="savePortalConfig()"]');
+            const txt = btn.innerText;
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            try {
+                await db.collection('portals').doc(portalId).update({
+                    attachedForms: attachedForms,
+                    lastUpdated: Date.now()
+                });
+                alert("✅ Portal Updated Successfully!");
+            } catch (e) {
+                alert("Error saving: " + e.message);
+            } finally {
+                btn.innerText = txt;
+                btn.disabled = false;
+            }
+        }
+
+        function goBack() {
+            window.location.href = `workspace.html?id=${workspaceId}`;
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
