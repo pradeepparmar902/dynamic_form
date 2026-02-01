@@ -732,8 +732,9 @@
                     const timeout = new Promise((_, reject) =>
                         setTimeout(() => reject(new Error("Form fetch timed out (10s)")), 10000)
                     );
-                    const fullUrl = `${API_URL}?action=getForm&id=${encodeURIComponent(id)}`;
-                    const fetchPromise = fetch(fullUrl).then(r => r.json());
+                    // Add cache buster to prevent stale redirects
+                    const fullUrl = `${API_URL}?action=getForm&id=${encodeURIComponent(id)}&_cb=${Date.now()}`;
+                    const fetchPromise = fetch(fullUrl, { cache: 'no-store' }).then(r => r.json());
                     res = await Promise.race([fetchPromise, timeout]);
                 }
 
@@ -750,13 +751,13 @@
 
                 let debugInfo = "";
                 if (backend === 'gas') {
-                    const testUrl = `${API_URL}?action=getForm&id=${encodeURIComponent(id)}`;
+                    const testUrl = `${API_URL}?action=getForm&id=${encodeURIComponent(id)}&_cb=${Date.now()}`;
                     debugInfo = `<div style="margin-top:10px; font-size:0.75rem; color:#94a3b8; word-break:break-all;">
                         <b>Diagnostic Report:</b><br>
                         Backend: GAS<br>
-                        Attempted URL: <a href="${testUrl}" target="_blank" style="color:#3b82f6;">Click to Test API Link</a><br>
+                        Attempted URL: <a href="${testUrl}" target="_blank" style="color:#3b82f6;">Click to Reveal Status</a><br>
                         Error: ${err.message}
-                        <p style="margin-top:8px; color:#64748b;">If the link above shows a JSON error, the API is reachable but the form ID might be wrong. If it says "Not Found" or "Access Denied", check your GAS Deployment settings.</p>
+                        <p style="margin-top:8px; color:#64748b;">If the link above shows "status: success", your browser is blocking the automatic connection. Try clicking the "Deep Reset" button below.</p>
                     </div>`;
                 } else {
                     debugInfo = `<div style="margin-top:10px; font-size:0.7rem; color:#94a3b8;">
@@ -772,7 +773,11 @@
                         <h3 style="margin-bottom:5px;">Failed to Load Form</h3>
                         <p style="color:#64748b; font-size:0.9rem;">${err.message || "Failed to fetch"}</p>
                         ${debugInfo}
-                        <button class="btn btn-outline" style="margin-top:15px; display:inline-flex;" onclick="fetchForm('${id}')">Retry</button>
+                        <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+                            <button class="btn" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;" onclick="fetchForm('${id}')">Retry Loading</button>
+                            <button class="btn btn-outline" style="padding:10px 20px; border-radius:8px;" onclick="deepReset()">Deep Reset (Fix Redirects)</button>
+                        </div>
+                    </div>
                     </div>
                 `;
             }
@@ -954,6 +959,15 @@
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
+            }
+        }
+
+        function deepReset() {
+            if (confirm("This will clear your local connection cache and refresh the portal. Continue?")) {
+                localStorage.clear();
+                sessionStorage.clear();
+                // Force reload ignoring cache
+                window.location.reload(true);
             }
         }
 
