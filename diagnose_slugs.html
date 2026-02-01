@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Diagnostic</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+        }
+
+        li {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+
+        .exists {
+            color: green;
+        }
+
+        .missing {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Processing Portal Diagnosis...</h1>
+    <div id="results">Scanning...</div>
+    <script>
+        const config = {
+            apiKey: "AIzaSyCVnpnzTntQbfkCe_P09wSswjCKB8XnUcM",
+            authDomain: "buildform-e7d3b.firebaseapp.com",
+            projectId: "buildform-e7d3b",
+            storageBucket: "buildform-e7d3b.firebasestorage.app",
+            messagingSenderId: "1010258612784",
+            appId: "1:1010258612784:web:4c076c1df63e98e19b93f5",
+            measurementId: "G-L217Q3WM0G"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(config);
+        }
+        const db = firebase.firestore();
+
+        async function run() {
+            try {
+                const slug = 'first-portal';
+                const snap = await db.collection('portals').where('slug', '==', slug).get();
+                let out = `<h3>Found ${snap.size} portal(s) with slug '${slug}'</h3><ul>`;
+
+                const checks = snap.docs.map(async doc => {
+                    const d = doc.data();
+                    let status = `<li><strong>Portal ID:</strong> ${doc.id}<br><strong>Name:</strong> ${d.name}<br><strong>Forms Count:</strong> ${(d.attachedForms || []).length}`;
+
+                    // Check all forms
+                    const forms = d.attachedForms || [];
+                    if (forms.length > 0) {
+                        status += '<br><strong>Attached Forms Status:</strong><ul style="margin-top:5px;">';
+                        for (const f of forms) {
+                            const fid = f.formId || f.id;
+                            try {
+                                const fdoc = await db.collection('forms').doc(fid).get();
+                                status += `<li>ID: ${fid} - ${fdoc.exists ? '<span class="exists">EXISTS</span>' : '<span class="missing">MISSING (Orphaned)</span>'}</li>`;
+                            } catch (err) {
+                                status += `<li>ID: ${fid} - <span class="missing">ERROR: ${err.message}</span></li>`;
+                            }
+                        }
+                        status += '</ul>';
+                    } else {
+                        status += '<br><em>No attached forms.</em>';
+                    }
+                    status += '</li>';
+                    return status;
+                });
+
+                const results = await Promise.all(checks);
+                out += results.join('');
+                out += '</ul>';
+
+                document.getElementById('results').innerHTML = out;
+            } catch (e) {
+                document.getElementById('results').innerHTML = '<h2 style="color:red">Error: ' + e.message + '</h2>';
+            }
+        }
+        run();
+    </script>
+</body>
+
+</html>
