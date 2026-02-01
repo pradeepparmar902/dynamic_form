@@ -658,9 +658,10 @@
                 currentState.config = res.config || {};
 
                 // Cache the initial form if provided by the batch loader
-                if (res.initialForm && res.initialForm.id) {
-                    console.log("📦 Portal: Pre-caching initial form:", res.initialForm.id);
-                    currentState.formCache[res.initialForm.id] = {
+                if (res.initialForm && (res.initialForm.id || res.initialForm.formId)) {
+                    const cachedId = res.initialForm.id || res.initialForm.formId;
+                    console.log("📦 Portal: Pre-caching initial form:", cachedId);
+                    currentState.formCache[cachedId] = {
                         status: 'success',
                         schema: res.initialForm.schema,
                         config: res.initialForm.config
@@ -789,6 +790,7 @@
                         <div style="color:#ef4444; font-size:2rem; margin-bottom:10px;">⚠️</div>
                         <h3 style="margin-bottom:5px;">Failed to Load Form</h3>
                         <p style="color:#64748b; font-size:0.9rem;">${err.message || "Failed to fetch"}</p>
+                        <p style="font-size:0.75rem; color:var(--text-light); margin-bottom:10px;">Attempted ID: <b>${id}</b></p>
                         ${debugInfo}
                         <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
                             <button class="btn" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;" onclick="fetchForm('${id}')">Retry Loading</button>
