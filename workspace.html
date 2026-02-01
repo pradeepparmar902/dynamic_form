@@ -263,12 +263,7 @@
                         style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
                 </div>
 
-                <div style="margin-bottom:1rem;">
-                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Google
-                        Script API URL</label>
-                    <input type="text" id="confGasUrl" placeholder="https://script.google.com/macros/s/..."
-                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
-                </div>
+                <!-- GAS Script API URL moved to Admin Panel (Global Setting) -->
 
                 <div style="margin-bottom:1rem;">
                     <label style="display:block; margin-bottom:0.5rem; font-weight:600; font-size:0.85rem;">Storage
@@ -276,7 +271,7 @@
                     <select id="confStorageEngine" onchange="toggleConfFirebase(this.value)"
                         style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; background:white;">
                         <option value="gas">Google Apps Script (Sheets)</option>
-                        <option value="firebase">Firebase Firestore</option>
+                        <option value="firebase">Default - System Storage</option>
                     </select>
                 </div>
 
@@ -566,7 +561,7 @@
             // 2. Load Existing Config
             document.getElementById('confPortalName').value = 'Loading...';
             document.getElementById('confSheetUrl').value = 'Loading...';
-            document.getElementById('confGasUrl').value = 'Loading...';
+            // GAS API URL is now global (admin-only), not per-portal
             document.getElementById('confStorageEngine').value = 'gas';
             document.getElementById('confFirebaseConfig').value = '';
             toggleConfFirebase('gas');
@@ -580,7 +575,7 @@
                     document.getElementById('confPortalName').value = data.name || '';
                     const cfg = data.config || {};
                     document.getElementById('confSheetUrl').value = cfg.sheetUrl || '';
-                    document.getElementById('confGasUrl').value = cfg.gasApiUrl || '';
+                    // GAS API URL is now global (admin-only), not per-portal
                     document.getElementById('confCustomDomain').value = cfg.customDomain || '';
 
                     if (cfg.storageEngine) {
@@ -617,7 +612,7 @@
                 await db.collection('portals').doc(currentPortalIdForConfig).update({
                     'name': document.getElementById('confPortalName').value.trim(),
                     'config.sheetUrl': document.getElementById('confSheetUrl').value.trim(),
-                    'config.gasApiUrl': document.getElementById('confGasUrl').value.trim(),
+                    // GAS API URL is now global (admin-only), not saved per-portal
                     'config.customDomain': document.getElementById('confCustomDomain').value.trim(),
                     'config.storageEngine': document.getElementById('confStorageEngine').value,
                     'config.firebaseConfig': firebaseConfig
