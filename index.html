@@ -3395,15 +3395,27 @@
             `).join('');
         }
 
+        function safeSetValue(id, val) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el.type === 'checkbox') el.checked = val;
+                else el.value = val || '';
+            }
+        }
+
         async function loadForm(id) {
             closeLoadModal();
             const loader = document.getElementById('loader');
             if (loader) loader.classList.remove('hidden');
             try {
+                console.log("📂 loadForm: Requesting ID", id);
                 const res = await callApi('getForm', { formId: id });
+                console.log("📥 loadForm: API Response", res);
+
                 if (res.status === 'success') {
                     applyLoadedForm(id, res.schema, res.config, res.metadata);
                 } else {
+                    console.warn("⚠️ loadForm: API error, checking localStorage", res.message);
                     const data = localStorage.getItem('form_' + id);
                     if (data) {
                         const parsed = JSON.parse(data);
@@ -3413,14 +3425,18 @@
                     }
                 }
             } catch (err) {
-                alert('Could not load form.');
+                console.error("❌ loadForm: Exception caught", err);
+                alert('Could not load form: ' + err.message);
             } finally {
                 if (loader) loader.classList.add('hidden');
             }
         }
 
         function applyLoadedForm(id, schema, config, metadata) {
+            console.log("🛠️ applyLoadedForm: Applying data for", id);
             metadata = metadata || {};
+            config = config || {};
+
             formConfig.id = id;
             formConfig.formName = config.formName || id;
             formConfig.description = metadata.description || "";
@@ -3435,47 +3451,56 @@
             formConfig.slug = config.slug || "";
             formConfig.customDomain = config.customDomain || "";
 
-            document.getElementById('propFormId').value = formConfig.id;
-            document.getElementById('propFormName').value = formConfig.formName;
-            document.getElementById('headerFormNameInput').value = formConfig.formName;
-            document.getElementById('propDescription').value = formConfig.description;
-            document.getElementById('propAllowedDomains').value = formConfig.allowedDomains;
-            document.getElementById('propSheetUrl').value = formConfig.sheetUrl;
-            document.getElementById('propSheetName').value = formConfig.sheetName;
-            document.getElementById('propLanguagePrimary').value = formConfig.languagePrimary;
-            document.getElementById('propLanguageSecondary').value = formConfig.languageSecondary;
-            document.getElementById('propStorageEngine').value = formConfig.storageEngine;
-            document.getElementById('propFirebaseConfig').value = formConfig.firebaseConfig;
-            document.getElementById('fieldFormSlug').value = formConfig.slug;
-            document.getElementById('propCustomDomain').value = formConfig.customDomain || "";
+            // Mapping to DOM safely
+            safeSetValue('propFormId', formConfig.id);
+            safeSetValue('propFormName', formConfig.formName);
+            safeSetValue('headerFormNameInput', formConfig.formName);
+            safeSetValue('propDescription', formConfig.description);
+            safeSetValue('propAllowedDomains', formConfig.allowedDomains);
+            safeSetValue('propSheetUrl', formConfig.sheetUrl);
+            safeSetValue('propSheetName', formConfig.sheetName);
+            safeSetValue('propLanguagePrimary', formConfig.languagePrimary);
+            safeSetValue('propLanguageSecondary', formConfig.languageSecondary);
+            safeSetValue('propStorageEngine', formConfig.storageEngine);
+            safeSetValue('propFirebaseConfig', formConfig.firebaseConfig);
+            safeSetValue('fieldFormSlug', formConfig.slug);
+            safeSetValue('propCustomDomain', formConfig.customDomain);
 
-            // Branding Fields Population
-            document.getElementById('propHeaderTitle').value = formConfig.headerTitle || '';
-            document.getElementById('propLogoIcon').value = formConfig.logoIcon || '📝';
-            document.getElementById('propLogoUrl').value = formConfig.logoUrl || '';
-            document.getElementById('propPunchline').value = formConfig.punchline || '';
-            document.getElementById('propBrandingDescription').value = formConfig.brandingDescription || '';
-            document.getElementById('propFooterText').value = formConfig.footerText || '';
-            document.getElementById('propDisplayMode').checked = (formConfig.displayMode === 'card');
+            // Branding Fields
+            safeSetValue('propHeaderTitle', formConfig.headerTitle || '');
+            safeSetValue('propLogoIcon', formConfig.logoIcon || '📝');
+            safeSetValue('propLogoUrl', formConfig.logoUrl || '');
+            safeSetValue('propPunchline', formConfig.punchline || '');
+            safeSetValue('propBrandingDescription', formConfig.brandingDescription || '');
+            safeSetValue('propFooterText', formConfig.footerText || '');
 
-            updateCanvasBranding(); // Ensure canvas is updated
-            if (document.getElementById('sidebarCustomDomain')) document.getElementById('sidebarCustomDomain').value = formConfig.customDomain || "";
-            document.getElementById('portalSlug').value = portalConfig.slug || "";
-            if (document.getElementById('sidebarPortalSlug')) document.getElementById('sidebarPortalSlug').value = portalConfig.slug || "";
-            document.getElementById('headerFormId').innerText = formConfig.id;
+            const modeEl = document.getElementById('propDisplayMode');
+            if (modeEl) modeEl.checked = (formConfig.displayMode === 'card');
+
+            updateCanvasBranding();
+
+            safeSetValue('sidebarCustomDomain', formConfig.customDomain);
+            safeSetValue('portalSlug', portalConfig.slug);
+            safeSetValue('sidebarPortalSlug', portalConfig.slug);
+
+            const headId = document.getElementById('headerFormId');
+            if (headId) headId.innerText = formConfig.id;
 
             toggleBackendConfig();
 
+            // Clear and Render Elements
             elements = [];
             canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
             (schema || []).forEach(elmData => {
                 elements.push(elmData);
                 renderElementDOM(elmData);
             });
+
             selectedIds = [];
             renderSelectionState();
             updatePropsPanel();
             updateFormLanguage();
+            console.log("✅ applyLoadedForm: Completed");
         }
 
         async function deleteTemplate(formId, formName) {
@@ -3917,6 +3942,16 @@
             const formId = urlParams.get('id');
             if (formId) {
                 console.log("📂 Auto-loading Form ID:", formId);
+
+                // Safety: Wait for Firebase if needed
+                if (localStorage.getItem('storageEngine') === 'firebase') {
+                    for (let i = 0; i < 20; i++) {
+                        if (window.db) break;
+                        console.log("⏳ Auto-load: Waiting for Firebase db...");
+                        await new Promise(r => setTimeout(r, 250));
+                    }
+                }
+
                 await loadForm(formId);
             }
         })();
