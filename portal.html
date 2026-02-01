@@ -428,6 +428,24 @@
         const HARDCODED_API_URL = "";
         // -------------------------------------------------------------------------
 
+        // GLOBAL ERROR HANDLER - NEVER HANG
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            console.error("💥 Critical Runtime Error:", msg, error);
+            const loader = document.getElementById('loader');
+            if (loader) {
+                loader.innerHTML = `
+                    <div style="text-align:center; padding:20px; color:#ef4444; background: #fff1f2; border: 1px solid #fda4af; border-radius: 8px; margin: 20px;">
+                        <h3 style="margin:0 0 10px 0;">Application Error</h3>
+                        <p style="font-size:0.9rem; color:#b91c1c;">${msg}</p>
+                        <p style="font-size:0.75rem; margin-top:10px; color:#6b7280;">This usually happens if your connection is unstable or the configuration is missing.</p>
+                        <button onclick="location.reload()" style="margin-top:15px; background:#b91c1c; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600;">Retry Page</button>
+                    </div>
+                `;
+                loader.style.display = 'flex';
+            }
+            return false;
+        };
+
         const urlParams = new URLSearchParams(window.location.search);
 
         function getStableApiUrl() {
@@ -484,6 +502,7 @@
 
         // INIT
         async function init() {
+            console.log("🚀 Portal: Starting initialization...");
             const portalSlug = urlParams.get('p');
 
             // --- VANITY URL RESOLUTION ---
@@ -704,7 +723,7 @@
 
                 if (res.status === 'success') {
                     currentState.formCache[id] = res;
-                    setTimeout(() => renderForm(id, res), 100);
+                    renderForm(id, res);
                 } else {
                     throw new Error(res.message || "Form template error");
                 }
@@ -725,70 +744,90 @@
 
         // RENDER FORM
         function renderForm(id, data) {
-            currentState.currentFormId = id;
-            const container = document.getElementById('form-wrapper');
-            container.innerHTML = '';
+            try {
+                console.log(`🎨 Rendering form: ${id}`, data);
+                currentState.currentFormId = id;
+                const container = document.getElementById('form-wrapper');
+                if (!container) throw new Error("Form wrapper container not found");
 
-            // Update Header if form name exists
-            if (data.config && data.config.formName) {
-                const titleEl = document.getElementById('portalTitle');
-                if (titleEl) titleEl.innerText = data.config.formName;
-            }
+                container.innerHTML = '';
 
-            let maxY = 0;
-            const schema = data.schema || [];
-
-            if (schema.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" style="text-align:center; padding:60px 20px;">
-                        <h3 style="margin:0 0 10px 0;">Form is Empty</h3>
-                        <p style="color:var(--text-light); margin:0;">No elements found in schema for this form.</p>
-                    </div>`;
-                container.classList.remove('loading');
-                return;
-            }
-
-            schema.forEach(elm => {
-                const elDiv = document.createElement('div');
-                elDiv.className = 'canvas-element';
-                elDiv.style.left = elm.x + 'px';
-                elDiv.style.top = elm.y + 'px';
-
-                const bottom = (elm.y || 0) + 60;
-                if (bottom > maxY) maxY = bottom;
-
-                if (['text', 'number', 'date', 'email', 'tel'].includes(elm.type)) {
-                    elDiv.innerHTML = `
-                        <label class="field-label">${elm.props.label || 'Input'} ${elm.props.required ? '<span style="color:#ef4444">*</span>' : ''}</label>
-                        <input type="${elm.type}" class="field-input" name="${elm.props.name}" 
-                               ${elm.props.required ? 'required' : ''} placeholder="Type here...">
-                    `;
-                } else if (elm.type === 'heading') {
-                    const tag = elm.props.headingLevel || 'h2';
-                    elDiv.innerHTML = `<${tag} style="margin:0; font-weight:700; color:var(--text-main);">${elm.props.label}</${tag}>`;
-                } else if (elm.type === 'label') {
-                    elDiv.innerHTML = `<span style="font-size:0.9rem; color:var(--text-main);">${elm.props.label}</span>`;
+                // Update Header if form name exists
+                if (data.config && data.config.formName) {
+                    const titleEl = document.getElementById('portalTitle');
+                    if (titleEl) titleEl.innerText = data.config.formName;
                 }
 
-                container.appendChild(elDiv);
-            });
+                let maxY = 0;
+                const schema = data.schema || [];
 
-            const paperHeight = Math.max(maxY + 100, 500);
-            container.style.height = paperHeight + 'px';
+                if (!Array.isArray(schema) || schema.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="text-align:center; padding:60px 20px;">
+                            <h3 style="margin:0 0 10px 0;">Form is Empty</h3>
+                            <p style="color:var(--text-light); margin:0;">No elements found in schema for this form.</p>
+                        </div>`;
+                } else {
+                    schema.forEach(elm => {
+                        if (!elm || !elm.type) return;
 
-            const submitDiv = document.createElement('div');
-            submitDiv.className = 'submit-container';
-            submitDiv.style.top = (paperHeight - 20) + 'px';
-            submitDiv.innerHTML = `
-                <button class="btn-submit" onclick="handleSubmit()">
-                    Submit Form Response
-                    <svg style="margin-left:8px;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-            `;
-            container.appendChild(submitDiv);
+                        const elDiv = document.createElement('div');
+                        elDiv.className = 'canvas-element';
+                        elDiv.style.left = (elm.x || 0) + 'px';
+                        elDiv.style.top = (elm.y || 0) + 'px';
 
-            container.classList.remove('loading');
-            document.getElementById('loader').style.display = 'none';
+                        const bottom = (elm.y || 0) + 60;
+                        if (bottom > maxY) maxY = bottom;
+
+                        const props = elm.props || {};
+
+                        if (['text', 'number', 'date', 'email', 'tel'].includes(elm.type)) {
+                            elDiv.innerHTML = `
+                                <label class="field-label">${props.label || 'Input'} ${props.required ? '<span style="color:#ef4444">*</span>' : ''}</label>
+                                <input type="${elm.type}" class="field-input" name="${props.name || 'field'}" 
+                                       ${props.required ? 'required' : ''} placeholder="Type here...">
+                            `;
+                        } else if (elm.type === 'heading') {
+                            const tag = props.headingLevel || 'h2';
+                            elDiv.innerHTML = `<${tag} style="margin:0; font-weight:700; color:var(--text-main);">${props.label || 'Heading'}</${tag}>`;
+                        } else if (elm.type === 'label') {
+                            elDiv.innerHTML = `<span style="font-size:0.9rem; color:var(--text-main);">${props.label || 'Label'}</span>`;
+                        }
+
+                        container.appendChild(elDiv);
+                    });
+
+                    const paperHeight = Math.max(maxY + 100, 500);
+                    container.style.height = paperHeight + 'px';
+
+                    const submitDiv = document.createElement('div');
+                    submitDiv.className = 'submit-container';
+                    submitDiv.style.top = (paperHeight - 20) + 'px';
+                    submitDiv.innerHTML = `
+                        <button class="btn-submit" onclick="handleSubmit()">
+                            Submit Form Response
+                            <svg style="margin-left:8px;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    `;
+                    container.appendChild(submitDiv);
+                }
+
+                container.classList.remove('loading');
+                const globalLoader = document.getElementById('loader');
+                if (globalLoader) globalLoader.style.display = 'none';
+                console.log("✅ Rendering complete");
+            } catch (err) {
+                console.error("❌ Rendering Error:", err);
+                const globalLoader = document.getElementById('loader');
+                if (globalLoader) globalLoader.style.display = 'none';
+
+                document.getElementById('form-wrapper').innerHTML = `
+                    <div style="padding:40px; text-align:center; color:#ef4444;">
+                        <h3>Design Rendering Error</h3>
+                        <p>${err.message}</p>
+                    </div>
+                `;
+            }
         }
 
         // SUBMIT
@@ -823,13 +862,21 @@
                 // 1. GAS SUBMISSION (Client's Sheet) - STRICTLY ONLY STORE HERE
                 if (API_URL && API_URL.length > 10) {
                     console.log("🚀 Submitting to GAS...");
+
+                    // Check if current form has storage overrides
+                    const formCache = currentState.formCache[currentState.currentFormId] || {};
+                    const formCfg = formCache.config || {};
+
                     const gasReq = fetch(API_URL, {
                         method: 'POST',
                         mode: 'no-cors',
                         body: JSON.stringify({
                             action: 'submitForm',
                             formId: currentState.currentFormId,
-                            formData: formData
+                            formData: formData,
+                            // Overrides
+                            targetSheetUrl: formCfg.targetSheetUrl || null,
+                            targetSheetName: formCfg.targetSheetName || null
                         })
                     }).then(() => console.log("✅ GAS Request Sent"));
                     submissionPromises.push(gasReq);

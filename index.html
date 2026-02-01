@@ -2003,7 +2003,8 @@
             brandingDescription: '',
             footerText: '',
             displayMode: 'full', // 'full' or 'card'
-            workspaceId: new URLSearchParams(window.location.search).get('workspaceId') || null
+            workspaceId: new URLSearchParams(window.location.search).get('workspaceId') || null,
+            id: new URLSearchParams(window.location.search).get('id') || ('Form_' + Date.now())
         };
 
         // DOM REFERENCES
@@ -3908,6 +3909,17 @@
         }
 
         initRulers();
+
+        // --- AUTO-LOAD LOGIC ---
+        // If an ID is passed in the URL, load that form automatically
+        (async function autoLoad() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const formId = urlParams.get('id');
+            if (formId) {
+                console.log("📂 Auto-loading Form ID:", formId);
+                await loadForm(formId);
+            }
+        })();
     </script>
 </body>
 
