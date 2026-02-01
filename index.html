@@ -3176,13 +3176,15 @@
             formConfig.storageEngine = safeGetValue('propStorageEngine', formConfig.storageEngine);
             formConfig.gasApiUrl = safeGetValue('propApiUrl', formConfig.gasApiUrl);
             formConfig.customDomain = safeGetValue('propCustomDomain', formConfig.customDomain);
+            formConfig.firebaseConfig = safeGetValue('propFirebaseConfig', formConfig.firebaseConfig);
 
             const schema = elements;
             const config = formConfig;
             const metadata = {
                 allowedDomains: safeGetValue('propAllowedDomains', ''),
                 formName: formConfig.formName,
-                workspaceId: formConfig.workspaceId
+                workspaceId: formConfig.workspaceId,
+                firebaseConfig: formConfig.firebaseConfig
             };
 
             // Local Fallback for Preview (Instant)
@@ -3193,6 +3195,7 @@
             localStorage.setItem('storageEngine', formConfig.storageEngine);
             localStorage.setItem('gasApiUrl', formConfig.gasApiUrl);
             localStorage.setItem('customDomain', formConfig.customDomain);
+            localStorage.setItem('firebaseConfig', formConfig.firebaseConfig);
 
             try {
                 // Diagnostic Step 1
@@ -3495,7 +3498,7 @@
             formConfig.languagePrimary = config.languagePrimary || "en";
             formConfig.languageSecondary = config.languageSecondary || config.language || 'mr';
             formConfig.storageEngine = config.storageEngine || 'gas';
-            formConfig.firebaseConfig = metadata.firebaseConfig || "";
+            formConfig.firebaseConfig = config.firebaseConfig || metadata.firebaseConfig || "";
             formConfig.slug = config.slug || "";
             formConfig.customDomain = config.customDomain || "";
 
@@ -3735,7 +3738,8 @@
                     slug: slug,
                     customDomain: document.getElementById('propCustomDomain').value.trim(),
                     gasApiUrl: document.getElementById('propApiUrl').value || formConfig.gasApiUrl,
-                    storageEngine: document.getElementById('propStorageEngine').value || formConfig.storageEngine
+                    storageEngine: document.getElementById('propStorageEngine').value || formConfig.storageEngine,
+                    firebaseConfig: document.getElementById('propFirebaseConfig').value || formConfig.firebaseConfig
                 }
             });
 
@@ -3747,6 +3751,7 @@
             if (res.status === 'success' || (res.message && res.message.includes('sent'))) {
                 localStorage.setItem('gasApiUrl', document.getElementById('propApiUrl').value || formConfig.gasApiUrl);
                 localStorage.setItem('storageEngine', document.getElementById('propStorageEngine').value || formConfig.storageEngine);
+                localStorage.setItem('firebaseConfig', document.getElementById('propFirebaseConfig').value || formConfig.firebaseConfig);
                 alert("Portal Collection Updated Successfully!");
             } else {
                 alert("Error: " + res.message);

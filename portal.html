@@ -550,6 +550,20 @@
                             console.log(`⚙️ Engine: Using ${cfg.storageEngine} from vanity mapping`);
                         }
 
+                        // NEW: Support custom Firebase config per portal
+                        if (cfg.firebaseConfig) {
+                            try {
+                                const customConfig = typeof cfg.firebaseConfig === 'string' ? JSON.parse(cfg.firebaseConfig) : cfg.firebaseConfig;
+                                if (firebase.apps.length > 0) {
+                                    await firebase.app().delete();
+                                }
+                                firebase.initializeApp(customConfig);
+                                console.log("🔥 Portal: Switched to custom Firebase project:", customConfig.projectId);
+                            } catch (e) {
+                                console.error("❌ Portal: Failed to apply custom Firebase config", e);
+                            }
+                        }
+
                         currentState.config = cfg;
 
                         // Capture attached forms from Portal Designer
