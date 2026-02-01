@@ -1524,7 +1524,7 @@
                                 <label>Storage Engine</label>
                                 <select id="propStorageEngine" onchange="toggleBackendConfig()">
                                     <option value="gas">Google Sheets (GAS)</option>
-                                    <option value="firebase">Firebase Firestore</option>
+                                    <option value="firebase">Default - System Storage</option>
                                 </select>
                             </div>
 
@@ -1535,11 +1535,7 @@
                                     placeholder='{"apiKey": "...", ...}'></textarea>
                             </div>
 
-                            <div class="form-group">
-                                <label>GAS Script URL</label>
-                                <input type="text" id="propApiUrl">
-                            </div>
-                            <!-- MOVED TO EMBED MODAL -->
+                            <!-- GAS Script URL moved to Admin Panel (Global Setting) -->
                         </div>
 
                         <!-- BRANDING -->
