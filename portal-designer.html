@@ -205,32 +205,57 @@
             (portalData.attachedForms || []).forEach(f => attachedConfig[f.formId] = f);
 
             const container = document.getElementById('contentArea');
-            if (allForms.length === 0) {
+
+            // Combine all valid forms AND any attached forms that are missing (so we can show them as errors)
+            const validFormIds = new Set(allForms.map(f => f.id));
+            const missingForms = (portalData.attachedForms || []).filter(f => !validFormIds.has(f.formId));
+
+            if (allForms.length === 0 && missingForms.length === 0) {
                 container.innerHTML = '<div class="loading">No forms found in this workspace.</div>';
                 return;
             }
 
-            container.innerHTML = `
-                <ul class="form-list">
-                    ${allForms.map(form => {
+            let html = '<ul class="form-list">';
+
+            // 1. Render Missing Forms (Errors) First
+            if (missingForms.length > 0) {
+                html += missingForms.map(f => `
+                    <li class="form-item" style="background: #fff5f5; border-left: 4px solid #ef4444;">
+                        <input type="checkbox" class="form-check" data-id="${f.formId}" checked style="width: 20px; height: 20px; accent-color: #ef4444;">
+                        <div class="form-info">
+                            <div class="form-name" style="color: #b91c1c;">⚠️ Missing Form: ${f.label || f.formId}</div>
+                            <div class="form-id" style="color: #ef4444;">ID: ${f.formId} (Not found in workspace)</div>
+                            <div style="font-size: 0.7rem; color: #b91c1c; margin-top: 4px;">Uncheck to remove this broken link.</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; opacity: 0.5; pointer-events: none;">
+                            <label style="font-size: 0.8rem; color: var(--text-light);">Order:</label>
+                            <input type="number" class="form-order" value="${f.order || 0}" style="width: 60px; padding: 0.25rem;">
+                        </div>
+                    </li>
+                `).join('');
+            }
+
+            // 2. Render Valid Forms
+            html += allForms.map(form => {
                 const isChecked = attachedIds.has(form.id);
                 const order = isChecked ? (attachedConfig[form.id].order || 0) : 0;
                 return `
-                        <li class="form-item">
-                            <input type="checkbox" class="form-check" data-id="${form.id}" ${isChecked ? 'checked' : ''} style="width: 20px; height: 20px;">
-                            <div class="form-info">
-                                <div class="form-name">${form.config?.formName || form.id}</div>
-                                <div class="form-id">${form.id}</div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <label style="font-size: 0.8rem; color: var(--text-light);">Order:</label>
-                                <input type="number" class="form-order" data-id="${form.id}" value="${order}" style="width: 60px; padding: 0.25rem;">
-                            </div>
-                        </li>
-                        `;
-            }).join('')}
-                </ul>
-            `;
+                    <li class="form-item">
+                        <input type="checkbox" class="form-check" data-id="${form.id}" ${isChecked ? 'checked' : ''} style="width: 20px; height: 20px;">
+                        <div class="form-info">
+                            <div class="form-name">${form.config?.formName || form.id}</div>
+                            <div class="form-id">${form.id}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <label style="font-size: 0.8rem; color: var(--text-light);">Order:</label>
+                            <input type="number" class="form-order" data-id="${form.id}" value="${order}" style="width: 60px; padding: 0.25rem;">
+                        </div>
+                    </li>
+                    `;
+            }).join('');
+
+            html += '</ul>';
+            container.innerHTML = html;
         }
 
         async function savePortalConfig() {
