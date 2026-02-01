@@ -672,6 +672,12 @@
                 // Otherwise fallback to the 'forms' array in the generic config
                 let formsToRender = currentState.portalForms || res.config.forms || [];
 
+                // NEW: Validate forms exist before rendering (only for Firebase backend)
+                if (backend === 'firebase' && formsToRender.length > 0) {
+                    console.log("🔍 Validating forms exist in database...");
+                    formsToRender = await validateAndFilterForms(formsToRender);
+                }
+
                 renderSidebar(formsToRender);
 
                 // Auto Load First Form
@@ -680,7 +686,19 @@
                     const firstId = formsToRender[0].formId || formsToRender[0].id;
                     fetchForm(firstId);
                 } else {
-                    document.getElementById('nav-list').innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-size:0.9rem;">No forms available</div>';
+                    const navList = document.getElementById('nav-list');
+                    navList.innerHTML = `
+                        <div style="padding:20px; text-align:center; color:#999; font-size:0.9rem;">
+                            <p style="margin:0 0 10px 0;">No valid forms available</p>
+                            <p style="font-size:0.75rem; color:#6b7280; margin:0;">
+                                The portal configuration may reference forms that don't exist.
+                            </p>
+                            <a href="check-portal-config.html?slug=${urlParams.get('p') || urlParams.get('slug') || 'first-portal'}" 
+                               style="display:inline-block; margin-top:15px; padding:8px 16px; background:#2563eb; color:white; text-decoration:none; border-radius:6px; font-size:0.8rem; font-weight:600;">
+                                🔍 Run Diagnostics
+                            </a>
+                        </div>
+                    `;
                     document.getElementById('loader').style.display = 'none';
                 }
 
@@ -694,6 +712,63 @@
             }
         }
 
+
+        // VALIDATE FORMS EXIST (Firebase only)
+        async function validateAndFilterForms(forms) {
+            if (!forms || forms.length === 0) return [];
+
+            const db = firebase.firestore();
+            const validForms = [];
+            const missingForms = [];
+
+            console.log(`🔍 Checking ${forms.length} form(s) for existence...`);
+
+            for (const formRef of forms) {
+                const formId = formRef.formId || formRef.id;
+                const formName = formRef.label || formRef.name || formRef.formName || 'Untitled';
+
+                try {
+                    const formDoc = await db.collection('forms').doc(formId).get();
+
+                    if (formDoc.exists) {
+                        console.log(`✅ Form exists: ${formName} (${formId})`);
+                        validForms.push(formRef);
+                    } else {
+                        console.warn(`⚠️ Form missing: ${formName} (${formId})`);
+                        missingForms.push({ id: formId, name: formName });
+                    }
+                } catch (err) {
+                    console.error(`❌ Error checking form ${formId}:`, err);
+                    missingForms.push({ id: formId, name: formName });
+                }
+            }
+
+            if (missingForms.length > 0) {
+                console.warn(`⚠️ Portal Warning: ${missingForms.length} form(s) not found in database:`, missingForms);
+
+                // Show warning banner
+                const wrapper = document.getElementById('form-wrapper');
+                const warningBanner = document.createElement('div');
+                warningBanner.style.cssText = `
+                    background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px 20px;
+                    margin: 20px; border-radius: 8px; font-size: 0.9rem;
+                `;
+                warningBanner.innerHTML = `
+                    <strong style="color: #92400e;">⚠️ Portal Configuration Issue</strong>
+                    <p style="margin: 8px 0 0 0; color: #78350f;">
+                        ${missingForms.length} form(s) referenced in this portal don't exist in the database.
+                        Only ${validForms.length} valid form(s) are shown.
+                    </p>
+                    <a href="check-portal-config.html?slug=${urlParams.get('p') || urlParams.get('slug') || 'first-portal'}" 
+                       style="display:inline-block; margin-top:10px; padding:6px 12px; background:#f59e0b; color:white; text-decoration:none; border-radius:6px; font-size:0.8rem; font-weight:600;">
+                        🔍 View Diagnostic Report
+                    </a>
+                `;
+                wrapper.appendChild(warningBanner);
+            }
+
+            return validForms;
+        }
 
         // SIDEBAR
         function renderSidebar(forms) {
